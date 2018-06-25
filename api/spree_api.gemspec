@@ -1,4 +1,5 @@
-# -*- encoding: utf-8 -*-
+# frozen_string_literal: true
+
 require_relative '../core/lib/spree/core/version.rb'
 
 Gem::Specification.new do |s|
@@ -9,9 +10,9 @@ Gem::Specification.new do |s|
   s.homepage      = 'http://spreecommerce.org'
   s.license       = 'BSD-3-Clause'
 
-  s.required_ruby_version = '>= 2.2.7'
+  s.required_ruby_version = '>= 2.3.0'
 
-  s.files         = `git ls-files`.split($\).reject { |f| f.match(/^spec/) && !f.match(/^spec\/fixtures/) }
+  s.files         = `git ls-files`.split($\)
   s.executables   = s.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
   s.name          = "spree_api"
   s.require_paths = ["lib"]
@@ -20,7 +21,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'jsonapi-rspec'
 
   s.add_dependency 'spree_core', s.version
-  s.add_dependency 'rabl', '~> 0.13.1'
+  s.add_dependency 'jbuilder'
+  s.add_dependency 'kaminari-activerecord', '~> 1.1'
   s.add_dependency 'versioncake', '~> 3.4.0'
   s.add_dependency 'fast_jsonapi', '~> 1.1.0'
   s.add_dependency 'doorkeeper'
