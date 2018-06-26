@@ -1,5 +1,12 @@
-Spree::Core::Engine.add_routes do
-  namespace :admin, path: Spree.admin_path do
+# frozen_string_literal: true
+
+Spree::Core::Engine.routes.draw do
+  namespace :admin do
+    get '/search/users', to: 'search#users', as: :search_users
+    get '/search/products', to: 'search#products', as: :search_products
+
+    put '/locale/set', to: 'locale#set', defaults: { format: :json }, as: :set_locale
+
     resources :promotions do
       resources :promotion_rules
       resources :promotion_actions
@@ -178,10 +185,16 @@ Spree::Core::Engine.add_routes do
         get :items
         get :orders
       end
-      resources :store_credits
+      resources :store_credits, except: [:destroy] do
+        member do
+          get :edit_amount
+          put :update_amount
+          get :edit_validity
+          put :invalidate
+        end
+      end
     end
   end
 
-  spree_path = Rails.application.routes.url_helpers.try(:spree_path, trailing_slash: true) || '/'
-  get Spree.admin_path, to: redirect((spree_path + Spree.admin_path + '/orders').gsub('//', '/')), as: :admin
+  get '/admin', to: 'admin/orders#index', as: :admin
 end
