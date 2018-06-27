@@ -25,14 +25,15 @@ Spree::Core::Engine.routes.draw do
       end
     end
 
-    resources :countries do
-      resources :states
-    end
-    resources :states
     resources :tax_categories
 
     resources :products do
       resources :product_properties do
+        collection do
+          post :update_positions
+        end
+      end
+      resources :variant_property_rule_values, only: [:destroy] do
         collection do
           post :update_positions
         end
@@ -44,15 +45,16 @@ Spree::Core::Engine.routes.draw do
       end
       member do
         post :clone
-        get :stock
       end
-      resources :variants do
+      resources :variants, only: [:index, :edit, :update, :new, :create, :destroy] do
         collection do
           post :update_positions
         end
       end
       resources :variants_including_master, only: [:update]
+      resources :prices, only: [:destroy, :index, :edit, :update, :new, :create]
     end
+    get '/products/:product_slug/stock', to: "stock_items#index", as: :product_stock
 
     resources :option_types do
       collection do
@@ -84,17 +86,16 @@ Spree::Core::Engine.routes.draw do
     resources :orders, except: [:show] do
       member do
         get :cart
+        put :advance
+        get :confirm
+        put :complete
         post :resend
-        get :open_adjustments
-        get :close_adjustments
+        get '/adjustments/unfinalize', to: 'orders#unfinalize_adjustments'
+        get '/adjustments/finalize', to: 'orders#finalize_adjustments'
         put :approve
         put :cancel
         put :resume
-        get :store
-        put :set_store
       end
-
-      resources :state_changes, only: [:index]
 
       resource :customer, controller: 'orders/customer_details'
       resources :customer_returns, only: [:index, :new, :edit, :create, :update] do
