@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
-require 'spree/testing_support/bar_ability'
 
 describe Spree::Admin::UsersController, type: :controller do
   let(:user) { create(:user) }
@@ -49,24 +50,7 @@ describe Spree::Admin::UsersController, type: :controller do
       allow(user).to receive_messages has_spree_role?: false
       spree_post :index
       expect(response).to redirect_to(spree.forbidden_path)
-    end
-
-    describe 'deny access to users with an bar role' do
-      before do
-        user.spree_roles << Spree::Role.find_or_create_by(name: 'bar')
-        Spree::Ability.register_ability(BarAbility)
-      end
-
-      it '#index' do
-        spree_post :index
-        expect(response).to redirect_to(spree.forbidden_path)
-      end
-
-      it '#update' do
-        spree_post :update, id: '9'
-        expect(response).to redirect_to(spree.forbidden_path)
-      end
-    end
+    end    
   end
 
   describe '#create' do
