@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
-require 'spree/testing_support/bar_ability'
 
 module Spree
   describe Api::V1::OrdersController, type: :controller do
@@ -207,21 +208,6 @@ module Spree
       request.headers['X-Spree-Order-Token'] = order.guest_token
       api_get :show, id: order.to_param
       expect(response.status).to eq(200)
-    end
-
-    context 'with BarAbility registered' do
-      before { Spree::Ability.register_ability(::BarAbility) }
-      after { Spree::Ability.remove_ability(::BarAbility) }
-
-      it 'can view an order' do
-        user = mock_model(Spree::LegacyUser)
-        allow(user).to receive_message_chain(:spree_roles, :pluck).and_return(['bar'])
-        allow(user).to receive(:has_spree_role?).with('bar').and_return(true)
-        allow(user).to receive(:has_spree_role?).with('admin').and_return(false)
-        allow(Spree.user_class).to receive_messages find_by: user
-        api_get :show, id: order.to_param
-        expect(response.status).to eq(200)
-      end
     end
 
     it "cannot cancel an order that doesn't belong to them" do
