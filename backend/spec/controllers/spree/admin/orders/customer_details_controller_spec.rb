@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'cancan'
-require 'spree/testing_support/bar_ability'
 
 describe Spree::Admin::Orders::CustomerDetailsController, type: :controller do
   context 'with authorization' do
