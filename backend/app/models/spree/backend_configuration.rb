@@ -9,7 +9,7 @@ module Spree
                             :variants, :product_properties, :taxonomies,
                             :taxons]
     REPORT_TABS        ||= [:reports]
-    CONFIGURATION_TABS ||= [:configurations, :general_settings, :tax_categories,
+    CONFIGURATION_TABS ||= [:stores, :tax_categories,
                             :tax_rates, :zones
                             :payment_methods, :shipping_methods,
                             :shipping_categories, :stock_transfers,
