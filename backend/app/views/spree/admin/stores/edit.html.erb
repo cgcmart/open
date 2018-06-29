@@ -1,13 +1,19 @@
-<% content_for :page_title do %>
-  <%= link_to Spree.t(:stores), spree.admin_stores_url %> /
-  <%= @store.name %>
+<%= render 'spree/admin/shared/configuration_menu' %>
+
+<% admin_breadcrumb(link_to(plural_resource_name(Spree::Store), admin_stores_path)) %>
+<% admin_breadcrumb(@store.name) %>
+
+<% content_for :page_actions do %>
+  <li>
+    <%= link_to t('spree.new_store'), new_admin_store_url, class: 'btn btn-primary' %>
+  </li>
 <% end %>
 
-<%= render partial: 'spree/admin/shared/error_messages', locals: { target: @store } %>
-
 <%= form_for [:admin, @store] do |f| %>
-  <fieldset>
-    <%= render partial: 'form', locals: { f: f } %>
-    <%= render partial: 'spree/admin/shared/edit_resource_links', locals: { collection_url: spree.admin_stores_path(@store) } %>
+  <fieldset class="no-border-top">
+    <%= render 'form', f: f %>
+    <% if can? :update, @store %>
+      <%= render 'spree/admin/shared/edit_resource_links' %>
+    <% end %>
   </fieldset>
 <% end %>
