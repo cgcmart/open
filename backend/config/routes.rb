@@ -19,12 +19,6 @@ Spree::Core::Engine.routes.draw do
 
     resources :zones
 
-    resources :stores do
-      member do
-        post :set_default
-      end
-    end
-
     resources :tax_categories
 
     resources :products do
@@ -129,11 +123,8 @@ Spree::Core::Engine.routes.draw do
     get '/return_authorizations', to: 'return_index#return_authorizations', as: :return_authorizations
     get '/customer_returns', to: 'return_index#customer_returns', as: :customer_returns
 
-    resource :general_settings do
-      collection do
-        post :clear_cache
-      end
-    end
+    resource :general_settings, only: :edit
+    resources :stores, only: [:index, :new, :create, :edit, :update]
 
     resources :return_items, only: [:update]
 
