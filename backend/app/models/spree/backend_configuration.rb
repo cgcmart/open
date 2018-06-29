@@ -14,9 +14,9 @@ module Spree
                             :payment_methods, :shipping_methods,
                             :shipping_categories, :stock_transfers,
                             :stock_locations, :trackers, :refund_reasons,
-                            :reimbursement_types, :return_authorization_reasons,
-                            :stores]
+                            :reimbursement_types, :return_authorization_reasons]
     PROMOTION_TABS     ||= [:promotions, :promotion_categories]
-    USER_TABS          ||= [:users]
+    STOCK_TABS         ||= [:stock_items]
+    USER_TABS          ||= [:users, :store_credits]
   end
 end
