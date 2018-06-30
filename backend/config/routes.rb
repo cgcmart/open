@@ -186,6 +186,8 @@ Spree::Core::Engine.routes.draw do
         end
       end
     end
+
+    resources :style_guide, only: [:index]
   end
 
   get '/admin', to: 'admin/orders#index', as: :admin
