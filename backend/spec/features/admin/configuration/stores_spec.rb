@@ -1,81 +1,60 @@
 require 'spec_helper'
 
-describe 'Stores admin', type: :feature do
+RSpec.describe 'Stores admin', type: :feature, js: true do
   stub_authorization!
 
-  let!(:store) { create(:store) }
+  let!(:store) do
+    create(:store, name: 'Test Store', url: 'test.example.org',
+           mail_from_address: 'test@example.org')
+  end
 
-  describe 'visiting the stores page' do
-    it 'is on the stores page' do
-      visit spree.admin_stores_path
+  let!(:vat_country) { create(:country, iso: "DE", name: "Germany") }
 
-      store_table = page.find('table')
-      expect(store_table.all('tr').count).to eq 1
-      expect(store_table).to have_content(store.name)
-      expect(store_table).to have_content(store.url)
+  before(:each) do
+    visit spree.admin_path
+    click_link "Settings"
+    within('.admin-nav') do
+      click_link "Stores"
     end
   end
 
-  describe 'creating store' do
-    it 'creates store and associate it with the user' do
-      visit spree.admin_stores_path
-
-      click_link 'New Store'
-      page.fill_in 'store_name', with: 'Spree Example Test'
-      page.fill_in 'store_url', with: 'test.localhost'
-      page.fill_in 'store_mail_from_address', with: 'spree@example.com'
-      page.fill_in 'store_code', with: 'SPR'
-      click_button 'Create'
-
-      expect(page).to have_current_path spree.admin_stores_path
-      store_table = page.find('table')
-      expect(store_table.all('tr').count).to eq 2
-      expect(Spree::Store.count).to eq 2
+  context "visiting general store settings" do
+    it "should have the right content" do
+      expect(page).to have_field("store_name", with: "Test Store")
+      expect(page).to have_field("store_url", with: "test.example.org")
+      expect(page).to have_field("store_mail_from_address", with: "test@example.org")
     end
   end
 
-  describe 'updating store' do
-    let(:updated_name) { 'New Store Name' }
+  context "editing general store settings" do
+    it "should be able to update the site name" do
+      fill_in "store_name", with: "Spree Demo Site99"
+      fill_in "store_mail_from_address", with: "spree@example.org"
+      click_button "Update"
 
-    it 'creates store and associate it with the user' do
-      visit spree.admin_stores_path
+      expect(page).to have_content "successfully updated"
+      expect(page).to have_field("store_name", with: "Spree Demo Site99")
+      expect(page).to have_field("store_mail_from_address", with: "spree@example.org")
+    end
 
-      click_link 'Edit'
-      page.fill_in 'store_name', with: updated_name
-      click_button 'Update'
+    it "should be able to update the default cart tax country" do
+      expect(page).to have_select('Tax Country for Empty Carts', selected: 'No taxes on carts without address')
 
-      expect(page).to have_current_path spree.admin_stores_path
-      store_table = page.find('table')
-      expect(store_table).to have_content(updated_name)
-      expect(store.reload.name).to eq updated_name
+      select "Germany", from: "Tax Country for Empty Carts"
+      click_button "Update"
+
+      expect(page).to have_content("has been successfully updated")
+      expect(page).to have_select("Tax Country for Empty Carts", selected: "Germany")
     end
   end
 
-  describe 'deleting store', js: true do
-    let!(:second_store) { create(:store) }
+  context "update fails" do
+    it "should display the error" do
+      fill_in "Site Name", with: " "
+      click_button "Update"
 
-    it 'updates store in lifetime stats' do
-      visit spree.admin_stores_path
-
-      spree_accept_alert do
-        page.all('.icon-delete')[1].click
-        wait_for_ajax
-      end
-      wait_for_ajax
-
-      expect(Spree::Store.find_by_id(second_store.id)).to be_nil
-    end
-  end
-
-  describe 'setting default store' do
-    let!(:store1) { create(:store, default: false) }
-
-    it 'sets a store as default' do
-      visit spree.admin_stores_path
-      click_button 'Set as default'
-
-      expect(store.reload.default).to eq false
-      expect(store1.reload.default).to eq true
+      expect(page).to have_content("can't be blank")
+      expect(page).to have_field("Site Name", with: " ")
     end
   end
 end
