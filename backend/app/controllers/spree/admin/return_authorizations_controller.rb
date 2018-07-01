@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class ReturnAuthorizationsController < ResourceController
@@ -18,7 +20,8 @@ module Spree
       def load_form_data
         load_return_items
         load_reimbursement_types
-        load_return_authorization_reasons
+        load_return_reasons
+        load_stock_locations
       end
 
       # To satisfy how nested attributes works we want to create placeholder ReturnItems for
@@ -39,12 +42,12 @@ module Spree
         @reimbursement_types = Spree::ReimbursementType.accessible_by(current_ability, :read).active
       end
 
-      def load_return_authorization_reasons
-        @reasons = Spree::ReturnAuthorizationReason.active.to_a
-        # Only allow an inactive reason if it's already associated to the RMA
-        if @return_authorization.reason && !@return_authorization.reason.active?
-          @reasons << @return_authorization.reason
-        end
+      def load_return_reasons
+        @reasons = Spree::ReturnReason.reasons_for_return_items(@return_authorization.return_items)
+      end
+
+      def load_stock_locations
+        @stock_locations = Spree::StockLocation.order_default.active
       end
     end
   end
