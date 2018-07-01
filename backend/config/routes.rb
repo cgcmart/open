@@ -144,9 +144,10 @@ Spree::Core::Engine.routes.draw do
       end
     end
 
-    resources :reimbursement_types
-    resources :refund_reasons, except: :show
-    resources :return_authorization_reasons, except: :show
+    resources :reimbursement_types, only: [:index]
+    resources :adjustment_reasons, except: [:show, :destroy]
+    resources :refund_reasons, except: [:show, :destroy]
+    resources :return_reasons, except: [:show, :destroy]
 
     resources :shipping_methods
     resources :shipping_categories
@@ -155,6 +156,7 @@ Spree::Core::Engine.routes.draw do
       resources :stock_movements, except: [:edit, :update, :destroy]
       collection do
         post :transfer_stock
+        post :update_positions
       end
     end
 
