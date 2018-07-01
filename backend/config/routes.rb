@@ -118,10 +118,13 @@ Spree::Core::Engine.routes.draw do
           post :perform
         end
       end
-    end
 
-    get '/return_authorizations', to: 'return_index#return_authorizations', as: :return_authorizations
-    get '/customer_returns', to: 'return_index#customer_returns', as: :customer_returns
+      resources :cancellations, only: [:index] do
+        collection do
+          post :short_ship
+        end
+      end
+    end
 
     resource :general_settings, only: :edit
     resources :stores, only: [:index, :new, :create, :edit, :update]
