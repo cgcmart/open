@@ -2,7 +2,9 @@ module Spree
   module PermittedAttributes
     ATTRIBUTES = [
       :address_attributes,
+      :address_book_attributes,
       :checkout_attributes,
+      :credit_card_update_attributes,
       :customer_return_attributes,
       :image_attributes,
       :inventory_unit_attributes,
@@ -37,11 +39,17 @@ module Spree
       state: [:name, :abbr]
     ]
 
+    @@address_book_attributes = address_attributes + [:default]
+
     @@checkout_attributes = [
       :coupon_code, :email, :shipping_method_id, :special_instructions, :use_billing, :user_id
     ]
 
-    @@customer_return_attributes = [:stock_location_id, return_items_attributes: [:id, :inventory_unit_id, :return_authorization_id, :returned, :pre_tax_amount, :acceptance_status, :exchange_variant_id, :resellable]]
+    @@credit_card_update_attributes = [
+      :month, :year, :expiry, :first_name, :last_name, :name
+    ]
+
+    @@customer_return_attributes = [:stock_location_id, return_items_attributes: [:id, :inventory_unit_id, :return_authorization_id, :returned, :amount, :acceptance_status, :exchange_variant_id, :resellable]]
 
     @@image_attributes = [:alt, :attachment, :position, :viewable_type, :viewable_id]
 
@@ -62,13 +70,12 @@ module Spree
       :meta_keywords, :price, :sku, :deleted_at, :prototype_id,
       :option_values_hash, :weight, :height, :width, :depth,
       :shipping_category_id, :tax_category_id,
-      :cost_currency, :cost_price,
-      option_type_ids: [], taxon_ids: []
+      :taxon_ids, :option_type_ids, :cost_currency, :cost_price
     ]
 
     @@property_attributes = [:name, :presentation]
 
-    @@return_authorization_attributes = [:amount, :memo, :stock_location_id, :inventory_units_attributes, :return_authorization_reason_id]
+    @@return_authorization_attributes = [:memo, :stock_location_id, :return_reason_id, return_items_attributes: [:inventory_unit_id, :exchange_variant_id, :return_reason_id]]
 
     @@shipment_attributes = [
       :order, :special_instructions, :stock_location_id, :id,
@@ -78,7 +85,7 @@ module Spree
     @@source_attributes = [
       :number, :month, :year, :expiry, :verification_value,
       :first_name, :last_name, :cc_type, :gateway_customer_profile_id,
-      :gateway_payment_profile_id, :last_digits, :name, :encrypted_data]
+      :gateway_payment_profile_id, :last_digits, :name, :encrypted_data, :existing_card_id]
 
     @@stock_item_attributes = [:variant, :stock_location, :backorderable, :variant_id]
 
