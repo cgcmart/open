@@ -1,32 +1,56 @@
+# frozen_string_literal: true
+
 module Spree
   class InventoryUnit < Spree::Base
-    with_options inverse_of: :inventory_units do
-      belongs_to :variant, class_name: 'Spree::Variant'
-      belongs_to :order, class_name: 'Spree::Order'
-      belongs_to :shipment, class_name: 'Spree::Shipment', touch: true, optional: true
-      belongs_to :return_authorization, class_name: 'Spree::ReturnAuthorization'
-      belongs_to :line_item, class_name: 'Spree::LineItem'
+    PRE_SHIPMENT_STATES = %w(backordered on_hand)
+    POST_SHIPMENT_STATES = %w(returned)
+    CANCELABLE_STATES = ['on_hand', 'backordered', 'shipped']
+
+    belongs_to :variant, -> { with_deleted }, class_name: 'Spree::Variant', inverse_of: :inventory_units
+    belongs_to :shipment, class_name: 'Spree::Shipment', touch: true, inverse_of: :inventory_units
+    belongs_to :return_authorization, class_name: 'Spree::ReturnAuthorization', inverse_of: :inventory_units
+    belongs_to :line_item, class_name: 'Spree::LineItem', inverse_of: :inventory_units
+
+    has_many :return_items, inverse_of: :inventory_unit, dependent: :destroy
+    has_one :original_return_item, class_name: 'Spree::ReturnItem', foreign_key: :exchange_inventory_unit_id, dependent: :destroy
+    has_one :unit_cancel, class_name: 'Spree::UnitCancel'
+    has_one :order, through: :shipment
+
+    delegate :order_id, to: :shipment
+
+    def order=(_)
+      raise 'The order association has been removed from InventoryUnit. The order is now determined from the shipment.'
     end
 
-    has_many :return_items, inverse_of: :inventory_unit
-    belongs_to :original_return_item, class_name: 'Spree::ReturnItem'
+    validates_presence_of :shipment, :line_item, :variant
 
+    before_destroy :ensure_can_destroy
+
+    scope :pending, -> { where pending: true }
     scope :backordered, -> { where state: 'backordered' }
     scope :on_hand, -> { where state: 'on_hand' }
-    scope :on_hand_or_backordered, -> { where state: ['backordered', 'on_hand'] }
+    scope :pre_shipment, -> { where(state: PRE_SHIPMENT_STATES) }
     scope :shipped, -> { where state: 'shipped' }
+    scope :post_shipment, -> { where(state: POST_SHIPMENT_STATES) }
     scope :returned, -> { where state: 'returned' }
+    scope :canceled, -> { where(state: 'canceled') }
+    scope :not_canceled, -> { where.not(state: 'canceled') }
+    scope :cancelable, -> { where(state: Spree::InventoryUnit::CANCELABLE_STATES, pending: false) }
     scope :backordered_per_variant, ->(stock_item) do
-      includes(:shipment, :order).
-        where.not(spree_shipments: { state: 'canceled' }).
-        where(variant_id: stock_item.variant_id).
-        where.not(spree_orders: { completed_at: nil }).
-        backordered.order('spree_orders.completed_at ASC')
+      includes(:shipment, :order)
+        .where("spree_shipments.state != 'canceled'").references(:shipment)
+        .where(variant_id: stock_item.variant_id)
+        .where('spree_orders.completed_at is not null')
+        .backordered.order(Spree::Order.arel_table[:completed_at].asc)
     end
 
-    validates :quantity, numericality: { greater_than: 0 }
+    scope :backordered_for_stock_item, ->(stock_item) do
+      backordered_per_variant(stock_item)
+        .where(spree_shipments: { stock_location_id: stock_item.stock_location_id })
+    end
 
-    # state machine (see http://github.com/pluginaweek/state_machine/tree/master for details)
+    scope :shippable, -> { on_hand }
+
     state_machine initial: :on_hand do
       event :fill_backorder do
         transition to: :on_hand, from: :backordered
@@ -40,86 +64,63 @@ module Spree
       event :return do
         transition to: :returned, from: :shipped
       end
-    end
 
-    # This was refactored from a simpler query because the previous implementation
-    # led to issues once users tried to modify the objects returned. That's due
-    # to ActiveRecord `joins(shipment: :stock_location)` only returning readonly
-    # objects
-    #
-    # Returns an array of backordered inventory units as per a given stock item
-    def self.backordered_for_stock_item(stock_item)
-      backordered_per_variant(stock_item).select do |unit|
-        unit.shipment.stock_location == stock_item.stock_location
+      event :cancel do
+        transition to: :canceled, from: CANCELABLE_STATES.map(&:to_sym)
       end
     end
 
-    def self.finalize_units!
-      update_all(pending: false, updated_at: Time.current)
+    # Updates the given inventory units to not be pending.
+    #
+    # @param inventory_units [<Spree::InventoryUnit>] the inventory to be
+    #   finalized
+    def self.finalize_units!(inventory_units)
+      inventory_units.map do |iu|
+        iu.update_columns(
+          pending: false,
+          updated_at: Time.current
+        )
+      end
     end
 
+    # @return [Spree::StockItem] the first stock item from this shipment's
+    #   stock location that is associated with this inventory unit's variant
     def find_stock_item
       Spree::StockItem.where(stock_location_id: shipment.stock_location_id,
-                             variant_id: variant_id).first
+        variant_id: variant_id).first
     end
 
-    def self.split(original_inventory_unit, extract_quantity)
-      split = original_inventory_unit.dup
-      split.quantity = extract_quantity
-      original_inventory_unit.quantity -= extract_quantity
-      split
-    end
-
-    # This will fail if extract >= available_quantity
-    def split_inventory!(extract_quantity)
-      split = self.class.split(self, extract_quantity)
-      transaction do
-        split.save!
-        save!
-      end
-      split
-    end
-
-    def extract_singular_inventory!
-      split_inventory!(1)
-    end
-
-    # Remove variant default_scope `deleted_at: nil`
-    def variant
-      Spree::Variant.unscoped { super }
-    end
-
+    # @return [Spree::ReturnItem] a valid return item for this inventory unit
+    #   if one exists, or a new one if one does not
     def current_or_new_return_item
       Spree::ReturnItem.from_inventory_unit(self)
     end
 
+    # @return [BigDecimal] the portion of the additional tax on the line item
+    #   this inventory unit belongs to that is associated with this individual
+    #   inventory unit
     def additional_tax_total
       line_item.additional_tax_total * percentage_of_line_item
     end
 
+    # @return [BigDecimal] the portion of the included tax on the line item
+    #   this inventory unit belongs to that is associated with this
+    #   individual inventory unit
     def included_tax_total
       line_item.included_tax_total * percentage_of_line_item
     end
 
-    def required_quantity
-      return @required_quantity unless @required_quantity.nil?
-
-      @required_quantity = if exchanged_unit?
-                             original_return_item.return_quantity
-                           else
-                             line_item.quantity
-                           end
+    # @return [Boolean] true if this inventory unit has any return items
+    #   which have requested exchanges
+    def exchange_requested?
+      return_items.not_expired.any?(&:exchange_requested?)
     end
-
-    def exchanged_unit?
-      original_return_item_id?
-    end
-
-    private
 
     def allow_ship?
       on_hand?
     end
+
+    private
 
     def fulfill_order
       reload
@@ -132,6 +133,18 @@ module Spree
 
     def current_return_item
       return_items.not_cancelled.first
+    end
+
+    def ensure_can_destroy
+      if !backordered? && !on_hand?
+        errors.add(:state, :cannot_destroy, state: state)
+        throw :abort
+      end
+
+      if shipment.shipped? || shipment.canceled?
+        errors.add(:base, :cannot_destroy_shipment_state, state: shipment.state)
+        throw :abort
+      end
     end
   end
 end
