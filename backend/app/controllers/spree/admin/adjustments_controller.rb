@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class AdjustmentsController < ResourceController
@@ -11,8 +13,10 @@ module Spree
 
       before_action :find_adjustment, only: [:destroy, :edit, :update]
 
+      helper_method :reasons_for
+      
       def index
-        @adjustments = @order.all_adjustments.eligible.order(created_at: :asc)
+        @adjustments = @order.all_adjustments.order(created_at: :asc)
       end
 
       private
@@ -23,13 +27,20 @@ module Spree
       end
 
       def update_totals
-        @order.reload.update_with_updater!
+        @order.reload.recalculate
       end
 
       # Override method used to create a new instance to correctly
       # associate adjustment with order
       def build_resource
         parent.adjustments.build(order: parent)
+      end
+
+      def reasons_for(_adjustment)
+        [
+          Spree::AdjustmentReason.active.to_a,
+          @adjustment.adjustment_reason
+        ].flatten.compact.uniq.sort_by { |r| r.name.downcase }
       end
     end
   end
