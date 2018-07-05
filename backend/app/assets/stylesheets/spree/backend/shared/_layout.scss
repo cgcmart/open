@@ -1,0 +1,40 @@
+html {
+  height: 100%;
+}
+
+body {
+  position: relative;
+  min-height: 100%;
+  padding-left: $width-sidebar;
+}
+
+.admin-nav {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: $width-sidebar;
+  @media print { display: none }
+}
+
+.content-wrapper {
+  padding-top: 1rem;
+  padding-left: $grid-gutter-width;
+  padding-right: $grid-gutter-width;
+
+  &:not(.full-width) {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: map-get($container-max-widths, "xl");
+  }
+}
+
+.content-main {
+  overflow-x: hidden; // makes sure that the tabs are able to resize
+}
+
+#content {
+  position: relative;
+  padding: 0;
+  margin-top: 15px;
+}
