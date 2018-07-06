@@ -1,37 +1,148 @@
-/*------------------------------------------
-  Colors
-  -----------------------------------------*/
-  $brand-primary: #478DC1;
-  $brand-success: #7DB942;
-  $brand-info:    #48B0F7;
-  $brand-warning: #F8D053;
-  $brand-danger:  #F55753;
+// -------------------------------------------------------------
+//   Variables used in all other files
+//--------------------------------------------------------------
 
-  $input-border:  darken(#EDEDED, 5);
+// Fonts
+//--------------------------------------------------------------
+$font-size-pill: 11px;
 
-/*------------------------------------------
-  Components
-  -----------------------------------------*/
-  $border-radius-base: 2px;
-  $padding-base-vertical: 8px;
-  $padding-base-horizontal: 16px;
+// Colors
+//--------------------------------------------------------------
 
-/*------------------------------------------
-  Fonts
-  -----------------------------------------*/
-  $headings-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  $headings-font-weight: 300;
+// Basic color palette for admin
+$color-1:                        #FFFFFF !default;    // White
+$color-2:                        #9FC820 !default;    // Green
+$color-3:                        #5498DA !default;    // Light Blue
+$color-4:                        #6788A2 !default;    // Dark Blue
+$color-5:                        #C60F13 !default;    // Red
+$color-6:                        #FF9300 !default;    // Yellow
+$color-7:                        #F4F4F4 !default;    // Light Gray
 
-/*------------------------------------------
-  Buttons
-  -----------------------------------------*/
+// Basic accents for admin
+$box-shadow:                     0px 3px 3px -2px hsla(0, 0%, 0%, 0.2) !default;
 
-/*------------------------------------------
-  Navbar
-  -----------------------------------------*/
-  $navbar-inverse-bg: darken($brand-primary, 35);
+// Body base colors
+$color-border:                   very-light($color-3, 12) !default;
 
-/*------------------------------------------
-  Wells
-  -----------------------------------------*/
-  $well-bg: #fbfbfb;
+// Basic navigation colors
+$color-sidebar-bg:              $color-1 !default;
+$color-sidebar-border:          $color-border !default;
+$color-navbar:                  $color-1 !default;
+$color-navbar-bg:               $color-3 !default;
+$color-navbar-active:           $color-1 !default;
+$color-navbar-active-bg:        $color-2 !default;
+$color-navbar-submenu:          $color-3 !default;
+$color-navbar-submenu-bg:       very-light($color-navbar-bg, 4) !default;
+$color-navbar-submenu-active:   $color-2 !default;
+$color-navbar-footer:           $color-3 !default;
+$color-navbar-footer-bg:        $color-sidebar-bg !default;
+$color-navbar-footer-active:    $color-2 !default;
+
+// Basic flash colors
+@include solidus-deprecated-variable("color-success", "brand-success");
+$color-success:                  $color-2 !default;
+@include solidus-deprecated-variable("color-notice", "brand-warning");
+$color-notice:                   $color-6 !default;
+@include solidus-deprecated-variable("color-error", "brand-danger");
+$color-error:                    $color-5 !default;
+
+// Color for spinner
+$color-spinner: #fff;
+
+// Style Guide
+$color-style-guide-code: darken($color-7, 10%);
+$color-style-guide-link: darken($color-7, 65%);
+$color-style-guide-nav: $color-7;
+$color-style-guide-nav-border: darken($color-7, 5%);
+$color-style-guide-nav-link: darken($color-7, 65%);
+$color-style-guide-nav-link-hover: darken($color-7, 5%);
+$color-style-guide-section-border: darken($color-7, 10%);
+$color-style-guide-swatch-border: darken($color-7, 10%);
+
+// Table colors
+$color-tbl-odd:                  $color-1 !default;
+$color-tbl-even:                 very-light($color-3, 4) !default;
+$color-tbl-thead:                very-light($color-3, 4) !default;
+
+// Pill colors
+//
+// For now these are custom assigned colors just for this section. As we go
+// about updating other areas of the admin we will likely want to pull these
+// colors out into better named variables.
+$color-pill-text: #1f2933;
+$color-pill-neutral: #e6e6e6;
+$color-pill-neutral-text: $color-pill-text;
+$color-pill-complete: #c8d8e8;
+$color-pill-complete-text: $color-pill-text;
+$color-pill-active: #bbe5b3;
+$color-pill-active-text: $color-pill-text;
+$color-pill-inactive: $color-pill-neutral;
+$color-pill-inactive-text: lighten($color-pill-text, 30%);
+$color-pill-pending: #ffe87d;
+$color-pill-pending-text: $color-pill-text;
+$color-pill-warning: #f9b36d;
+$color-pill-warning-text: $color-pill-text;
+$color-pill-error: #ff967b;
+$color-pill-error-text: $color-pill-text;
+
+// Actions colors
+$color-action-edit-bg:           very-light($color-success, 5  ) !default;
+$color-action-edit-brd:          very-light($color-success, 20 ) !default;
+$color-action-clone-bg:          very-light($color-notice,  5  ) !default;
+$color-action-clone-brd:         very-light($color-notice,  15 ) !default;
+$color-action-remove-bg:         very-light($color-error,   5  ) !default;
+$color-action-remove-brd:        very-light($color-error,   10 ) !default;
+$color-action-void-bg:           very-light($color-error,   10 ) !default;
+$color-action-void-brd:          very-light($color-error,   20 ) !default;
+$color-action-cancel-bg:         very-light($color-notice,  10 ) !default;
+$color-action-cancel-brd:        very-light($color-notice,  20 ) !default;
+$color-action-capture-bg:        very-light($color-success, 5  ) !default;
+$color-action-capture-brd:       very-light($color-success, 20 ) !default;
+$color-action-save-bg:           very-light($color-success, 5  ) !default;
+$color-action-save-brd:          very-light($color-success, 20 ) !default;
+$color-action-mail-bg:           very-light($color-success, 5  ) !default;
+$color-action-mail-brd:          very-light($color-success, 20 ) !default;
+$color-action-failure-bg:        very-light($color-error,   10 ) !default;
+$color-action-failure-brd:       very-light($color-error,   20 ) !default;
+
+// Available states
+$states: (
+  active,
+  address,
+  awaiting_return,
+  backorder,
+  balance_due,
+  canceled,
+  cart,
+  checkout,
+  complete,
+  completed,
+  confirm,
+  credit_owed,
+  delivery,
+  error,
+  failed,
+  inactive,
+  paid,
+  payment,
+  pending,
+  ready,
+  returned,
+  shipped,
+  void
+) !default;
+
+// Available actions
+$actions: edit, clone, remove, void, capture, save, cancel, mail, failure !default;
+$actions-bg-colors: $color-action-edit-bg, $color-action-clone-bg, $color-action-remove-bg, $color-action-void-bg, $color-action-capture-bg, $color-action-save-bg, $color-action-cancel-bg, $color-action-mail-bg, $color-action-failure-bg !default;
+$actions-brd-colors: $color-action-edit-brd, $color-action-clone-brd, $color-action-remove-brd, $color-action-void-brd, $color-action-capture-brd, $color-action-save-brd, $color-action-cancel-brd, $color-action-mail-brd, $color-action-failure-brd !default;
+
+// Sidebar
+//--------------------------------------------------------------
+$width-sidebar:                  200px !default;
+$width-sidebar-flyout:           225px !default;
+$border-sidebar:                 1px solid $color-sidebar-border !default;
+
+// Main
+//--------------------------------------------------------------
+$main-header-height: 75px !default;
