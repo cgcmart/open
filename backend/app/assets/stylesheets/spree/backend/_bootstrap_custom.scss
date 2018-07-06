@@ -1,0 +1,83 @@
+// Bootstrap overrides
+//
+// Copy variables from `_variables.scss` to this file to override default values
+// without modifying source files.
+
+// Colors
+//
+// Grayscale and brand colors for use across Bootstrap.
+
+$blue:   $color-3 !default;
+$red:    $color-5 !default;
+$orange: $color-6 !default;
+$green:  $color-2 !default;
+
+// Body
+//
+// Settings for the `<body>` element.
+
+$body-bg:       $color-1 !default;
+$body-color:    $color-4 !default;
+
+// Links
+//
+// Style anchor elements.
+
+$link-decoration:       none !default;
+$link-hover-color:      $color-2 !default;
+$link-hover-decoration: none !default;
+
+// Grid columns
+//
+// Set the number of columns and specify the width of the gutters.
+
+$grid-gutter-width-base:     1.875rem !default;
+
+// Fonts
+//
+// Font, line-height, and color for body text, headings, and more.
+
+$font-family-sans-serif: "Helvetica Neue", Helvetica, Arial, sans-serif !default;
+$font-family-monospace:  Menlo, Monaco, Consolas, "Courier New", monospace !default;
+$font-family-base:       "Open Sans", "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif !default;
+
+$font-size-root: 13px !default;
+
+$font-weight-normal: 400 !default;
+$font-weight-bold: 600 !default;
+
+$h1-font-size: $font-size-root + 12 !default;
+$h2-font-size: $font-size-root + 10 !default;
+$h3-font-size: $font-size-root + 8 !default;
+$h4-font-size: $font-size-root + 6 !default;
+$h5-font-size: $font-size-root + 4 !default;
+$h6-font-size: $font-size-root + 2 !default;
+
+$headings-font-weight:   $font-weight-bold !default;
+$headings-color:         $color-4 !default;
+
+// Components
+//
+// Define common padding and border radius sizes and more.
+
+$border-radius:          3px !default;
+
+// Forms
+
+$input-color:                    $color-3 !default;
+$input-border-color:             $color-border !default;
+$input-focus-border-color:       $color-2 !default;
+
+$custom-select-focus-border-color: $input-focus-border-color !default;
+
+// Dropdowns
+//
+// Dropdown menu container and contents.
+
+$dropdown-link-hover-color:      #fff !default;
+$dropdown-link-hover-bg:         $color-3 !default;
+
+// Breadcrumbs
+
+$breadcrumb-bg:                 transparent !default;
+$breadcrumb-active-color: $color-4 !default;
