@@ -1,7 +1,6 @@
-<% content_for :page_title do %>
-  <%= link_to Spree.t(:promotion_categories), spree.admin_promotion_categories_url %> /
-  <%= @promotion_category.name %>
-<% end %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::Promotion), spree.admin_promotions_path) %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::PromotionCategory), spree.admin_promotion_categories_path) %>
+<% admin_breadcrumb(@promotion_category.name) %>
 
 <%= form_for @promotion_category, url: object_url, method: :put do |f| %>
   <fieldset>
