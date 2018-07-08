@@ -1,16 +1,22 @@
-<% content_for :page_title do %>
-  <%= plural_resource_name(Spree::Prototype) %>
-<% end %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::Product), spree.admin_products_path) %>
+<% admin_breadcrumb(plural_resource_name(Spree::Prototype)) %>
 
 <% content_for :page_actions do %>
-  <%= button_link_to Spree.t(:new_prototype), new_object_url, { class: "btn-success", icon: 'add', 'data-update' => 'new_prototype', id: 'new_prototype_link'} %>
+  <%= button_to t('spree.new_prototype'), new_object_url, { class: "btn-success", icon: 'add', 'data-update' => 'new_prototype', id: 'new_prototype_link'} %>
 <% end if can?(:create, Spree::Prototype) %>
+
+<%# Placeholder for new prototype form %>
+<div id="new_prototype_container"></div>
 
 <% if @prototypes.any? %>
   <table class="table" id='listing_prototypes' data-hook>
+    <colgroup>
+    <col style="width: 90%">
+    <col style="width: 10%">
+    </colgroup>
     <thead>
       <tr data-hook="prototypes_header">
-        <th><%= Spree.t(:name) %></th>
+        <th><%= Spree::Prototype.human_attribute_name(:name) %></th>
         <th class="actions"></th>
       </tr>
     </thead>
@@ -27,8 +33,9 @@
     </tbody>
   </table>
 <% else %>
-  <div class="alert alert-info no-objects-found">
-    <%= Spree.t(:no_resource_found, resource: plural_resource_name(Spree::Prototype)) %>,
-    <%= link_to Spree.t(:add_one), new_object_url if can?(:create, Spree::Prototype) %>!
+  <div class="no-objects-found">
+    <%= render 'spree/admin/shared/no_objects_found',
+                 resource: Spree::Prototype,
+                 new_resource_url: new_object_url %>
   </div>
 <% end %>
