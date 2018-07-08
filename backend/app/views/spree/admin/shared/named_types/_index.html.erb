@@ -1,33 +1,36 @@
-<% content_for :page_title do %>
-  <%= page_title %>
-<% end %>
+<%= render 'spree/admin/shared/settings_checkout_tabs' %>
+
+<% admin_breadcrumb(root_tab) %>
+<% admin_breadcrumb(sub_tab) %>
+<% admin_breadcrumb(page_title) %>
 
 <% content_for :page_actions do %>
-  <%= button_link_to new_button_text, new_object_url, { icon: 'add', id: 'admin_new_named_type', class: "btn-success" } %>
+  <%= link_to new_button_text, new_object_url, id: 'admin_new_named_type', class: 'btn btn-primary' %>
 <% end if can? :create, resource %>
 
 <% if @collection.any? %>
-  <table class="table" id='listing_named_types' data-hook>
+  <table class="index" id='listing_named_types' data-hook>
     <thead>
       <tr data-hook="named_types_header">
-        <th><%= Spree.t(:name) %></th>
-        <th><%= Spree.t(:status) %></th>
-        <th></th>
+        <th><%= t('spree.name') %></th>
+        <th><%= t('spree.state') %></th>
+        <th class="actions"></th>
       </tr>
     </thead>
-    <tbody id="<%= resource_name.to_s.parameterize.underscore %>">
+    <tbody>
       <% @collection.each do |named_type| %>
         <tr id="<%= spree_dom_id named_type %>" data-hook="named_type_row">
           <td class="align-center">
             <%= named_type.name %>
           </td>
-          <td class="align-center">
-            <%= Spree.t(named_type.active? ? :active : :inactive) %>
+          <td>
+            <span class="pill pill-<%= named_type.active? ? 'active' : 'inactive' %>">
+              <%= t(named_type.active? ? :active : :inactive, scope: 'spree') %>
+            </span>
           </td>
-          <td class="actions actions-1 text-right">
-            <% if named_type.mutable? %>
-              <%= link_to_edit(named_type, no_text: true) if can? :edit, named_type %>
-              <%= link_to_delete(named_type, no_text: true) if can? :delete, named_type %>
+          <td class="actions">
+            <% if named_type.mutable? && can?(:update, named_type) %>
+              <%= link_to_edit named_type, no_text: true %>
             <% end %>
           </td>
         </tr>
@@ -35,8 +38,9 @@
     </tbody>
   </table>
 <% else %>
-  <div class="alert alert-info no-objects-found">
-    <%= Spree.t(:no_resource_found, resource: resource_name) %>,
-    <%= link_to(Spree.t(:add_one), new_object_url) if can? :create, resource %>!
+  <div class="no-objects-found">
+    <%= render 'spree/admin/shared/no_objects_found',
+                 resource: resource,
+                 new_resource_url: new_object_url %>
   </div>
 <% end %>
