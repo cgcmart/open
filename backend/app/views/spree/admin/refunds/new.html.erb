@@ -1,39 +1,41 @@
-<%= render partial: 'spree/admin/shared/order_tabs', locals: {current: :payments} %>
+<%= render partial: 'spree/admin/shared/order_tabs', locals: {current: 'Payments'} %>
 
-<% content_for :page_title do %>
-  / <%= link_to "#{Spree.t(:payment)} #{@refund.payment.id}", spree.admin_order_payment_path(@refund.payment.order, @refund.payment) %>
-  / <%= Spree.t(:new_refund) %>
-<% end %>
-
-<%= render 'spree/admin/shared/error_messages', target: @refund %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::Payment), spree.admin_order_payments_path(@order)) %>
+<% admin_breadcrumb(link_to "#{Spree::Payment.model_name.human} #{@refund.payment.id}", admin_order_payment_path(@refund.payment.order, @refund.payment)) %>
+<% admin_breadcrumb(t('spree.new_refund')) %>
 
 <%= form_for [:admin, @refund.payment.order, @refund.payment, @refund] do |f| %>
-  <fieldset>
-    <div data-hook="admin_refund_form_fields">
-      <div class="form-group">
-        <%= f.label :payment_amount, Spree.t(:payment_amount) %><br/>
-        <%= @refund.payment.amount %>
+  <fieldset class="no-border-top">
+    <div data-hook="admin_refund_form_fields" class="row">
+      <div class="col-3">
+        <div class="field">
+          <%= t('spree.payment_amount') %><br/>
+          <%= @refund.payment.amount %>
+        </div>
       </div>
-      <div class="form-group">
-        <%= f.label :credit_allowed, Spree.t(:credit_allowed) %><br/>
-        <%= @refund.payment.credit_allowed %>
+      <div class="col-3">
+        <div class="field">
+          <%= t('spree.credit_allowed') %><br/>
+          <%= @refund.payment.credit_allowed %>
+        </div>
       </div>
-      <%= f.field_container :amount, class: ['form-group'] do %>
-        <%= f.label :amount, Spree.t(:amount) %>
-        <%= f.text_field :amount, class: 'form-control' %>
-        <%= f.error_message_on :amount %>
-      <% end %>
-      <%= f.field_container :reason, class: ['form-group'] do %>
-        <%= f.label :refund_reason_id, Spree.t(:reason) %>
-        <%= f.collection_select(:refund_reason_id, refund_reasons, :id, :name, {include_blank: true}, {class: 'select2'}) %>
-        <%= f.error_message_on :reason %>
-      <% end %>
+      <div class="col-3">
+        <div class="field">
+          <%= f.label :amount %><br/>
+          <%= render "spree/admin/shared/number_with_currency", f: f, amount_attr: :amount, currency: @refund.currency, required: true %>
+        </div>
+      </div>
+      <div class="col-3">
+        <div class="field">
+          <%= f.label :refund_reason_id %><br/>
+          <%= f.collection_select(:refund_reason_id, refund_reasons, :id, :name, {include_blank: true}, {class: 'custom-select fullwidth'}) %>
+        </div>
+      </div>
     </div>
 
-    <div class="form-actions" data-hook="buttons">
-      <%= button Spree.t(:refund), 'save' %>
-      <span class="or"><%= Spree.t(:or) %></span>
-      <%= button_link_to Spree.t('actions.cancel'), spree.admin_order_payments_url(@refund.payment.order), icon: "delete" %>
+    <div class="form-buttons filter-actions actions" data-hook="buttons">
+      <%= button_tag Spree::Refund.model_name.human, class: 'btn btn-primary' %>
+      <%= link_to t('spree.actions.cancel'), admin_order_payments_url(@refund.payment.order), class: 'btn btn-primary' %>
     </div>
   </fieldset>
 <% end %>
