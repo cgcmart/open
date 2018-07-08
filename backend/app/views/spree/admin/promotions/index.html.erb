@@ -1,83 +1,118 @@
-<% content_for :page_title do %>
-  <%= plural_resource_name(Spree::Promotion) %>
-<% end %>
+<% admin_breadcrumb(plural_resource_name(Spree::Promotion)) %>
 
 <% content_for :page_actions do %>
-  <%= button_link_to Spree.t(:new_promotion), new_object_url, class: "btn-success", icon: 'add' %>
-<% end if can?(:create, Spree::Promotion) %>
+  <% if can? :create, Spree::Promotion %>
+    <li>
+      <%= link_to t('spree.new_promotion'), spree.new_admin_promotion_path, class: 'btn btn-primary' %>
+    </li>
+  <% end %>
+<% end %>
+
+<% content_for :table_filter_title do %>
+  <%= t('spree.search') %>
+<% end %>
 
 <% content_for :table_filter do %>
   <div data-hook="admin_promotions_index_search">
     <%= search_form_for [:admin, @search] do |f| %>
       <div class="row">
-        <div class="col-xs-12 col-md-6">
-          <div class="form-group">
-            <%= label_tag :q_name_cont, Spree.t(:name) %>
-            <%= f.text_field :name_cont, tabindex: 1, class: "form-control js-quick-search-target" %>
-          </div>
-
-          <div class="form-group">
-            <%= label_tag :q_code_cont, Spree.t(:code) %>
-            <%= f.text_field :code_cont, tabindex: 1, class: "form-control" %>
+        <div class="col-3">
+          <div class="field">
+            <%= label_tag :q_name_cont, Spree::Promotion.human_attribute_name(:name) %>
+            <%= f.text_field :name_cont, tabindex: 1 %>
           </div>
         </div>
 
-        <div class="col-xs-12 col-md-6">
-          <div class="form-group">
-            <%= label_tag :q_path_cont, Spree.t(:path) %>
-            <%= f.text_field :path_cont, tabindex: 1, class: "form-control" %>
+        <div class="col-3">
+          <div class="field">
+            <%= label_tag :q_codes_value_cont, Spree::Promotion.human_attribute_name(:code) %>
+            <%= f.text_field :codes_value_cont, tabindex: 1 %>
           </div>
+        </div>
 
-          <div class="form-group">
-            <%= label_tag :q_promotion_category_id_eq, Spree.t(:promotion_category) %>
-            <%= f.collection_select(:promotion_category_id_eq, @promotion_categories, :id, :name, { include_blank: Spree.t('match_choices.all') }, { class: 'select2' }) %>
+        <div class="col-3">
+          <div class="field">
+            <%= label_tag :q_path_cont, Spree::Promotion.human_attribute_name(:path) %>
+            <%= f.text_field :path_cont, tabindex: 1 %>
+          </div>
+        </div>
+
+        <div class="col-3">
+          <div class="field">
+            <%= label_tag :q_promotion_category_id_eq, Spree::PromotionCategory.model_name.human %><br>
+            <%= f.collection_select(:promotion_category_id_eq, @promotion_categories, :id, :name, { include_blank: t('spree.match_choices.all') }, { class: 'custom-select fullwidth' }) %>
           </div>
         </div>
       </div>
 
-      <div data-hook="admin_promotions_index_search_buttons" class="form-actions">
-        <%= button Spree.t(:filter_results), 'search' %>
+      <div class="clearfix"></div>
+
+      <div class="actions filter-actions">
+        <div data-hook="admin_promotions_index_search_buttons">
+          <%= button_tag t('spree.filter_results'), class: 'btn btn-primary' %>
+        </div>
       </div>
     <% end %>
   </div>
 <% end %>
 
-<%= paginate @promotions %>
+
+<%= paginate @promotions, theme: "solidus_admin" %>
 
 <% if @promotions.any? %>
-  <table class="table">
+  <table class="index">
     <thead>
       <tr>
-        <th><%= Spree.t(:name) %></th>
-        <th><%= Spree.t(:code) %></th>
-        <th><%= Spree.t(:description) %></th>
-        <th><%= Spree.t(:usage_limit) %></th>
-        <th><%= Spree.t(:promotion_uses) %></th>
-        <th><%= Spree.t(:expiration) %></th>
-        <th data-hook="admin_promotions_index_header_actions" class="actions"></th>
+        <th><%= Spree::Promotion.human_attribute_name(:name) %></th>
+        <th><%= Spree::Promotion.human_attribute_name(:code) %></th>
+        <th><%= Spree::Promotion.human_attribute_name(:status) %></th>
+        <th><%= Spree::Promotion.human_attribute_name(:usage_limit) %></th>
+        <th><%= Spree::Promotion.human_attribute_name(:uses) %></th>
+        <th><%= Spree::Promotion.human_attribute_name(:starts_at) %></th>
+        <th><%= Spree::Promotion.human_attribute_name(:expires_at) %></th>
+        <th class="actions"></th>
       </tr>
     </thead>
     <tbody>
       <% @promotions.each do |promotion| %>
         <tr id="<%= spree_dom_id promotion %>">
-          <td><%= link_to promotion.name, edit_admin_promotion_path(promotion) %></td>
-          <td><%= promotion.code %></td>
-          <td><%= promotion.description %></td>
-          <td><%= promotion.usage_limit.nil? ? "∞" : promotion.usage_limit  %></td>
-          <td><%= Spree.t(:current_promotion_usage, count: promotion.credits_count) %></td>
-          <td><%= promotion.expires_at.to_date.to_s(:short_date) if promotion.expires_at %></td>
-          <td class="actions actions-2" data-hook="admin_promotions_index_row_actions">
-            <%= link_to_edit promotion, no_text: true if can?(:edit, promotion) %>
-            <%= link_to_clone_promotion promotion, no_text: true if can?(:clone, promotion) %>
-            <%= link_to_delete promotion, no_text: true if can?(:delete, promotion) %>
+          <td><%= promotion.name %></td>
+          <td>
+            <%= (promotion.codes.size == 1) ? promotion.codes.first.try!(:value) : t('spree.number_of_codes', count: promotion.codes.size) %>
+          </td>
+          <td>
+            <span class="pill pill-<%= promotion.active? ? 'active' : 'inactive' %>">
+              <%= t(promotion.active?? :active : :inactive, scope: 'spree') %>
+            </span>
+          </td>
+          <td>
+            <%= promotion.usage_limit.nil? ? "∞" : promotion.usage_limit %>
+          </td>
+          <td>
+            <%= promotion.usage_count %>
+          </td>
+          <td>
+            <%= promotion.starts_at.to_date.to_s(:short_date) if promotion.starts_at %>
+          </td>
+          <td>
+            <%= promotion.expires_at.to_date.to_s(:short_date) if promotion.expires_at %>
+          </td>
+          <td class="actions">
+            <% if can?(:edit, promotion) %>
+              <%= link_to_edit promotion, no_text: true %>
+            <% end %>
+            <% if can?(:destroy, promotion) %>
+              <%= link_to_delete promotion, no_text: true %>
+            <% end %>
           </td>
         </tr>
       <% end %>
     </tbody>
   </table>
 <% else %>
-  <div class="alert alert-info no-objects-found">
-    <%= Spree.t(:no_resource_found, resource: plural_resource_name(Spree::Promotion)) %>,
-    <%= link_to Spree.t(:add_one), new_object_url if can?(:create, Spree::Promotion) %>!
+  <div class="no-objects-found">
+    <%= render 'spree/admin/shared/no_objects_found',
+                 resource: Spree::Promotion,
+                 new_resource_url: new_object_url %>
   </div>
 <% end %>
