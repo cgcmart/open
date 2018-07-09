@@ -1,6 +1,18 @@
-<% content_for :page_title do %>
-  <%= link_to Spree.t(:stock_locations), spree.admin_stock_locations_url %> /
-  <%= @stock_location.name %>
+<%= render 'spree/admin/shared/shipping_tabs' %>
+
+<% admin_breadcrumb(t('spree.settings')) %>
+<% admin_breadcrumb(t('spree.admin.tab.shipping')) %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::StockLocation), spree.admin_stock_locations_path) %>
+<% admin_breadcrumb(@stock_location.name) %>
+
+<% content_for :page_actions do %>
+  <ul class="actions inline-menu">
+    <% if can?(:display, Spree::StockMovement) %>
+      <li>
+        <%= link_to plural_resource_name(Spree::StockMovement), admin_stock_location_stock_movements_path(@stock_location.id), class: 'btn btn-primary'  %>
+      </li>
+    <% end %>
+  </ul>
 <% end %>
 
 <%= render partial: 'spree/admin/shared/error_messages', locals: { target: @stock_location } %>
