@@ -1,16 +1,22 @@
-<% content_for :page_title do %>
-  <%= plural_resource_name(Spree::ShippingCategory) %>
-<% end %>
+<%= render 'spree/admin/shared/shipping_tabs' %>
+
+<% admin_breadcrumb(t('spree.settings')) %>
+<% admin_breadcrumb(t('spree.admin.tab.shipping')) %>
+<% admin_breadcrumb(plural_resource_name(Spree::ShippingCategory)) %>
 
 <% content_for :page_actions do %>
-  <%= button_link_to Spree.t(:new_shipping_category), new_object_url, class: "btn-success", icon: 'add' %>
+  <%= link_to t('spree.new_shipping_category'), new_object_url, class: 'btn btn-primary' %>
 <% end if can? :create, Spree::ShippingCategory %>
 
 <% if @shipping_categories.any? %>
-  <table class="table">
+  <table class="index">
+    <colgroup>
+    <col style="width: 85%">
+    <col style="width: 15%">
+    </colgroup>
     <thead>
       <tr data-hook="categories_header">
-        <th><%= Spree.t(:name) %></th>
+        <th><%= Spree::ShippingCategory.human_attribute_name(:name) %></th>
         <th class="actions"></th>
       </tr>
     </thead>
@@ -18,7 +24,7 @@
       <% @shipping_categories.each do |shipping_category|%>
       <tr id="<%= spree_dom_id shipping_category %>" data-hook="category_row">
         <td><%= shipping_category.name %></td>
-        <td class="actions actions-2 text-right">
+        <td class="actions">
           <%= link_to_edit(shipping_category, no_text: true) if can? :edit, shipping_category %>
           <%= link_to_delete(shipping_category, no_text: true) if can? :edit, shipping_category %>
         </td>
@@ -27,8 +33,9 @@
     </tbody>
   </table>
 <% else %>
-  <div class="alert alert-info no-objects-found">
-    <%= Spree.t(:no_resource_found, resource: plural_resource_name(Spree::ShippingCategory)) %>,
-    <%= link_to(Spree.t(:add_one), new_object_url) if can? :create, Spree::ShippingCategory %>!
+  <div class="no-objects-found">
+    <%= render 'spree/admin/shared/no_objects_found',
+                 resource: Spree::ShippingCategory,
+                 new_resource_url: new_object_url %>
   </div>
 <% end %>
