@@ -1,37 +1,21 @@
-<%= render partial: 'js_head' %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::Product), spree.admin_products_path) %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::Taxonomy), spree.admin_taxonomies_path) %>
+<% admin_breadcrumb(@taxonomy.name) %>
 
-<% content_for :page_title do %>
-  <%= link_to Spree.t(:taxonomies), spree.admin_taxonomies_url %> /
-  <%= @taxonomy.name %>
+<% content_for :page_actions do %>
+  <li>
+    <%= link_to t('spree.add_taxon'), spree.admin_taxonomies_path, class: 'add-taxon-button btn btn-primary' %>
+  </li>
 <% end %>
 
-<div id="ajax_error" class="errorExplanation" style="display:none;"></div>
-
 <%= form_for [:admin, @taxonomy] do |f| %>
-  <fieldset>
+  <fieldset class="no-border-top">
     <%= render partial: 'form', locals: { f: f } %>
-    <div class="form-group">
-      <%= label_tag nil, Spree.t(:tree) %>
-      <script>
-        Spree.routes.taxonomy_taxons_path = "<%= spree.api_v1_taxonomy_taxons_path(@taxonomy) %>";
-        Spree.routes.admin_taxonomy_taxons_path = "<%= spree.admin_taxonomy_taxons_path(@taxonomy) %>";
-        Spree.routes.jstree_theme_path = "<%= stylesheet_path("jquery.jstree/themes/spree/style.css") %>";
-      </script>
-      <div id="taxonomy_tree" class="tree">
-        <div class="alert alert-warning">
-          <%= Spree.t(:loading_tree) %>
-        </div>
-      </div>
-    </div>
-
-    <div class="alert alert-info">
-      <%= Spree.t(:taxonomy_tree_instruction) %>
-    </div>
-
-    <div class="form-actions">
-      <%= button Spree.t('actions.update'), 'ok', 'submit', { class: 'btn-success' } %>
-      <span class="or"><%= Spree.t(:or) %></span>
-      <%= button_link_to Spree.t('actions.cancel'), admin_taxonomies_path, icon: 'delete' %>
+    <div class="filter-actions actions">
+      <%= button_tag t('spree.actions.update'), class: 'btn btn-primary' %>
+      <%= link_to t('spree.actions.cancel'), admin_taxonomies_path, class: 'btn btn-primary' %>
     </div>
   </fieldset>
+
+  <div id="taxonomy_tree" class="tree" data-taxonomy-id="<%= @taxonomy.id %>"></div>
 <% end %>
