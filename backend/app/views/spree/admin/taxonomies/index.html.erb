@@ -1,9 +1,8 @@
-<% content_for :page_title do %>
-  <%= plural_resource_name(Spree::Taxonomy) %>
-<% end %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::Product), spree.admin_products_path) %>
+<% admin_breadcrumb(plural_resource_name(Spree::Taxonomy)) %>
 
 <% content_for :page_actions do %>
-  <%= button_link_to Spree.t(:new_taxonomy), new_object_url, class: "btn-success", icon: 'add', id: 'admin_new_taxonomy_link' %>
+  <%= link_to t('spree.new_taxonomy'), spree.new_admin_taxonomy_url, id: 'admin_new_taxonomy_link', class: 'btn btn-primary' %>
 <% end if can?(:create, Spree::Taxonomy) %>
 
 <% if @taxonomies.any? %>
@@ -11,8 +10,9 @@
     <%= render 'list' %>
   </div>
 <% else %>
-  <div class="alert alert-info no-objects-found">
-    <%= Spree.t(:no_resource_found, resource: plural_resource_name(Spree::Taxonomy)) %>,
-    <%= link_to Spree.t(:add_one), new_object_url if can?(:create, Spree::Taxonomy) %>!
+  <div class="no-objects-found">
+    <%= render 'spree/admin/shared/no_objects_found',
+                 resource: Spree::Taxonomy,
+                 new_resource_url: new_object_url %>
   </div>
 <% end %>
