@@ -1,12 +1,14 @@
-<%= render partial: 'spree/admin/users/sidebar', locals: { current: :address } %>
+<% admin_breadcrumb(link_to plural_resource_name(Spree::LegacyUser), spree.admin_users_path) %>
+<% admin_breadcrumb(link_to @user.email, edit_admin_user_url(@user)) %>
+<% admin_breadcrumb(plural_resource_name(Spree::Address)) %>
+
+<%= render partial: 'spree/admin/users/sidebar' %>
+<%= render partial: 'spree/admin/users/tabs', current: :address %>
 <%= render partial: 'spree/admin/users/user_page_actions' %>
 
-<% content_for :page_title do %>
-  <%= link_to @user.email, spree.edit_admin_user_url(@user) %> /
-  <%= Spree.t(:addresses) %>
-<% end %>
+<fieldset data-hook="admin_user_addresses" id="admin_user_edit_addresses">
+  <legend><%= plural_resource_name(Spree::Address) %></legend>
 
-<div data-hook="admin_user_addresses" id="admin_user_edit_addresses">
   <div data-hook="admin_user_edit_form_header">
     <%= render partial: 'spree/admin/shared/error_messages', locals: { target: @user } %>
   </div>
@@ -16,11 +18,11 @@
 
       <%= render partial: 'addresses_form', locals: { f: f } %>
 
-      <div class="form-actions text-center well" data-hook="admin_user_edit_form_button">
-        <%= render partial: 'spree/admin/shared/edit_resource_links', locals: { collection_url: spree.admin_users_url } %>
-      </div>
+      <% if can?(:update, @user) %>
+        <div data-hook="admin_user_edit_form_button">
+          <%= render partial: 'spree/admin/shared/edit_resource_links', locals: { collection_url: admin_users_url } %>
+        </div>
+      <% end %>
     <% end %>
   </div>
-</div>
-
-<%= render 'spree/admin/users/lifetime_stats' %>
+</fieldset>
