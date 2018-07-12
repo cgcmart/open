@@ -5,6 +5,13 @@
 //= require js.cookie
 //= require jquery.jstree/jquery.jstree
 //= require jquery_ujs
+//= require solidus_admin/select2
+//= require solidus_admin/underscore
+//= require solidus_admin/backbone
+//= require solidus_admin/backbone-nested-models
+//= require solidus_admin/popover
+//= require solidus_admin/bootstrap
+//= require solidus_admin/flatpickr/flatpickr
 //= require jquery-ui/widgets/datepicker
 //= require jquery-ui/widgets/sortable
 //= require jquery-ui/widgets/autocomplete
@@ -35,6 +42,7 @@
 //= require spree/backend/returns/expedited_exchanges_warning
 //= require spree/backend/returns/return_item_selection
 //= require spree/backend/shipments
+//= require spree/backend/spree-select2
 //= require spree/backend/states
 //= require spree/backend/stock_location
 //= require spree/backend/stock_management
