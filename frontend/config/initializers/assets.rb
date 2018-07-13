@@ -1,1 +1,3 @@
-Rails.application.config.assets.precompile += %w(favicon.ico credit_cards/* spree/frontend/checkout/shipment)
+# frozen_string_literal: true
+
+Rails.application.config.assets.precompile << 'spree_frontend_manifest.js'
