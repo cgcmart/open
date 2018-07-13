@@ -2,8 +2,8 @@ $.fn.productAutocomplete = function (options) {
   'use strict';
 
   // Default options
-  options = options || {};
-  var multiple = typeof(options.multiple) !== 'undefined' ? options.multiple : true;
+  options = options || {}
+  var multiple = typeof(options['multiple']) !== 'undefined' ? options['multiple'] : true
 
   function formatProduct(product) {
     return Select2.util.escapeMarkup(product.name);
@@ -13,7 +13,7 @@ $.fn.productAutocomplete = function (options) {
     minimumInputLength: 3,
     multiple: multiple,
     initSelection: function (element, callback) {
-      $.get(Spree.routes.products_api, {
+      $.get(Spree.routes.admin_product_search, {
         ids: element.val().split(','),
         token: Spree.api_key
       }, function (data) {
@@ -21,22 +21,25 @@ $.fn.productAutocomplete = function (options) {
       });
     },
     ajax: {
-      url: Spree.routes.products_api,
+      url: Spree.routes.admin_product_search,
       datatype: 'json',
-      cache: true,
+      params: { "headers": { "X-Spree-Token": Spree.api_key } },
       data: function (term, page) {
         return {
           q: {
-            name_or_master_sku_cont: term,
+            name_cont: term,
+            variants_including_master_sku_start: term,
+            m: 'or'
           },
-          m: 'OR',
-          token: Spree.api_key
+          token: Spree.api_key,
+          page: page
         };
       },
       results: function (data, page) {
         var products = data.products ? data.products : [];
         return {
-          results: products
+          results: products,
+          more: (data.current_page * data.per_page) < data.total_count
         };
       }
     },
@@ -45,6 +48,6 @@ $.fn.productAutocomplete = function (options) {
   });
 };
 
-$(document).ready(function () {
+Spree.ready(function () {
   $('.product_picker').productAutocomplete();
 });
