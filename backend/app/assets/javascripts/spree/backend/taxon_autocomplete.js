@@ -1,26 +1,28 @@
-'use strict';
+$.fn.taxonAutocomplete = function () {
+  'use strict';
 
-var set_taxon_select = function(selector){
-  function formatTaxon(taxon) {
-    return Select2.util.escapeMarkup(taxon.pretty_name);
-  }
-
-  if ($(selector).length > 0) {
-    $(selector).select2({
+  this.select2({
       placeholder: Spree.translations.taxon_placeholder,
       multiple: true,
       initSelection: function (element, callback) {
-        var url = Spree.url(Spree.routes.taxons_api, {
-          ids: element.val(),
-          without_children: true,
-          token: Spree.api_key
-        });
-        return $.getJSON(url, null, function (data) {
-          return callback(data['taxons']);
+        var ids = element.val(),
+            count = ids.split(",").length;
+
+        Spree.ajax({
+          type: "GET",
+          url: Spree.routes.taxons_search,
+          data: {
+            ids: ids,
+            per_page: count,
+            without_children: true
+          },
+          success: function (data) {
+            callback(data['taxons']);
+          }
         });
       },
       ajax: {
-        url: Spree.routes.taxons_api,
+        url: Spree.routes.taxons_search,
         datatype: 'json',
         data: function (term, page) {
           return {
@@ -41,12 +43,15 @@ var set_taxon_select = function(selector){
           };
         }
       },
-      formatResult: formatTaxon,
-      formatSelection: formatTaxon
+      formatResult: function (taxon, container, query, escapeMarkup) {
+        return escapeMarkup(taxon.pretty_name);
+      },
+      formatSelection: function (taxon, container, escapeMarkup) {
+        return escapeMarkup(taxon.pretty_name);
+      }
     });
-  }
-}
+};
 
-$(document).ready(function () {
-  set_taxon_select('#product_taxon_ids')
+Spree.ready(function () {
+  $('#product_taxon_ids, .taxon_picker').taxonAutocomplete();
 });
