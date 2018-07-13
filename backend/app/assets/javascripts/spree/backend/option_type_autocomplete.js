@@ -1,4 +1,4 @@
-$(document).ready(function () {
+Spree.ready(function () {
   'use strict';
 
   function formatOptionType(option_type) {
@@ -10,24 +10,23 @@ $(document).ready(function () {
       placeholder: Spree.translations.option_type_placeholder,
       multiple: true,
       initSelection: function (element, callback) {
-        var url = Spree.url(Spree.routes.option_types_api, {
-          ids: element.val(),
-          token: Spree.api_key
-        });
-        return $.getJSON(url, null, function (data) {
-          return callback(data);
+        return Spree.ajax({
+          url: Spree.routes.option_type_search,
+          data: { ids: element.val() },
+          type: 'get',
+          success: function(data) {
+            return callback(data);
+          }
         });
       },
       ajax: {
-        url: Spree.routes.option_types_api,
+        url: Spree.routes.option_type_search,
         quietMillis: 200,
         datatype: 'json',
+        params: { "headers": { "X-Spree-Token": Spree.api_key } },
         data: function (term) {
           return {
-            q: {
-              name_cont: term
-            },
-            token: Spree.api_key
+            q: { name_cont: term }
           };
         },
         results: function (data) {
