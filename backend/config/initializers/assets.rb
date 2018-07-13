@@ -1,1 +1,3 @@
-Rails.application.config.assets.precompile += %w(admin/* credit_cards/credit_card.gif)
+# frozen_string_literal: true
+
+Rails.application.config.assets.precompile << 'spree_backend_manifest.js'
