@@ -1,372 +1,312 @@
 // Shipments AJAX API
-$(document).ready(function () {
-  'use strict';
 
-  // handle variant selection, show stock level.
-  $('#add_variant_id').change(function(){
-    var variant_id = $(this).val();
-
-    var variant = _.find(window.variants, function(variant){
-      return variant.id == variant_id
-    })
-    $('#stock_details').html(variantStockTemplate({variant: variant}));
-    $('#stock_details').show();
-
-    $('button.add_variant').click(addVariantFromStockLocation);
-  });
-
-  //handle edit click
-  $('a.edit-item').click(toggleItemEdit);
-
-  //handle cancel click
-  $('a.cancel-item').click(toggleItemEdit);
-
-  //handle split click
-  $('a.split-item').click(startItemSplit);
-
-  //handle save click
-  $('a.save-item').click(function(){
-    var save = $(this);
-    var shipment_number = save.data('shipment-number');
-    var variant_id = save.data('variant-id');
-
-    var quantity = parseInt(save.parents('tr').find('input.line_item_quantity').val());
-
-    toggleItemEdit();
-    adjustShipmentItems(shipment_number, variant_id, quantity);
-    return false;
-  });
-
-  //handle delete click
-  $('a.delete-item').click(function(event){
-    if (confirm(Spree.translations.are_you_sure_delete)) {
-      var del = $(this);
-      var shipment_number = del.data('shipment-number');
-      var variant_id = del.data('variant-id');
-      var shipment = _.findWhere(shipments, {number: shipment_number + ''});
-      var url = Spree.routes.shipments_api + "/" + shipment_number + '/remove';
-
-      toggleItemEdit();
-
-      $.ajax({
-        type: "PUT",
-        url: Spree.url(url),
-        data: {
-          variant_id: variant_id,
-          token: Spree.api_key
-        }
-      }).done(function( msg ) {
-        window.location.reload();
-      }).fail(function(msg) {
-        alert(msg.responseJSON.message)
-      });
-    }
-    return false;
-  });
-
-  // handle ship click
-  $('[data-hook=admin_shipment_form] a.ship').on('click', function () {
-    var link = $(this);
-    var shipment_number = link.data('shipment-number');
-    var url = Spree.url(Spree.routes.shipments_api + '/' + shipment_number + '/ship.json');
-    $.ajax({
-      type: 'PUT',
-      url: url,
-      data: {
-        token: Spree.api_key
+var ShipmentAddVariantView = Backbone.View.extend({
+  events: {
+    "change #add_variant_id": "onSelect",
+    "click .add_variant": "onAdd",
+    "submit form": "onAdd"
+  },
+  onSelect: function(e) {
+    var variant_id = this.$("#add_variant_id").val();
+    var template = HandlebarsTemplates["variants/autocomplete_stock"];
+    var $stock_details = this.$('#stock_details');
+    Spree.ajax({
+      url: Spree.routes.variants_api + "/" + variant_id,
+      success: function(variant){
+        $stock_details.html(template({variant: variant})).show()
       }
-    }).done(function () {
-      window.location.reload();
-    }).error(function (msg) {
-      console.log(msg);
     });
-  });
+  },
+  onAdd: function(e){
+    e.preventDefault();
 
-  // handle shipping method edit click
-  $('a.edit-method').click(toggleMethodEdit);
-  $('a.cancel-method').click(toggleMethodEdit);
+    this.$('#stock_details').hide();
 
-  // handle shipping method save
-  $('[data-hook=admin_shipment_form] a.save-method').on('click', function (event) {
-    event.preventDefault();
+    var variant_id = this.$('input.variant_autocomplete').val();
+    var stock_location_id = $(e.target).data('stock-location-id');
+    var quantity = this.$("input.quantity[data-stock-location-id='" + stock_location_id + "']").val();
 
-    var link = $(this);
-    var shipment_number = link.data('shipment-number');
-    var selected_shipping_rate_id = link.parents('tbody').find("select#selected_shipping_rate_id[data-shipment-number='" + shipment_number + "']").val();
-    var unlock = link.parents('tbody').find("input[name='open_adjustment'][data-shipment-number='" + shipment_number + "']:checked").val();
-    var url = Spree.url(Spree.routes.shipments_api + '/' + shipment_number + '.json');
-
-    $.ajax({
-      type: 'PUT',
-      url: url,
-      data: {
-        shipment: {
-          selected_shipping_rate_id: selected_shipping_rate_id,
-          unlock: unlock
-        },
-        token: Spree.api_key
-      }
-    }).done(function () {
-      window.location.reload();
-    }).error(function (msg) {
-      console.log(msg);
-    });
-  });
-
-  var toggleTrackingEdit = function(event) {
-    event.preventDefault();
-
-    var link = $(this);
-    link.parents('tbody').find('tr.edit-tracking').toggle();
-    link.parents('tbody').find('tr.show-tracking').toggle();
+    addVariantFromStockLocation(stock_location_id, variant_id, quantity)
   }
+});
 
-  // handle tracking edit click
-  $('a.edit-tracking').click(toggleTrackingEdit);
-  $('a.cancel-tracking').click(toggleTrackingEdit);
-
-  var createTrackingValueContent = function (data) {
-    var selected_shipping_method = data.shipping_methods.filter(function (method) {
-      return method.id === data.selected_shipping_rate.shipping_method_id;
-    })[0];
-
-    if (selected_shipping_method && selected_shipping_method.tracking_url) {
-      var shipmentTrackingUrl = selected_shipping_method.tracking_url.replace(/:tracking/, data.tracking);
-      return '<a target="_blank" href="' + shipmentTrackingUrl + '">' + data.tracking + '<a>';
-    }
-
-    return data.tracking;
-  }
-
-  // handle tracking save
-  $('[data-hook=admin_shipment_form] a.save-tracking').on('click', function (event) {
-    event.preventDefault();
-
-    var link = $(this);
-    var shipment_number = link.data('shipment-number');
-    var tracking = link.parents('tbody').find('input#tracking').val();
-    var url = Spree.url(Spree.routes.shipments_api + '/' + shipment_number + '.json');
-
-    $.ajax({
-      type: 'PUT',
-      url: url,
-      data: {
-        shipment: {
-          tracking: tracking
-        },
-        token: Spree.api_key
-      }
-    }).done(function (data) {
-      link.parents('tbody').find('tr.edit-tracking').toggle();
-
-      var show = link.parents('tbody').find('tr.show-tracking');
-      show.toggle();
-
-      if (data.tracking) {
-        show.find('.tracking-value').html($("<strong>").html(Spree.translations.tracking + ": ")).append(createTrackingValueContent(data));
-      } else {
-        show.find('.tracking-value').html(Spree.translations.no_tracking_present);
-      }
-    });
+Spree.ready(function(){
+  $(".js-shipment-add-variant").each(function(){
+    new ShipmentAddVariantView({el: this});
   });
 });
 
-adjustShipmentItems = function(shipment_number, variant_id, quantity){
-    var shipment = _.findWhere(shipments, {number: shipment_number + ''});
-    var inventory_units = _.where(shipment.inventory_units, {variant_id: variant_id});
-
-    var url = Spree.routes.shipments_api + "/" + shipment_number;
-
-    var previous_quantity = inventory_units.reduce(function(accumulator, current_unit, _index, _array) {
-      return accumulator + current_unit.quantity;
-    }, 0);
-
-    if(previous_quantity<quantity){
-      url += "/add"
-      new_quantity = (quantity - previous_quantity);
-    }else if(previous_quantity>quantity){
-      url += "/remove"
-      new_quantity = (previous_quantity - quantity);
-    }
-    url += '.json';
-
-    if(new_quantity!=0){
-      $.ajax({
-        type: "PUT",
-        url: Spree.url(url),
-        data: {
-          variant_id: variant_id,
-          quantity: new_quantity,
-          token: Spree.api_key
-        }
-      }).done(function( msg ) {
-        window.location.reload();
-      }).fail(function(msg) {
-        alert(msg.responseJSON.message)
-      });
-    }
-}
-
-toggleMethodEdit = function(){
-  var link = $(this);
-  link.parents('tbody').find('tr.edit-method').toggle();
-  link.parents('tbody').find('tr.show-method').toggle();
-
-  return false;
-}
-
-toggleItemEdit = function(){
-  var link = $(this);
-  link.parent().find('a.edit-item').toggle();
-  link.parent().find('a.cancel-item').toggle();
-  link.parent().find('a.split-item').toggle();
-  link.parent().find('a.save-item').toggle();
-  link.parent().find('a.delete-item').toggle();
-  link.parents('tr').find('td.item-qty-show').toggle();
-  link.parents('tr').find('td.item-qty-edit').toggle();
-
-  return false;
-}
-
-startItemSplit = function(event){
-  event.preventDefault();
-  $('.cancel-split').each(function(){
-    $(this).click()
-  })
-  var link = $(this);
-  link.parent().find('a.edit-item').toggle();
-  link.parent().find('a.split-item').toggle();
-  link.parent().find('a.delete-item').toggle();
-  var variant_id = link.data('variant-id');
-
-  var variant = {};
-  $.ajax({
-    type: "GET",
-    async: false,
-    url: Spree.url(Spree.routes.variants_api),
-    data: {
-      q: {
-        "id_eq": variant_id
+var ShipShipmentView = Backbone.View.extend({
+  initialize: function(options){
+    this.shipment_number = options.shipment_number;
+  },
+  events: {
+    "submit": "onSubmit"
+  },
+  onSubmit: function(e){
+    Spree.ajax({
+      type: "PUT",
+      url: Spree.routes.shipments_api + "/" + this.shipment_number + "/ship",
+      data: {
+        send_mailer: this.$("[name='send_mailer']").is(":checked")
       },
-      token: Spree.api_key
-    }
-  }).success(function( data ) {
-    variant = data['variants'][0];
-  }).error(function( msg ) {
-    console.log(msg);
-  });
+      success: function(){
+        window.location.reload()
+      }
+    });
+    return false;
+  }
+});
 
-  var max_quantity = link.closest('tr').data('item-quantity');
-  var split_item_template = Handlebars.compile($('#variant_split_template').text());
-  link.closest('tr').after(split_item_template({ variant: variant, shipments: shipments, max_quantity: max_quantity }));
-  $('a.cancel-split').click(cancelItemSplit);
-  $('a.save-split').click(completeItemSplit);
+adjustShipmentItems = function(shipment_number, variant_id, quantity){
+  var shipment = _.findWhere(shipments, {number: shipment_number});
+  var inventory_units = _.where(shipment.inventory_units, {variant_id: variant_id});
 
-  $('#item_stock_location').select2({ width: 'resolve', placeholder: Spree.translations.item_stock_placeholder });
-}
+  var url = Spree.routes.shipments_api + "/" + shipment_number;
 
-completeItemSplit = function(event) {
-  event.preventDefault();
-
-  if($('#item_stock_location').val() === ""){
-      alert('Please select the split destination.');
-      return false;
+  var new_quantity = 0;
+  if(inventory_units.length<quantity){
+    url += "/add";
+    new_quantity = (quantity - inventory_units.length);
+  }else if(inventory_units.length>quantity){
+    url += "/remove";
+    new_quantity = (inventory_units.length - quantity);
   }
 
-  var link = $(this);
-  var stock_item_row = link.closest('tr');
-  var variant_id = stock_item_row.data('variant-id');
-  var quantity = stock_item_row.find('#item_quantity').val();
-
-  var stock_location_id = stock_item_row.find('#item_stock_location').val();
-  var original_shipment_number = link.closest('tbody').data('shipment-number');
-
-  var selected_shipment = stock_item_row.find($('#item_stock_location').select2('data').element);
-  var target_shipment_number = selected_shipment.data('shipment-number');
-  var new_shipment = selected_shipment.data('new-shipment');
-
-  if (stock_location_id != 'new_shipment') {
-    if (new_shipment != undefined) {
-      // TRANSFER TO A NEW LOCATION
-      $.ajax({
-        type: "POST",
-        async: false,
-        url: Spree.url(Spree.routes.shipments_api + "/transfer_to_location"),
-        data: {
-            original_shipment_number: original_shipment_number,
-            variant_id: variant_id,
-            quantity: quantity,
-            stock_location_id: stock_location_id,
-            token: Spree.api_key
-        }
-      }).error(function(msg) {
-          alert(msg.responseJSON.exception);
-      }).done(function(msg) {
-          window.location.reload();
-      });
-    } else {
-        // TRANSFER TO AN EXISTING SHIPMENT
-        $.ajax({
-            type: "POST",
-            async: false,
-            url: Spree.url(Spree.routes.shipments_api + "/transfer_to_shipment"),
-            data: {
-                original_shipment_number: original_shipment_number,
-                target_shipment_number: target_shipment_number,
-                variant_id: variant_id,
-                quantity: quantity,
-                token: Spree.api_key
-            }
-        }).error(function(msg) {
-            alert(msg.responseJSON.exception);
-        }).done(function(msg) {
-            window.location.reload();
-        });
-    }
+  if(new_quantity!=0){
+    Spree.ajax({
+      type: "PUT",
+      url: url,
+      data: {
+        variant_id: variant_id,
+        quantity: new_quantity,
+      },
+      success: function() {
+        window.location.reload();
+      },
+      error: function(response) {
+        window.show_flash('error', response.responseJSON.message);
+      }
+    });
   }
-}
+};
 
-cancelItemSplit = function(event) {
-  event.preventDefault();
-  var link = $(this);
-  var prev_row = link.closest('tr').prev();
-  link.closest('tr').remove();
-  prev_row.find('a.edit-item').toggle();
-  prev_row.find('a.split-item').toggle();
-  prev_row.find('a.delete-item').toggle();
-}
-
-addVariantFromStockLocation = function(event) {
-  event.preventDefault();
-
-  $('#stock_details').hide();
-
-  var variant_id = $('input.variant_autocomplete').val();
-  var stock_location_id = $(this).data('stock-location-id');
-  var quantity = $("input.quantity[data-stock-location-id='" + stock_location_id + "']").val();
-
+addVariantFromStockLocation = function(stock_location_id, variant_id, quantity) {
   var shipment = _.find(shipments, function(shipment){
     return shipment.stock_location_id == stock_location_id && (shipment.state == 'ready' || shipment.state == 'pending');
   });
 
   if(shipment==undefined){
-    $.ajax({
+    Spree.ajax({
       type: "POST",
-      url: Spree.url(Spree.routes.shipments_api + "?shipment[order_id]=" + order_number),
+      url: Spree.routes.shipments_api,
       data: {
+        shipment: {
+          order_id: window.order_number
+        },
         variant_id: variant_id,
         quantity: quantity,
         stock_location_id: stock_location_id,
-        token: Spree.api_key
       }
-    }).done(function( msg ) {
+    }).done(function(){
       window.location.reload();
-    }).error(function( msg ) {
-      console.log(msg);
     });
   }else{
     //add to existing shipment
     adjustShipmentItems(shipment.number, variant_id, quantity);
   }
-  return 1
-}
+};
+
+var ShipmentSplitItemView = Backbone.View.extend({
+  tagName: 'tr',
+  className: 'stock-item-split',
+
+  initialize: function(options) {
+    this.variant = options.variant;
+    this.shipments = options.shipments;
+    this.shipment_number = options.shipment_number;
+    this.max_quantity = options.max_quantity;
+    this.shipmentItemView = options.shipmentItemView;
+    this.render()
+  },
+
+  events: {
+    "click .cancel-split": "cancelItemSplit",
+    "click .save-split": "completeItemSplit",
+    "submit form": "completeItemSplit",
+  },
+
+  cancelItemSplit: function(e){
+    e.preventDefault();
+
+    this.shipmentItemView.removeSplit();
+    this.remove();
+  },
+
+  completeItemSplit: function(e){
+    e.preventDefault();
+
+    var quantity = this.$('.quantity').val();
+    var target = this.$('[name="item_stock_location"]').val().split(':');
+    var target_type = target[0];
+    var target_id = target[1];
+
+    var split_attr = {
+      original_shipment_number: this.shipment_number,
+      variant_id: this.variant.id,
+      quantity: quantity
+    };
+    var jqXHR;
+    if (target_type == 'stock_location') {
+      // transfer to a new location
+      split_attr.stock_location_id = target_id;
+      jqXHR = Spree.ajax({
+        type: "POST",
+        url: Spree.routes.shipments_api + "/transfer_to_location",
+        data: split_attr
+      });
+    } else if (target_type == 'shipment') {
+      // transfer to an existing shipment
+      split_attr.target_shipment_number = target_id;
+      jqXHR = Spree.ajax({
+        type: "POST",
+        url: Spree.routes.shipments_api + "/transfer_to_shipment",
+        data: split_attr
+      });
+    } else {
+      alert('Please select the split destination.');
+      return false;
+    }
+    jqXHR.error(function(msg) {
+      alert(Spree.t("split_failed"));
+    }).done(function(response) {
+      if (response.success) {
+        window.Spree.advanceOrder();
+      } else {
+        alert(response.message);
+      };
+    });
+  },
+
+  template: HandlebarsTemplates['variants/split'],
+
+  render: function() {
+    /* Only display other shipments */
+    var shipments = _.reject(this.shipments, _.matcher({'number': this.shipment_number}))
+
+    var renderAttr = {
+      variant: this.variant,
+      shipments: shipments,
+      max_quantity: this.max_quantity
+    };
+    this.$el.html(this.template(renderAttr));
+
+    this.$('[name="item_stock_location"]').select2({
+      width: 'resolve',
+      placeholder: Spree.t('choose_location'),
+      minimumResultsForSearch: 8
+    });
+  }
+});
+
+var ShipmentItemView = Backbone.View.extend({
+  initialize: function(options) {
+    this.shipment_number = options.shipment_number
+    this.order_number = options.order_number
+    this.quantity = this.$el.data('item-quantity')
+    this.variant_id = this.$el.data('variant-id')
+  },
+
+  events: {
+    "click button.delete-item": "onDelete",
+    "click button.split-item": "onSplit",
+  },
+
+  removeSplit: function() {
+    this.$('.split-item').show();
+    this.$('.delete-item').show();
+  },
+
+  onSplit: function(e) {
+    e.preventDefault();
+    this.$('.split-item').toggle();
+    this.$('.delete-item').toggle();
+
+    var _this = this;
+    Spree.ajax({
+      type: "GET",
+      url: Spree.routes.variants_api + "/" + this.variant_id,
+    }).success(function(variant){
+      var split = new ShipmentSplitItemView({
+        shipmentItemView: _this,
+        shipment_number: _this.shipment_number,
+        variant: variant,
+        shipments: window.shipments,
+        max_quantity: _this.quantity
+      });
+
+      _this.$el.after(split.$el);
+    });
+  },
+
+  onDelete: function(e){
+    e.preventDefault();
+    if (confirm(Spree.translations.are_you_sure_delete)) {
+      adjustShipmentItems(this.shipment_number, this.variant_id, 0);
+    }
+  },
+});
+
+var ShipmentEditView = Backbone.View.extend({
+  initialize: function(){
+    this.shipment_number = this.model.get('number')
+    this.order_number = this.model.collection.parent.get('number')
+
+    var shipment = this.model;
+
+    var shipmentView = this;
+    this.$("form.admin-ship-shipment").each(function(el){
+      new ShipShipmentView({
+        el: this,
+        shipment_number: shipmentView.shipment_number
+      });
+    });
+    this.$(".stock-item").each(function(){
+      new ShipmentItemView({
+        el: this,
+        shipment_number: shipmentView.shipment_number,
+        order_number: shipmentView.order_number
+      });
+    });
+    this.$(".edit-shipping-method").each(function(el){
+      new Spree.Views.Order.ShippingMethod({
+        el: this,
+        model: shipment,
+        shipment_number: shipmentView.shipment_number
+      });
+    });
+    this.$(".edit-tracking").each(function(el){
+      new Spree.Views.Order.ShipmentTracking({
+        el: this,
+        model: shipment
+      });
+    });
+  }
+});
+
+Spree.ready(function(){
+  if($('.js-shipment-edit [data-order-number]').length) {
+    $('.js-shipment-edit').hide();
+    var orderNumber = $('.js-shipment-edit [data-order-number]').data('orderNumber');
+    var order = Spree.Models.Order.fetch(orderNumber, {
+      success: function(order){
+        $('.js-shipment-edit').show();
+        $(".js-shipment-edit").each(function(){
+          var shipmentNumber = $('[data-shipment-number]', this).data('shipmentNumber')
+          var shipment = order.get("shipments").find({number: shipmentNumber})
+          new ShipmentEditView({ el: this, model: shipment });
+        });
+      }
+    });
+  }
+});
