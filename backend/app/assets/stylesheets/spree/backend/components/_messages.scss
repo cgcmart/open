@@ -1,0 +1,57 @@
+.errorExplanation {
+  padding: 5px;
+  border: 1px solid very-light(theme-color("danger"), 12);
+  background-color: very-light(theme-color("danger"), 6);
+  border-radius: 3px;
+  color: very-light(theme-color("danger"), 30);
+  margin-bottom: 15px;
+
+  h2 {
+    font-size: 140%;
+    color: very-light(theme-color("danger"), 30);
+    margin-bottom: 5px;
+  }
+
+  p {
+    padding: 10px 0;
+  }
+
+  ul {
+    list-style-position: inside;
+
+    li {
+      font-weight: $font-weight-bold;
+    }
+  }
+}
+
+.flash-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: $width-sidebar;
+  right: 0;
+  z-index: 1000;
+}
+
+.flash {
+  padding: 16px;
+  text-align: center;
+  font-size: 120%;
+  color: $color-1;
+  font-weight: $font-weight-bold;
+
+  &.notice  { background-color: rgba(theme-color("warning"),  0.8) }
+  &.success { background-color: rgba(theme-color("success"), 0.8) }
+  &.error   { background-color: rgba(theme-color("danger"),   0.8) }
+}
+
+.alert {
+  position: relative;
+  font-weight: normal !important;
+
+  a {
+    text-decoration: underline;
+  }
+
+  &.error a { color: very-light(theme-color("danger"), 10) }
+}
