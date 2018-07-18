@@ -1,0 +1,17 @@
+#listing_product_stock {
+
+  tbody + tbody {
+    border-top-width: 1px;
+  }
+
+  td {
+    input.error {
+      border-color: theme-color("danger");
+    }
+
+    .select2-container.error {
+      border-radius: 4px;
+      border: 1px solid theme-color("danger");
+    }
+  }
+}
