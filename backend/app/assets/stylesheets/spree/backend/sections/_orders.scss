@@ -1,0 +1,76 @@
+// Customize orders filter
+[data-hook="admin_orders_index_search"] {
+  select[data-placeholder="Status"] {
+    width: 100%;
+  }
+
+  .select2-container {
+    width: 100% !important;
+  }
+}
+
+// Order-total
+[data-hook="order_details_total"]{
+  text-align: center;
+
+  .order-total {
+    font-size: 35px;
+    font-weight: $font-weight-bold;
+    color: theme-color("success");
+  }
+}
+
+// Order-total
+[data-hook="customer_details_total"]{
+  text-align: center;
+
+  .customer {
+    font-size: 20px;
+    font-weight: $font-weight-bold;
+    color: theme-color("success");
+  }
+}
+
+[data-hook="admin_order_form_fields"] {
+  legend.stock-location {
+    color: $body-color;
+
+    .shipment-number {
+      color: theme-color("success");
+    }
+    .stock-location-name {
+      color: theme-color("success");
+    }
+  }
+}
+
+[data-hook="adjustments_new_coupon_code"] {
+  margin-bottom: 18px;
+}
+
+#risk_analysis legend {
+  background-color: #c00;
+  color: #FFF;
+  font-size: 2em;
+}
+
+form.admin-ship-shipment {
+  display: block;
+  text-align: center;
+  input[type='submit'] { margin-left: 5px; }
+}
+
+table.line-items {
+  input.error {
+    border-color: theme-color("danger");
+  }
+
+  .select2-container.error {
+    border-radius: 4px;
+    border: 1px solid theme-color("danger");
+  }
+
+  .line-item-select-variant .select2-chosen {
+    max-width: 400px;
+  }
+}
