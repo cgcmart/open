@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-describe 'Promotion with option value rule', type: :feature do
+feature 'Promotion with option value rule' do
   stub_authorization!
 
   let(:variant) { create :variant }
@@ -9,41 +11,59 @@ describe 'Promotion with option value rule', type: :feature do
 
   let(:promotion) { create :promotion }
 
-  before do
+  background do
     visit spree.edit_admin_promotion_path(promotion)
   end
 
   it 'adding an option value rule', js: true do
-    select2 'Option Value(s)', from: 'Add rule of type'
-    within('#rule_fields') { click_button 'Add' }
+    select 'Option Value(s)', from: 'Add rule of type'
+    within('#rule_container') { click_button 'Add' }
 
-    within('#rules .promotion-block') do
+    within('#rules_container .promotion-block') do
+      expect(page).to have_content('Product')
+      expect(page).to have_content('Option Values')
+
       click_button 'Add'
-
-      expect(page.body).to have_content('Product')
-      expect(page.body).to have_content('Option Values')
     end
 
     within('.promo-rule-option-value') do
       targetted_select2_search product.name, from: '.js-promo-rule-option-value-product-select'
-      targetted_select2_search(
-        option_value.name,
-        from: '.js-promo-rule-option-value-option-values-select'
-      )
+      targetted_select2_search option_value.name, from: '.js-promo-rule-option-value-option-values-select'
     end
 
     within('#rules_container') { click_button 'Update' }
+
+    expect(page).to have_content('has been successfully updated')
 
     first_rule = promotion.rules.reload.first
     expect(first_rule.class).to eq Spree::Promotion::Rules::OptionValue
     expect(first_rule.preferred_eligible_values).to eq Hash[product.id => [option_value.id]]
   end
 
+  context 'with an attempted XSS' do
+    let(:xss_string) { %(<script>throw('XSS')</script>) }
+    before do
+      option_value.update!(name: xss_string)
+    end
+    scenario 'adding an option value rule', js: true do
+      select 'Option Value(s)', from: 'Add rule of type'
+      within('#rules_container') { click_button 'Add' }
+
+      within('#rules_container .promotion-block') do
+        click_button 'Add'
+      end
+
+      within('.promo-rule-option-value') do
+        targetted_select2_search product.name, from: '.js-promo-rule-option-value-product-select'
+        targetted_select2_search option_value.name, from: '.js-promo-rule-option-value-option-values-select'
+      end
+    end
+  end
+
   context 'with an existing option value rule' do
     let(:variant1) { create :variant }
     let(:variant2) { create :variant }
-
-    before do
+    background do
       rule = Spree::Promotion::Rules::OptionValue.new
       rule.promotion = promotion
       rule.preferred_eligible_values = Hash[
@@ -56,16 +76,15 @@ describe 'Promotion with option value rule', type: :feature do
     end
 
     it 'deleting a product', js: true do
-      within('.promo-rule-option-value:last-child') do
-        find('.delete').click
-      end
+      expect(page).to have_css('.promo-rule-option-value', count: 2)
+      all('.promo-rule-option-value')[1].find('.remove').click
 
-      within('#rule_fields') { click_button 'Update' }
+      within('#rule_container') { click_button 'Update' }
+
+      expect(page).to have_content("has been successfully updated")
 
       first_rule = promotion.rules.reload.first
-      expect(first_rule.preferred_eligible_values).to eq(
-        Hash[variant1.product_id => variant1.option_values.pluck(:id)]
-      )
+      expect(first_rule.preferred_eligible_values).to eq Hash[variant1.product_id => variant1.option_values.pluck(:id)]
     end
   end
 end
