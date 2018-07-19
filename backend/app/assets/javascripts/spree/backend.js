@@ -51,8 +51,6 @@
 //= require spree/backend/spree-select2
 //= require spree/backend/stock_management
 
-//= require spree/backend/stock_movement
-//= require spree/backend/stock_transfer
 
 //= require spree/backend/store_credits
 //= require spree/backend/style_guide
