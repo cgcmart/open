@@ -154,7 +154,7 @@ Spree::Core::Engine.routes.draw do
 
     resources :shipping_methods
     resources :shipping_categories
-    resources :stock_transfers, only: [:index, :show, :new, :create]
+
     resources :stock_locations do
       resources :stock_movements, except: [:edit, :update, :destroy]
       collection do
