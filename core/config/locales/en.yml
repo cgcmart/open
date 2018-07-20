@@ -262,9 +262,6 @@ en:
       spree/stock_location:
         one: Stock Location
         other: Stock Locations
-      spree/stock_transfer:
-        one: Stock Transfer
-        other: Stock Transfers
       spree/store_credit:
         one: Store Credit
         other: Store Credits
