@@ -54,10 +54,9 @@
 
 //= require spree/backend/store_credits
 //= require spree/backend/style_guide
-//= require spree/backend/taxon_autocomplete
 
-//= require spree/backend/taxon_permalink_preview
-//= require spree/backend/taxon_tree_menu
+//= require spree/backend/tag_picker
+//= require spree/backend/taxon_autocomplete
 //= require spree/backend/taxonomy
 //= require spree/backend/taxons
 //= require spree/backend/translation
