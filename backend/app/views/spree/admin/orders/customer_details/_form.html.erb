@@ -32,7 +32,7 @@
                   <%= t('spree.say_no') %>
                 </label>
               </li>
-              <%= hidden_field_tag :user_id, @order.user_id %>
+              <%= f.hidden_field :user_id, value: @order.user_id %>
             <% end %>
           </ul>
         </div>
