@@ -1,13 +1,15 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     module Orders
       class CustomerDetailsController < Spree::Admin::BaseController
+        rescue_from Spree::Order::InsufficientStock, with: :insufficient_stock_error
+
         before_action :load_order
-        before_action :load_user, only: :update, unless: :guest_checkout?
 
         def show
           edit
-          render action: :edit
         end
 
         def edit
@@ -20,17 +22,20 @@ module Spree
         end
 
         def update
-          if @order.update_attributes(order_params)
-            @order.associate_user!(@user, @order.email.blank?) unless guest_checkout?
-            @order.next if @order.address?
-            @order.refresh_shipment_rates(Spree::ShippingMethod::DISPLAY_ON_BACK_END)
+          if @order.update_cart(order_params)
 
-            if @order.errors.empty?
-              flash[:success] = Spree.t('customer_details_updated')
-              redirect_to edit_admin_order_url(@order)
-            else
-              render action: :edit
+            if should_associate_user?
+              requested_user = Spree.user_class.find(params[:user_id])
+              @order.associate_user!(requested_user, @order.email.blank?)
             end
+
+            unless @order.completed?
+              @order.next
+              @order.refresh_shipment_rates
+            end
+
+            flash[:success] = t('spree.customer_details_updated')
+            redirect_to edit_admin_order_url(@order)
           else
             render action: :edit
           end
@@ -54,18 +59,13 @@ module Spree
           Spree::Order
         end
 
-        def load_user
-          @user = (Spree.user_class.find_by(id: order_params[:user_id]) ||
-            Spree.user_class.find_by(email: order_params[:email]))
-
-          unless @user
-            flash.now[:error] = Spree.t(:user_not_found)
-            render :edit
-          end
+        def should_associate_user?
+          params[:guest_checkout] == "false" && params[:user_id] && params[:user_id].to_i != @order.user_id
         end
 
-        def guest_checkout?
-          params[:guest_checkout] == 'true'
+        def insufficient_stock_error
+          flash[:error] = t('spree.insufficient_stock_for_order')
+          redirect_to edit_admin_order_customer_url(@order)
         end
       end
     end
