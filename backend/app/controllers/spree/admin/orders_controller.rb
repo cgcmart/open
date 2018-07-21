@@ -14,6 +14,7 @@ module Spree
       respond_to :html
 
       def index
+        query_present = params[:q]
         params[:q] ||= {}
         params[:q][:completed_at_not_null] ||= '1' if Spree::Config[:show_only_complete_orders_by_default]
         @show_only_completed = params[:q][:completed_at_not_null] == '1'
@@ -49,7 +50,7 @@ module Spree
           params[:q][:completed_at_lt] = params[:q].delete(:created_at_lt)
         end
 
-        @search = Spree::Order.preload(:user).accessible_by(current_ability, :index).ransack(params[:q])
+        @search = Spree::Order.accessible_by(current_ability, :index).ransack(params[:q])
 
         # lazy loading other models here (via includes) may result in an invalid query
         # e.g. SELECT  DISTINCT DISTINCT "spree_orders".id, "spree_orders"."created_at" AS alias_0 FROM "spree_orders"
@@ -125,27 +126,27 @@ module Spree
  
       def cancel
         @order.canceled_by(try_spree_current_user)
-        flash[:success] = Spree.t(:order_canceled)
-        redirect_back fallback_location: spree.edit_admin_order_url(@order)
+        flash[:success] = t('spree.order_canceled')
+        redirect_to(spree.edit_admin_order_path(@order))
       end
 
       def resume
         @order.resume!
-        flash[:success] = Spree.t(:order_resumed)
-        redirect_back fallback_location: spree.edit_admin_order_url(@order)
+        flash[:success] = t('spree.order_resumed')
+        redirect_to(spree.edit_admin_order_path(@order))
       end
 
       def approve
-        @order.approved_by(try_spree_current_user)
-        flash[:success] = Spree.t(:order_approved)
-        redirect_back fallback_location: spree.edit_admin_order_url(@order)
+        @order.contents.approve(user: try_spree_current_user)
+        flash[:success] = t('spree.order_approved')
+        redirect_to(spree.edit_admin_order_path(@order))
       end
 
       def resend
-        OrderMailer.confirm_email(@order.id, true).deliver_later
-        flash[:success] = Spree.t(:order_email_resent)
+        Spree::Config.order_mailer_class.confirm_email(@order.id, true).deliver_later
+        flash[:success] = t('spree.order_email_resent')
 
-        redirect_back fallback_location: spree.edit_admin_order_url(@order)
+        redirect_to(spree.edit_admin_order_path(@order))
       end
 
       def unfinalize_adjustments
