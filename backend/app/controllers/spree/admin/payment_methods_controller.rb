@@ -1,19 +1,21 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class PaymentMethodsController < ResourceController
       skip_before_action :load_resource, only: :create
-      before_action :load_data
-      before_action :validate_payment_method_provider, only: :create
+      before_action :load_payment_method_types, except: [:index]
+      before_action :validate_payment_method_type, only: [:create, :update]
 
       respond_to :html
 
       def create
-        @payment_method = params[:payment_method].delete(:type).constantize.new(payment_method_params)
+        @payment_method = @payment_method_type.new(payment_method_params)
         @object = @payment_method
         invoke_callbacks(:create, :before)
         if @payment_method.save
           invoke_callbacks(:create, :after)
-          flash[:success] = Spree.t(:successfully_created, resource: Spree.t(:payment_method))
+          flash[:success] = t('spree.successfully_created', resource: t('spree.payment_method'))
           redirect_to edit_admin_payment_method_path(@payment_method)
         else
           invoke_callbacks(:create, :fails)
@@ -22,24 +24,19 @@ module Spree
       end
 
       def update
+        @payment_method = @payment_method.becomes(@payment_method_type)
         invoke_callbacks(:update, :before)
-        payment_method_type = params[:payment_method].delete(:type)
-        if @payment_method['type'].to_s != payment_method_type
-          @payment_method.update_columns(
-            type: payment_method_type,
-            updated_at: Time.current
-          )
-          @payment_method = PaymentMethod.find(params[:id])
-        end
 
-        attributes = payment_method_params.merge(preferences_params)
+        attributes = payment_method_params
         attributes.each do |k, _v|
-          attributes.delete(k) if k.include?('password') && attributes[k].blank?
+          if k.include?("password") && attributes[k].blank?
+            attributes.delete(k)
+          end
         end
 
         if @payment_method.update_attributes(attributes)
           invoke_callbacks(:update, :after)
-          flash[:success] = Spree.t(:successfully_updated, resource: Spree.t(:payment_method))
+          flash[:success] = t('spree.successfully_updated', resource: t('spree.payment_method'))
           redirect_to edit_admin_payment_method_path(@payment_method)
         else
           invoke_callbacks(:update, :fails)
@@ -50,29 +47,27 @@ module Spree
       private
 
       def collection
-        @collection = super.order(position: :asc)
+        super.ordered_by_position
       end
 
-      def load_data
-        @providers = Gateway.providers.sort_by(&:name)
+      def load_payment_method_types
+        @payment_method_types = Rails.application.config.spree.payment_methods.sort_by(&:name)
       end
 
-      def validate_payment_method_provider
-        valid_payment_methods = Rails.application.config.spree.payment_methods.map(&:to_s)
-        unless valid_payment_methods.include?(params[:payment_method][:type])
-          flash[:error] = Spree.t(:invalid_payment_provider)
+      def validate_payment_method_type
+        requested_type = params[:payment_method][:type]
+        @payment_method_type = @payment_method_types.detect do |klass|
+          klass.name == requested_type
+        end
+
+        if !@payment_method_type
+          flash[:error] = t('spree.invalid_payment_method_type')
           redirect_to new_admin_payment_method_path
         end
       end
 
       def payment_method_params
         params.require(:payment_method).permit!
-      end
-
-      def preferences_params
-        key = ActiveModel::Naming.param_key(@payment_method)
-        return {} unless params.key? key
-        params.require(key).permit!
       end
     end
   end
