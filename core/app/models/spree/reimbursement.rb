@@ -1,25 +1,23 @@
+# frozen_string_literal: true
+
 module Spree
   class Reimbursement < Spree::Base
-    include Spree::Core::NumberGenerator.new(prefix: 'RI', length: 9)
-
     class IncompleteReimbursementError < StandardError; end
 
-    with_options inverse_of: :reimbursements do
-      belongs_to :order
-      belongs_to :customer_return, touch: true, optional: true
-    end
+    belongs_to :order, inverse_of: :reimbursements
+    belongs_to :customer_return, inverse_of: :reimbursements, touch: true
 
-    with_options inverse_of: :reimbursement do
-      has_many :refunds
-      has_many :credits, class_name: 'Spree::Reimbursement::Credit'
-      has_many :return_items
-    end
+    has_many :refunds, inverse_of: :reimbursement
+    has_many :credits, inverse_of: :reimbursement, class_name: 'Spree::Reimbursement::Credit'
 
-    validates :number, uniqueness: true
+    has_many :return_items, inverse_of: :reimbursement
+
     validates :order, presence: true
     validate :validate_return_items_belong_to_same_order
 
     accepts_nested_attributes_for :return_items, allow_destroy: true
+
+    before_create :generate_number
 
     scope :reimbursed, -> { where(reimbursement_status: 'reimbursed') }
 
@@ -42,7 +40,7 @@ module Spree
     #   Refund.total_amount_reimbursed_for(reimbursement)
     # See the `reimbursement_generator` property regarding the generation of custom reimbursements.
     class_attribute :reimbursement_models
-    self.reimbursement_models = [Refund, Credit]
+    self.reimbursement_models = [Spree::Refund, Spree::Reimbursement::Credit]
 
     # The reimbursement_performer property should be set to an object that responds to the following methods:
     # - #perform
@@ -62,7 +60,7 @@ module Spree
 
     state_machine :reimbursement_status, initial: :pending do
       event :errored do
-        transition to: :errored, from: :pending
+        transition to: :errored, from: [:pending, :errored]
       end
 
       event :reimbursed do
@@ -73,19 +71,21 @@ module Spree
     class << self
       def build_from_customer_return(customer_return)
         order = customer_return.order
-        order.reimbursements.build(customer_return: customer_return,
-                                   return_items: customer_return.return_items.accepted.not_reimbursed)
+        order.reimbursements.build({
+          customer_return: customer_return,
+          return_items: customer_return.return_items.accepted.not_reimbursed
+        })
       end
     end
 
     def display_total
-      Spree::Money.new(total, currency: order.currency)
+      Spree::Money.new(total, { currency: order.currency })
     end
 
     def calculated_total
       # rounding every return item individually to handle edge cases for consecutive partial
       # returns where rounding might cause us to try to reimburse more than was originally billed
-      return_items.map { |ri| ri.total.to_d.round(2) }.sum
+      return_items.to_a.sum(&:total).to_d.round(2, :down)
     end
 
     def paid_amount
@@ -112,7 +112,7 @@ module Spree
       else
         errored!
         reimbursement_failure_hooks.each { |h| h.call self }
-        raise IncompleteReimbursementError, Spree.t('validation.unpaid_amount_not_zero', amount: unpaid_amount)
+        raise IncompleteReimbursementError, t('spree.validation.unpaid_amount_not_zero', amount: unpaid_amount)
       end
     end
 
@@ -128,7 +128,32 @@ module Spree
       return_items.select(&:exchange_required?)
     end
 
+    def any_exchanges?
+      return_items.any?(&:exchange_processed?)
+    end
+
+    def all_exchanges?
+      return_items.all?(&:exchange_processed?)
+    end
+
+    # Accepts all return items, saves the reimbursement, and performs the reimbursement
+    #
+    # @api public
+    # @return [void]
+    def return_all
+      return_items.each(&:accept!)
+      save!
+      perform!
+    end
+
     private
+
+    def generate_number
+      self.number ||= loop do
+        random = "RI#{Array.new(9){ rand(9) }.join}"
+        break random unless self.class.exists?(number: random)
+      end
+    end
 
     def validate_return_items_belong_to_same_order
       if return_items.any? { |ri| ri.inventory_unit.order_id != order_id }
@@ -137,7 +162,7 @@ module Spree
     end
 
     def send_reimbursement_email
-      Spree::ReimbursementMailer.reimbursement_email(id).deliver_later
+      Spree::Config.reimbursement_mailer_class.reimbursement_email(id).deliver_later
     end
 
     # If there are multiple different reimbursement types for a single
@@ -147,7 +172,7 @@ module Spree
     # payments and credits have already been processed, we should allow the
     # reimbursement to show as 'reimbursed' and not 'errored'.
     def unpaid_amount_within_tolerance?
-      reimbursement_count = reimbursement_models.size do |model|
+      reimbursement_count = reimbursement_models.count do |model|
         model.total_amount_reimbursed_for(self) > 0
       end
       leniency = if reimbursement_count > 0
