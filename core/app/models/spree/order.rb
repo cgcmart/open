@@ -768,7 +768,7 @@ module Spree
     end
 
     def send_cancel_email
-      Spree::OrderMailer.cancel_email(id).deliver_later
+      Spree::Config.order_mailer_class.cancel_email(self).deliver_later
     end
 
     def after_resume
