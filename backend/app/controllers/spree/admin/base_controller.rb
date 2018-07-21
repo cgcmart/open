@@ -1,24 +1,31 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class BaseController < Spree::BaseController
       helper 'spree/admin/navigation'
       layout '/spree/layouts/admin'
 
-      before_action :authorize_admin
-      before_action :generate_admin_api_key
+      before_action :authorize_admin      
 
-      protected
+      private
+
+      # Overrides ControllerHelpers::Common
+      # We want the admin's locale selection to be different than that on the frontend
+      def set_user_language_locale_key
+        :admin_locale
+      end
 
       def action
         params[:action].to_sym
       end
 
       def authorize_admin
-        record = if respond_to?(:model_class, true) && model_class
-                   model_class
-                 else
-                   controller_name.to_sym
-                 end
+        if respond_to?(:model_class, true) && model_class
+          record = model_class
+        else
+          record = controller_name.to_sym
+        end
         authorize! :admin, record
         authorize! action, record
       end
@@ -34,7 +41,7 @@ module Spree
       def flash_message_for(object, event_sym)
         resource_desc  = object.class.model_name.human
         resource_desc += " \"#{object.name}\"" if object.respond_to?(:name) && object.name.present?
-        Spree.t(event_sym, resource: resource_desc)
+        t(event_sym, resource: resource_desc, scope: 'spree')
       end
 
       def render_js_for_destroy
@@ -45,11 +52,15 @@ module Spree
         Spree::Backend::Config[:locale]
       end
 
-      def can_not_transition_without_customer_info
-        unless @order.billing_address.present?
-          flash[:notice] = Spree.t(:fill_in_customer_info)
-          redirect_to edit_admin_order_customer_url(@order)
-        end
+      def lock_order
+        Spree::OrderMutex.with_lock!(@order) { yield }
+      rescue Spree::OrderMutex::LockFailed
+        flash[:error] = t('spree.order_mutex_admin_error')
+        redirect_to order_mutex_redirect_path
+      end
+
+      def order_mutex_redirect_path
+        edit_admin_order_path(@order)
       end
     end
   end
