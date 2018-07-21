@@ -1,35 +1,36 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class OptionTypesController < ResourceController
       before_action :setup_new_option_value, only: :edit
 
       def update_values_positions
-        ApplicationRecord.transaction do
-          params[:positions].each do |id, index|
-            Spree::OptionValue.where(id: id).update_all(position: index)
+        params[:positions].each do |id, index|
+          Spree::OptionValue.where(id: id).update_all(position: index)
           end
-        end
 
         respond_to do |format|
-          format.html { redirect_to admin_product_variants_url(params[:product_id]) }
-          format.js { render plain: 'Ok' }
-        end
-      end
-
-      protected
-
-      def location_after_save
-        if @option_type.created_at == @option_type.updated_at
-          edit_admin_option_type_url(@option_type)
-        else
-          admin_option_types_url
+          format.js { head :no_content }
         end
       end
 
       private
 
+      def location_after_save
+        edit_admin_option_type_url(@option_type)
+      end
+
       def setup_new_option_value
         @option_type.option_values.build if @option_type.option_values.empty?
+      end
+
+      def set_available_option_types
+        @available_option_types = if @product.option_type_ids.any?
+          Spree::OptionType.where('id NOT IN (?)', @product.option_type_ids)
+        else
+          Spree::OptionType.all
+        end
       end
     end
   end
