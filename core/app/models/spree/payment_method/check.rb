@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 module Spree
   class PaymentMethod::Check < PaymentMethod
     def actions
-      %w{capture void}
+      %w{capture void credit}
     end
 
     # Indicates whether its possible to capture the payment
@@ -18,23 +20,18 @@ module Spree
       simulated_successful_billing_response
     end
 
-    def cancel(*)
+    def void(*)
       simulated_successful_billing_response
     end
+    alias_method :try_void, :void
 
-    def void(*)
+    def credit(*)
       simulated_successful_billing_response
     end
 
     def source_required?
       false
     end
-
-    def credit(*)
-      simulated_successful_billing_response
-    end
-
-    private
 
     def simulated_successful_billing_response
       ActiveMerchant::Billing::Response.new(true, '', {}, {})
