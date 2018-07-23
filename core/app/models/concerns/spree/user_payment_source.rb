@@ -1,21 +1,18 @@
+# frozen_string_literal: true
+
 module Spree
   module UserPaymentSource
     extend ActiveSupport::Concern
 
-    included do
-      has_many :credit_cards, class_name: 'Spree::CreditCard', foreign_key: :user_id
-      def default_credit_card
-        credit_cards.default.first
+    def default_credit_card
+      default = wallet.default_wallet_payment_source
+      if default && default.payment_source.is_a?(Spree::CreditCard)
+        default.payment_source
       end
+    end
 
-      def payment_sources
-        credit_cards.with_payment_profile
-      end
-
-      def drop_payment_source(source)
-        gateway = source.payment_method
-        gateway.disable_customer_profile(source)
-      end
+    def payment_sources
+      credit_cards.with_payment_profile
     end
   end
 end
