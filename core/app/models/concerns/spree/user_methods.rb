@@ -1,34 +1,45 @@
+# frozen_string_literal: true
+
 module Spree
   module UserMethods
     extend ActiveSupport::Concern
 
-    include Spree::UserPaymentSource
+    include Spree::UserApiAuthentication
     include Spree::UserReporting
-    include Spree::RansackableAttributes
+    include Spree::UserAddressBook
+    include Spree::UserPaymentSource
 
     included do
-      # we need to have this callback before any dependent: :destroy associations
-      # https://github.com/rails/rails/issues/3458
-      before_validation :clone_billing_address, if: :use_billing?
-      before_destroy :check_completed_orders
-      after_destroy :nullify_approver_id_in_approved_orders
+      extend Spree::DisplayMoney
 
-      attr_accessor :use_billing
+      has_many :role_users, foreign_key: "user_id", class_name: "Spree::RoleUser", dependent: :destroy
+      has_many :spree_roles, through: :role_users, source: :role, class_name: "Spree::Role"
 
-      has_many :role_users, class_name: 'Spree::RoleUser', foreign_key: :user_id, dependent: :destroy
-      has_many :spree_roles, through: :role_users, class_name: 'Spree::Role', source: :role
+      has_many :user_stock_locations, foreign_key: "user_id", class_name: "Spree::UserStockLocation"
+      has_many :stock_locations, through: :user_stock_locations
 
-      has_many :promotion_rule_users, class_name: 'Spree::PromotionRuleUser', foreign_key: :user_id, dependent: :destroy
-      has_many :promotion_rules, through: :promotion_rule_users, class_name: 'Spree::PromotionRule'
+      has_many :spree_orders, foreign_key: "user_id", class_name: "Spree::Order"
+      has_many :orders, foreign_key: "user_id", class_name: "Spree::Order", dependent: :restrict_with_exception
 
-      has_many :orders, foreign_key: :user_id, class_name: 'Spree::Order'
-      has_many :store_credits, foreign_key: :user_id, class_name: 'Spree::StoreCredit'
+      has_many :store_credits, -> { includes(:credit_type) }, foreign_key: "user_id", class_name: "Spree::StoreCredit"
+      has_many :store_credit_events, through: :store_credits
 
-      belongs_to :ship_address, class_name: 'Spree::Address', optional: true
-      belongs_to :bill_address, class_name: 'Spree::Address', optional: true
+      money_methods :total_available_store_credit
+      deprecate display_total_available_store_credit: :display_available_store_credit_total, deprecator: Spree::Deprecation
 
-      self.whitelisted_ransackable_associations = %w[bill_address ship_address]
-      self.whitelisted_ransackable_attributes = %w[id email]
+      has_many :credit_cards, class_name: "Spree::CreditCard", foreign_key: :user_id
+      has_many :wallet_payment_sources, foreign_key: 'user_id', class_name: 'Spree::WalletPaymentSource', inverse_of: :user
+
+      after_create :auto_generate_spree_api_key
+
+      include Spree::RansackableAttributes unless included_modules.include?(Spree::RansackableAttributes)
+
+      self.whitelisted_ransackable_associations = %w[addresses spree_roles]
+      self.whitelisted_ransackable_attributes = %w[id email created_at]
+    end
+
+    def wallet
+      Spree::Wallet.new(self)
     end
 
     # has_spree_role? simply needs to return true or false whether a user has a role or not.
@@ -36,38 +47,42 @@ module Spree
       spree_roles.any? { |role| role.name == role_in_question.to_s }
     end
 
-    def last_incomplete_spree_order(store)
-      orders.where(store: store).incomplete.
-        includes(line_items: [variant: [:images, :option_values, :product]]).
-        order('created_at DESC').
-        first
+    def auto_generate_spree_api_key
+      return if !respond_to?(:spree_api_key) || spree_api_key.present?
+
+      if Spree::Config.generate_api_key_for_all_roles || (spree_roles.map(&:name) & Spree::Config.roles_for_auto_api_key).any?
+        generate_spree_api_key!
+      end
+    end
+
+    # @return [Spree::Order] the most-recently-created incomplete order
+    # since the customer's last complete order.
+    def last_incomplete_spree_order(store: nil, only_frontend_viewable: true)
+      self_orders = orders
+      self_orders = self_orders.where(frontend_viewable: true) if only_frontend_viewable
+      self_orders = self_orders.where(store: store) if store
+      self_orders = self_orders.where('updated_at > ?', Spree::Config.completable_order_updated_cutoff_days.days.ago) if Spree::Config.completable_order_updated_cutoff_days
+      self_orders = self_orders.where('created_at > ?', Spree::Config.completable_order_created_cutoff_days.days.ago) if Spree::Config.completable_order_created_cutoff_days
+      last_order = self_orders.order(:created_at).last
+      last_order unless last_order.try!(:completed?)
     end
 
     def total_available_store_credit
       store_credits.reload.to_a.sum(&:amount_remaining)
     end
+    deprecate total_available_store_credit: :available_store_credit_total, deprecator: Spree::Deprecation
 
-    private
-
-    def check_completed_orders
-      raise Spree::Core::DestroyWithOrdersError if orders.complete.present?
+    def available_store_credit_total(currency:)
+      store_credits.reload.to_a.
+        select { |c| c.currency == currency }.
+        sum(&:amount_remaining)
     end
 
-    def nullify_approver_id_in_approved_orders
-      Spree::Order.where(approver_id: id).update_all(approver_id: nil)
-    end
-
-    def clone_billing_address
-      if bill_address && ship_address.nil?
-        self.ship_address = bill_address.clone
-      else
-        ship_address.attributes = bill_address.attributes.except('id', 'updated_at', 'created_at')
-      end
-      true
-    end
-
-    def use_billing?
-      use_billing.in?([true, 'true', '1'])
+    def display_available_store_credit_total(currency:)
+      Spree::Money.new(
+        available_store_credit_total(currency: currency),
+        currency: currency,
+      )
     end
   end
 end
