@@ -1,61 +1,78 @@
-module Spree
-  class CreditCard < Spree::Base
-    include ActiveMerchant::Billing::CreditCardMethods
+# frozen_string_literal: true
 
-    belongs_to :payment_method
-    belongs_to :user, class_name: Spree.user_class.to_s, foreign_key: 'user_id',
-                      optional: true
-    has_many :payments, as: :source
+module Spree
+  class CreditCard < Spree::PaymentSource
+    belongs_to :user, class_name: Spree::UserClassHandle.new, foreign_key: 'user_id',
+    belongs_to :address
 
     before_save :set_last_digits
 
-    after_save :ensure_one_default
+    accepts_nested_attributes_for :address
 
-    # As of rails 4.2 string columns always return strings, we can override it on model level.
-    attribute :month, ActiveRecord::Type::Integer.new
-    attribute :year,  ActiveRecord::Type::Integer.new
+    attr_reader :number, :verification_value
+    attr_accessor :encrypted_data
 
-    attr_reader :number
-    attr_accessor :encrypted_data,
-                  :imported,
-                  :verification_value,
-                  :manual_entry
+    validates :month, :year, numericality: { only_integer: true }, if: :require_card_numbers?, on: :create
+    validates :number, presence: true, if: :require_card_numbers?, on: :create, unless: :imported
+    validates :name, presence: true, if: :require_card_numbers?, on: :create
+    validates :verification_value, presence: true, if: :require_card_numbers?, on: :create, unless: :imported
 
-    with_options if: :require_card_numbers?, on: :create do
-      validates :month, :year, numericality: { only_integer: true }
-      validates :number, :verification_value, presence: true, unless: :imported
-      validates :name, presence: true
+    scope :with_payment_profile, -> { where('gateway_customer_profile_id IS NOT NULL') }
+
+    def self.default
+      joins(:wallet_payment_sources).where(spree_wallet_payment_sources: { default: true })
     end
-
-    scope :with_payment_profile, -> { where.not(gateway_customer_profile_id: nil) }
-    scope :default, -> { where(default: true) }
 
     # needed for some of the ActiveMerchant gateways (eg. SagePay)
     alias_attribute :brand, :cc_type
 
-    # ActiveMerchant::Billing::CreditCard added this accessor used by some gateways.
-    # More info: https://github.com/spree/spree/issues/6209
-    #
-    # Returns or sets the track data for the card
-    #
-    # @return [String]
-    attr_accessor :track_data
-
+    # Taken from ActiveMerchant
+    # https://github.com/activemerchant/active_merchant/blob/2f2acd4696e8de76057b5ed670b9aa022abc1187/lib/active_merchant/billing/credit_card_methods.rb#L5
     CARD_TYPES = {
-      visa: /^4\d{12}(\d{3})?(\d{3})?$/,
-      master: /^(5[1-5]\d{4}|677189|222[1-9]\d{2}|22[3-9]\d{3}|2[3-6]\d{4}|27[01]\d{3}|2720\d{2})\d{10}$/,
-      discover: /^(6011|65\d{2}|64[4-9]\d)\d{12}|(62\d{14})$/,
-      american_express: /^3[47]\d{13}$/,
-      diners_club: /^3(0[0-5]|[68]\d)\d{11}$/,
-      jcb: /^35(28|29|[3-8]\d)\d{12}$/,
-      switch: /^6759\d{12}(\d{2,3})?$/,
-      solo: /^6767\d{12}(\d{2,3})?$/,
-      dankort: /^5019\d{12}$/,
-      maestro: /^(5[06-8]|6\d)\d{10,17}$/,
-      forbrugsforeningen: /^600722\d{10}$/,
-      laser: /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/
+      'visa'               => /^4\d{12}(\d{3})?(\d{3})?$/,
+      'master'             => /^(5[1-5]\d{4}|677189|222[1-9]\d{2}|22[3-9]\d{3}|2[3-6]\d{4}|27[01]\d{3}|2720\d{2})\d{10}$/,
+      'discover'           => /^(6011|65\d{2}|64[4-9]\d)\d{12}|(62\d{14})$/,
+      'american_express'   => /^3[47]\d{13}$/,
+      'diners_club'        => /^3(0[0-5]|[68]\d)\d{11}$/,
+      'jcb'                => /^35(28|29|[3-8]\d)\d{12}$/,
+      'switch'             => /^6759\d{12}(\d{2,3})?$/,
+      'solo'               => /^6767\d{12}(\d{2,3})?$/,
+      'dankort'            => /^5019\d{12}$/,
+      'maestro'            => /^(5[06-8]|6\d)\d{10,17}$/,
+      'forbrugsforeningen' => /^600722\d{10}$/,
+      'laser'              => /^(6304|6706|6709|6771(?!89))\d{8}(\d{4}|\d{6,7})?$/
     }.freeze
 
+    def default
+      user.wallet.default_wallet_payment_source
+      return false if user.nil?
+      user.wallet.default_wallet_payment_source.try!(:payment_source) == self
+    end
+
+    def default=(set_as_default)
+      user.wallet.default_wallet_payment_source
+      if user.nil?
+        raise "Cannot set 'default' on a credit card without a user"
+      elsif set_as_default # setting this card as default
+        wallet_payment_source = user.wallet.add(self)
+        user.wallet.default_wallet_payment_source = wallet_payment_source
+        true
+      else # removing this card as default
+        if user.wallet.default_wallet_payment_source.try!(:payment_source) == self
+          user.wallet.default_wallet_payment_source = nil
+        end
+        false
+      end
+    end
+
+    def address_attributes=(attributes)
+      self.address = Spree::Address.immutable_merge(address, attributes)
+    end
+
+    # Sets the expiry date on this credit card.
+    #
+    # @param expiry [String] the desired new expiry date in one of the
+    #   following formats: "mm/yy", "mm / yyyy", "mmyy", "mmyyyy"
     def expiry=(expiry)
       return unless expiry.present?
 
@@ -66,18 +83,21 @@ module Spree
           [match[1], match[2]]
         end
       if self[:year]
-        self[:year] = "20#{self[:year]}" if (self[:year] / 100).zero?
+        self[:year] = "20#{self[:year]}" if self[:year].length == 2
         self[:year] = self[:year].to_i
       end
       self[:month] = self[:month].to_i if self[:month]
     end
 
     def number=(num)
-      @number = begin
-                  num.gsub(/[^0-9]/, '')
-                rescue
-                  nil
-                end
+      @number =
+        if num.is_a?(String)
+          num.gsub(/[^0-9]/, '')
+        end
+    end
+
+    def verification_value=(value)
+      @verification_value = value.to_s.gsub(/\s/, '')
     end
 
     # cc_type is set by jquery.payment, which helpfully provides different
@@ -88,19 +108,19 @@ module Spree
                        when 'amex' then 'american_express'
                        when 'dinersclub' then 'diners_club'
                        when '' then try_type_from_number
-                       else type
+      else type
       end
     end
 
     def set_last_digits
-      number.to_s.gsub!(/\s/, '')
-      verification_value.to_s.gsub!(/\s/, '')
       self.last_digits ||= number.to_s.length <= 4 ? number : number.to_s.slice(-4..-1)
     end
 
     def try_type_from_number
-      numbers = number.delete(' ') if number
-      CARD_TYPES.find { |type, pattern| return type.to_s if numbers =~ pattern }.to_s
+      CARD_TYPES.each do |type, pattern|
+        return type if number =~ pattern
+      end
+      ''
     end
 
     def verification_value?
@@ -112,24 +132,8 @@ module Spree
       "XXXX-XXXX-XXXX-#{last_digits}"
     end
 
-    def actions
-      %w{capture void credit}
-    end
-
-    # Indicates whether its possible to capture the payment
-    def can_capture?(payment)
-      payment.pending? || payment.checkout?
-    end
-
-    # Indicates whether its possible to void the payment.
-    def can_void?(payment)
-      !payment.failed? && !payment.void?
-    end
-
-    # Indicates whether its possible to credit the payment.  Note that most gateways require that the
-    # payment be settled first which generally happens within 12-24 hours of the transaction.
-    def can_credit?(payment)
-      payment.completed? && payment.credit_allowed > 0
+    def reusable?
+      has_payment_profile?
     end
 
     def has_payment_profile?
@@ -162,13 +166,6 @@ module Spree
 
     def require_card_numbers?
       !encrypted_data.present? && !has_payment_profile?
-    end
-
-    def ensure_one_default
-      if user_id && default
-        CreditCard.where(default: true, user_id: user_id).where.not(id: id).
-          update_all(default: false)
-      end
     end
   end
 end
