@@ -3,7 +3,7 @@
     <h3 class="panel-title"><%= Spree.t(:payment_information) %></h3>
   </div>
   <div class="panel-body" data-hook="checkout_payment_step">
-    <% if @payment_sources.present? %>
+    <% if @wallet_payment_sources.present? %>
       <div class="card_options">
         <%= radio_button_tag 'use_existing_card', 'yes', true %>
         <label for="use_existing_card_yes">
@@ -16,22 +16,23 @@
       </div>
 
       <div id="existing_cards">
-        <p class="form-group" data-hook="existing_cards">
+        <div class="field" data-hook="existing_cards">
           <table class="existing-credit-card-list">
             <tbody>
-              <% @payment_sources.each do |card| %>
-                <tr id="<%= dom_id(card,'spree')%>" class="<%= cycle('even', 'odd') %>">
-                  <td><%= card.name %></td>
-                  <td><%= card.display_number %></td>
-                  <td><%= card.month %> / <%= card.year %></td>
-                  <td>
-                    <%= radio_button_tag "order[existing_card]", card.id, (card == @payment_sources.first), { class: "existing-cc-radio" }  %>
-                  </td>
-                </tr>
+              <% @wallet_payment_sources.each do |wallet_payment_source| %>
+                <%=
+                  render(
+                    partial: "spree/checkout/existing_payment/#{wallet_payment_source.payment_source.payment_method.partial_name}",
+                    locals: {
+                      wallet_payment_source: wallet_payment_source,
+                      default: wallet_payment_source == @default_wallet_payment_source,
+                    }
+                  )
+                %>
               <% end %>
             </tbody>
           </table>
-        </p>
+        </div>
       </div>
     <% end %>
 
