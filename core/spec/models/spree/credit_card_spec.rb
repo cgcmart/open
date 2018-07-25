@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::CreditCard, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::CreditCard, type: :model do
   let(:valid_credit_card_attributes) do
     {
       number: '4111111111111111',
@@ -9,13 +11,16 @@ describe Spree::CreditCard, type: :model do
       name: 'Spree Commerce'
     }
   end
-  let(:credit_card) { Spree::CreditCard.new }
-
+  
   def self.payment_states
     Spree::Payment.state_machine.states.keys
   end
 
-  before do
+  let(:credit_card) { Spree::CreditCard.new }
+
+  it_behaves_like 'a payment source'
+
+  before(:each) do
     @order = create(:order)
     @payment = Spree::Payment.create(amount: 100, order: @order)
 
@@ -33,49 +38,14 @@ describe Spree::CreditCard, type: :model do
     allow(@payment).to receive_messages payment_method: @payment_gateway
   end
 
-  it 'responds to track_data' do
-    expect(credit_card.respond_to?(:track_data)).to be true
-  end
-
-  context '#can_capture?' do
-    it 'is true if payment is pending' do
-      payment = mock_model(Spree::Payment, pending?: true, created_at: Time.current)
-      expect(credit_card.can_capture?(payment)).to be true
-    end
-
-    it 'is true if payment is checkout' do
-      payment = mock_model(Spree::Payment, pending?: false, checkout?: true, created_at: Time.current)
-      expect(credit_card.can_capture?(payment)).to be true
-    end
-  end
-
-  context '#can_void?' do
-    it 'is true if payment is not void' do
-      payment = mock_model(Spree::Payment, failed?: false, void?: false)
-      expect(credit_card.can_void?(payment)).to be true
-    end
-  end
-
-  context '#can_credit?' do
-    it 'is false if payment is not completed' do
-      payment = mock_model(Spree::Payment, completed?: false)
-      expect(credit_card.can_credit?(payment)).to be false
-    end
-
-    it 'is false when credit_allowed is zero' do
-      payment = mock_model(Spree::Payment, completed?: true, credit_allowed: 0, order: mock_model(Spree::Order, payment_state: 'credit_owed'))
-      expect(credit_card.can_credit?(payment)).to be false
-    end
-  end
-
-  context '#valid?' do
-    it 'validates presence of number' do
+  describe '#valid?' do
+    it 'should validate presence of number' do
       credit_card.attributes = valid_credit_card_attributes.except(:number)
       expect(credit_card).not_to be_valid
       expect(credit_card.errors[:number]).to eq(["can't be blank"])
     end
 
-    it 'validates presence of security code' do
+    it 'should validate presence of security code' do
       credit_card.attributes = valid_credit_card_attributes.except(:verification_value)
       expect(credit_card).not_to be_valid
       expect(credit_card.errors[:verification_value]).to eq(["can't be blank"])
@@ -86,7 +56,7 @@ describe Spree::CreditCard, type: :model do
       expect(credit_card.error_on(:name).size).to eq(1)
     end
 
-    it 'only validates on create' do
+    it 'should only validate on create' do
       credit_card.attributes = valid_credit_card_attributes
       credit_card.save
       expect(credit_card).to be_valid
@@ -111,15 +81,26 @@ describe Spree::CreditCard, type: :model do
     end
   end
 
-  context '#save' do
+  describe '#save' do
     before do
       credit_card.attributes = valid_credit_card_attributes
       credit_card.save!
     end
 
     let!(:persisted_card) { Spree::CreditCard.find(credit_card.id) }
+    let(:valid_address_attributes) do
+      {
+        firstname: "Hugo",
+        lastname: "Furst",
+        address1: "123 Main",
+        city: "Somewhere",
+        country_id: 1,
+        zipcode: 55_555,
+        phone: "1234567890"
+      }
+    end
 
-    it 'does not actually store the number' do
+    it 'should not actually store the number' do
       expect(persisted_card.number).to be_blank
     end
 
@@ -128,8 +109,8 @@ describe Spree::CreditCard, type: :model do
     end
   end
 
-  context '#number=' do
-    it 'strips non-numeric characters from card input' do
+  describe '#number=' do
+    it 'should strip non-numeric characters from card input' do
       credit_card.number = '6011000990139424'
       expect(credit_card.number).to eq('6011000990139424')
 
@@ -137,55 +118,77 @@ describe Spree::CreditCard, type: :model do
       expect(credit_card.number).to eq('6011000990139424')
     end
 
-    it 'does not raise an exception on non-string input' do
-      credit_card.number = ({})
+    it 'should not raise an exception on non-string input' do
+      credit_card.number = {}
       expect(credit_card.number).to be_nil
     end
   end
 
-  # Regression test for #3847 & #3896
-  context '#expiry=' do
-    it 'can set with a 2-digit month and year' do
-      credit_card.expiry = '04 / 14'
-      expect(credit_card.month).to eq(4)
-      expect(credit_card.year).to eq(2014)
+  describe '#verification_value=' do
+    it 'accepts a valid 3-digit value' do
+      credit_card.verification_value = '123'
+      expect(credit_card.verification_value).to eq('123')
     end
 
-    it 'can set with a 2-digit month and 4-digit year' do
-      credit_card.expiry = '04 / 2014'
-      expect(credit_card.month).to eq(4)
-      expect(credit_card.year).to eq(2014)
+    it 'accepts a valid 4-digit value' do
+      credit_card.verification_value = '1234'
+      expect(credit_card.verification_value).to eq('1234')
     end
 
-    it 'can set with a 2-digit month and 4-digit year without whitespace' do
-      credit_card.expiry = '04/14'
-      expect(credit_card.month).to eq(4)
-      expect(credit_card.year).to eq(2014)
+    it 'stringifies an integer' do
+      credit_card.verification_value = 123
+      expect(credit_card.verification_value).to eq('123')
     end
 
-    it 'can set with a 2-digit month and 4-digit year without whitespace and slash' do
-      credit_card.expiry = '042014'
-      expect(credit_card.month).to eq(4)
-      expect(credit_card.year).to eq(2014)
-    end
-
-    it 'can set with a 2-digit month and 2-digit year without whitespace and slash' do
-      credit_card.expiry = '0414'
-      expect(credit_card.month).to eq(4)
-      expect(credit_card.year).to eq(2014)
-    end
-
-    it 'does not blow up when passed an empty string' do
-      expect { credit_card.expiry = '' }.not_to raise_error
-    end
-
-    # Regression test for #4725
-    it 'does not blow up when passed one number' do
-      expect { credit_card.expiry = '12' }.not_to raise_error
+    it 'strips any whitespace' do
+      credit_card.verification_value = ' 1 2  3 '
+      expect(credit_card.verification_value).to eq('123')
     end
   end
 
-  context '#cc_type=' do
+  # Regression test for https://github.com/spree/spree/issues/3847 and https://github.com/spree/spree/issues/3896
+  describe '#expiry=' do
+    it 'can set with a 2-digit month and year' do
+      credit_card.expiry = '07 / 18'
+      expect(credit_card.month).to eq(7)
+      expect(credit_card.year).to eq(2018)
+    end
+
+    it 'can set with a 2-digit month and 4-digit year' do
+      credit_card.expiry = '07 / 2018'
+      expect(credit_card.month).to eq(7)
+      expect(credit_card.year).to eq(2018)
+    end
+
+    it 'can set with a 2-digit month and 4-digit year without whitespace' do
+      credit_card.expiry = '07/18'
+      expect(credit_card.month).to eq(7)
+      expect(credit_card.year).to eq(2018)
+    end
+
+    it 'can set with a 2-digit month and 4-digit year without whitespace and slash' do
+      credit_card.expiry = '072018'
+      expect(credit_card.month).to eq(7)
+      expect(credit_card.year).to eq(2018)
+    end
+
+    it 'can set with a 2-digit month and 2-digit year without whitespace and slash' do
+      credit_card.expiry = '0718'
+      expect(credit_card.month).to eq(7)
+      expect(credit_card.year).to eq(2018)
+    end
+
+    it 'does not blow up when passed an empty string' do
+      credit_card.expiry = ''
+    end
+
+    # Regression test for https://github.com/spree/spree/issues/4725
+    it 'does not blow up when passed one number' do
+      credit_card.expiry = '12'
+    end
+  end
+
+  describe '#cc_type=' do
     it 'converts between the different types' do
       credit_card.cc_type = 'mastercard'
       expect(credit_card.cc_type).to eq('master')
@@ -238,33 +241,7 @@ describe Spree::CreditCard, type: :model do
     end
   end
 
-  context '#associations' do
-    it 'is able to access its payments' do
-      expect { credit_card.payments.to_a }.not_to raise_error
-    end
-  end
-
-  context '#first_name' do
-    before do
-      credit_card.name = 'Ludwig van Beethoven'
-    end
-
-    it 'extracts the first name' do
-      expect(credit_card.first_name).to eq 'Ludwig'
-    end
-  end
-
-  context '#last_name' do
-    before do
-      credit_card.name = 'Ludwig van Beethoven'
-    end
-
-    it 'extracts the last name' do
-      expect(credit_card.last_name).to eq 'van Beethoven'
-    end
-  end
-
-  context '#to_active_merchant' do
+  describe '#to_active_merchant' do
     before do
       credit_card.number = '4111111111111111'
       credit_card.year = Time.current.year
@@ -282,37 +259,5 @@ describe Spree::CreditCard, type: :model do
       expect(am_card.last_name).to eq('van Beethoven')
       expect(am_card.verification_value).to eq(123)
     end
-  end
-
-  it 'ensures only one credit card per user is default at a time' do
-    user = FactoryBot.create(:user)
-    first = FactoryBot.create(:credit_card, user: user, default: true)
-    second = FactoryBot.create(:credit_card, user: user, default: true)
-
-    expect(first.reload.default).to eq false
-    expect(second.reload.default).to eq true
-
-    first.default = true
-    first.save!
-
-    expect(first.reload.default).to eq true
-    expect(second.reload.default).to eq false
-  end
-
-  it 'allows default credit cards for different users' do
-    first = FactoryBot.create(:credit_card, user: FactoryBot.create(:user), default: true)
-    second = FactoryBot.create(:credit_card, user: FactoryBot.create(:user), default: true)
-
-    expect(first.reload.default).to eq true
-    expect(second.reload.default).to eq true
-  end
-
-  it 'allows this card to save even if the previously default card has expired' do
-    user = FactoryBot.create(:user)
-    first = FactoryBot.create(:credit_card, user: user, default: true)
-    second = FactoryBot.create(:credit_card, user: user, default: false)
-    first.update_columns(year: Time.current.year, month: 1.month.ago.month)
-
-    expect { second.update_attributes!(default: true) }.not_to raise_error
   end
 end
