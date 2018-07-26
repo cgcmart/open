@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
+require 'rails_helper'
 
 RSpec.describe Spree::Payment, type: :model do
   let(:store) { create :store }
@@ -928,6 +928,16 @@ RSpec.describe Spree::Payment, type: :model do
     let(:order) { create(:order, user: user) }
     let(:user) { create(:user) }
     let!(:credit_card) { create(:credit_card, user_id: order.user_id) }
+    let!(:wallet_payment_source) { user.wallet.add(credit_card) }
+
+      let(:params) do
+        {
+          source_attributes: {
+            wallet_payment_source_id: wallet_payment_source.id,
+            verification_value: '321'
+          }
+        }
+      end
 
       describe 'building a payment' do
         subject do
@@ -962,6 +972,8 @@ RSpec.describe Spree::Payment, type: :model do
           let(:other_user) { create(:user) }
           before do
             credit_card.update!(user_id: other_user.id)
+            user.wallet.remove(credit_card)
+            other_user.wallet.add(credit_card)
           end
           it 'errors' do
             expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
@@ -971,6 +983,7 @@ RSpec.describe Spree::Payment, type: :model do
         context 'the credit card has no user' do
           before do
             credit_card.update!(user_id: nil)
+            user.wallet.remove(credit_card)
           end
           it 'errors' do
             expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
