@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-describe 'Payments', type: :feature, js: true do
+describe 'Payments', type: :feature do
   stub_authorization!
 
   context 'with a pre-existing payment' do
@@ -12,27 +14,21 @@ describe 'Payments', type: :feature, js: true do
              state:          state)
     end
 
-    let(:order) { create(:completed_order_with_totals, number: 'R100', line_items_count: 5) }
+    let(:order) { create(:completed_order_with_totals, number: 'R100', line_items_price: 50) }
     let(:state) { 'checkout' }
 
     before do
-      visit spree.edit_admin_order_path(order)
-      click_link 'Payments'
+      visit '/admin/orders/#{order.number}/payments'
     end
 
-    def refresh_page
-      visit current_path
-    end
-
-    # Regression tests for #1453
+    # Regression tests for https://github.com/spree/spree/issues/1453
     context 'with a check payment' do
       let(:order) { create(:completed_order_with_totals, number: 'R100') }
-
       let!(:payment) do
         create(:payment,
                order: order,
                amount: order.outstanding_balance,
-               payment_method: create(:check_payment_method)) # Check
+               payment_method: create(:check_payment_method, available_to_admin: true)) # Check
       end
 
       it 'capturing a check payment from a new order' do
@@ -47,35 +43,38 @@ describe 'Payments', type: :feature, js: true do
       end
     end
 
-    it 'lists all captures for a payment' do
-      Spree::ShippingMethod.delete_all
+    it 'should list all captures for a payment' do
       capture_amount = order.outstanding_balance / 2 * 100
       payment.capture!(capture_amount)
 
       visit spree.admin_order_payment_path(order, payment)
-      expect(page).to have_content 'Capture events'
-      within '#capture_events' do
-        within_row(1) do
-          expect(page).to have_content(capture_amount / 100)
-        end
+      expect(page).to have_content 'Capture Events'
+      #within '#capture_events' do
+      within_row(1) do
+        expect(page).to have_content(capture_amount / 100)
       end
+      #end
     end
 
-    it 'lists and create payments for an order' do
+    it 'displays the address for a credit card when present' do
+      payment.source.update!(address: create(:address, address1: 'my cc address'))
+      visit spree.admin_order_payment_path(order, payment)
+      expect(page).to have_content 'my cc address'
+    end
+
+    it 'lists, updates and creates payments for an order', js: true do
       within_row(1) do
-        expect(column_text(3)).to eq('$150.00')
-        expect(column_text(4)).to eq('Credit Card')
-        expect(column_text(6)).to eq('checkout')
+        expect(column_text(3)).to eq('Credit Card')
+        expect(column_text(5)).to eq('Checkout')
+        expect(column_text(6)).to have_content('$150.00')
       end
 
       click_icon :void
-      expect(find('#payment_status').text).to eq('balance due')
+      expect(page).to have_css('#payment_status', text: 'Balance due')
       expect(page).to have_content('Payment Updated')
 
       within_row(1) do
-        expect(column_text(3)).to eq('$150.00')
-        expect(column_text(4)).to eq('Credit Card')
-        expect(column_text(6)).to eq('void')
+        expect(column_text(5)).to eq('Void')
       end
 
       click_on 'New Payment'
@@ -84,14 +83,13 @@ describe 'Payments', type: :feature, js: true do
       expect(page).to have_content('successfully created!')
 
       click_icon(:capture)
-      wait_for_ajax
-      expect(find('#payment_status').text).to eq('paid')
 
+      expect(page).to have_selector('#payment_status', text: 'Paid')
       expect(page).not_to have_selector('#new_payment_section')
     end
 
-    # Regression test for #1269
-    it 'cannot create a payment for an order with no payment methods', js: false do
+    # Regression test for https://github.com/spree/spree/issues/1269
+    it 'cannot create a payment for an order with no payment methods' do
       Spree::PaymentMethod.delete_all
       order.payments.delete_all
 
@@ -100,64 +98,51 @@ describe 'Payments', type: :feature, js: true do
       expect(page).to have_content('Please define some payment methods first.')
     end
 
-    %w[checkout pending].each do |state|
-      context "payment is #{state.inspect}" do
-        let(:state) { state }
+    context 'payment is pending', js: true do
+      let(:state) { 'pending' }
 
-        it 'allows the amount to be edited by clicking on the edit button then saving' do
-          within_row(1) do
-            click_icon(:edit)
-            fill_in('amount', with: '$1')
-            click_icon(:save)
-            expect(page).to have_selector('td.amount span', text: '$1.00')
-            expect(payment.reload.amount).to eq(1.00)
-          end
+      it 'allows the amount to be edited by clicking on the edit button then saving' do
+        within_row(1) do
+          click_icon(:edit)
+          fill_in('amount', with: '$1')
+          click_icon(:save)
+          expect(page).to have_selector('td.amount span', text: '$1.00')
+          expect(payment.reload.amount).to eq(1.00)
         end
+      end
 
-        it 'allows the amount to be edited by clicking on the amount then saving' do
-          within_row(1) do
-            find('td.amount span').click
-            fill_in('amount', with: '$1.01')
-            click_icon(:save)
-            expect(page).to have_selector('td.amount span', text: '$1.01')
-            expect(payment.reload.amount).to eq(1.01)
-          end
+      it 'allows the amount change to be cancelled by clicking on the cancel button' do
+        within_row(1) do
+          click_icon(:edit)
+
+          # Can't use fill_in here, as under poltergeist that will unfocus (and
+          # thus submit) the field under poltergeist
+          find('td.amount input').click
+          page.execute_script("$('td.amount input').val('$1')")
+
+          click_icon(:cancel)
+          expect(page).to have_selector('td.amount span', text: '$150.00')
+          expect(payment.reload.amount).to eq(150.00)
         end
+      end
 
-        it 'allows the amount change to be cancelled by clicking on the cancel button' do
-          within_row(1) do
-            click_icon(:edit)
-
-            # Can't use fill_in here, as under poltergeist that will unfocus (and
-            # thus submit) the field under poltergeist
-            find('td.amount input').click
-            page.execute_script("$('td.amount input').val('$1')")
-
-            click_icon(:cancel)
-            expect(page).to have_selector('td.amount span', text: '$150.00')
-            expect(payment.reload.amount).to eq(150.00)
-          end
+      it 'displays an error when the amount is invalid' do
+        within_row(1) do
+          click_icon(:edit)
+          fill_in('amount', with: 'invalid')
+          click_icon(:save)
         end
-
-        it 'displays an error when the amount is invalid' do
-          within_row(1) do
-            click_icon(:edit)
-            fill_in('amount', with: 'invalid')
-            click_icon(:save)
-            expect(find('td.amount input').value).to eq('invalid')
-            expect(payment.reload.amount).to eq(150.00)
-          end
-          expect(page).to have_selector('.alert-error', text: 'Invalid resource. Please fix errors and try again.')
-        end
+        expect(page).to have_selector('.flash.error', text: 'Invalid resource. Please fix errors and try again.')
+        expect(payment.reload.amount).to eq(150.00)
       end
     end
 
-    context 'payment is completed', js: false do
+    context 'payment is completed', js: truee do
       let(:state) { 'completed' }
 
       it 'does not allow the amount to be edited' do
         within_row(1) do
-          expect(page).not_to have_selector('td.amount span')
+          expect(page).not_to have_selector('.fa-edited')
         end
       end
     end
@@ -167,20 +152,19 @@ describe 'Payments', type: :feature, js: true do
     let(:order) { create(:order_with_line_items, line_items_count: 1) }
     let!(:payment_method) { create(:credit_card_payment_method) }
 
-    # Regression tests for #4129
+    # Regression tests for https://github.com/spree/spree/issues/4129
     context 'with a credit card payment method' do
       before do
         visit spree.admin_order_payments_path(order)
       end
 
-      it 'is able to create a new credit card payment with valid information' do
+      it 'is able to create a new credit card payment with valid information', js: true do
         fill_in 'Card Number', with: '4111 1111 1111 1111'
         fill_in 'Name', with: 'Test User'
         fill_in 'Expiration', with: "09 / #{Time.current.year + 1}"
         fill_in 'Card Code', with: '007'
-        # Regression test for #4277
-        sleep(1)
-        expect(find('.ccType', visible: false).value).to eq('visa')
+        # Regression test for https://github.com/spree/spree/issues/4277
+        expect(page).to have_css('.ccType[value="visa"]', visible: false)
         click_button 'Continue'
         expect(page).to have_content('Payment has been successfully created!')
       end
@@ -198,12 +182,15 @@ describe 'Payments', type: :feature, js: true do
 
     context 'user existing card' do
       let!(:cc) do
-        create(:credit_card, user_id: order.user_id, payment_method: payment_method, gateway_customer_profile_id: 'BGS-RFRE')
+        create(:credit_card, payment_method: payment_method, gateway_customer_profile_id: 'BGS-RFRE')
       end
 
-      before { visit spree.admin_order_payments_path(order) }
+      before do
+        order.user.wallet.add(cc)
+        visit spree.admin_order_payments_path(order)
+      end
 
-      it 'is able to reuse customer payment source', js: false do
+      it 'is able to reuse customer payment source' do
         expect(find("#card_#{cc.id}")).to be_checked
         click_button 'Continue'
         expect(page).to have_content('Payment has been successfully created!')
@@ -211,6 +198,7 @@ describe 'Payments', type: :feature, js: true do
     end
 
     context 'with a check' do
+      let(:order) { create(:completed_order_with_totals, line_items_count: 1) }
       let!(:payment_method) { create(:check_payment_method) }
 
       before do
@@ -237,6 +225,79 @@ describe 'Payments', type: :feature, js: true do
       end
 
       it { expect(page).to have_content('successfully created') }
+    end
+
+    context 'with a soft-deleted payment method' do
+      let(:order) { create(:completed_order_with_totals, line_items_count: 1) }
+      let!(:payment_method) { create(:check_payment_method) }
+      let!(:payment) do
+        create(:payment,
+          order:          order,
+          amount:         order.outstanding_balance,
+          payment_method: payment_method)
+      end
+
+      before do
+        payment_method.discard
+        visit spree.admin_order_payments_path(order.reload)
+      end
+
+      it 'can list and view the payment' do
+        expect(page).to have_content(payment.number)
+        click_on payment.number
+        expect(page).to have_current_path('/admin/orders/#{order.number}/payments/#{payment.id}')
+        expect(page).to have_content(payment.amount)
+      end
+    end
+  end
+
+  # Previously this would fail unless the method was named "Credit Card"
+  context 'with an differently named payment method' do
+    let(:order) { create(:order_with_line_items, line_items_count: 1) }
+    let!(:chequing_payment_method) { create(:check_payment_method) }
+    let!(:payment_method) { create(:credit_card_payment_method, name: "Multipass!") }
+
+    before do
+      visit spree.admin_order_payments_path(order.reload)
+    end
+
+    it 'is able to create a new payment', js: true do
+      choose payment_method.name
+      fill_in 'Card Number', with: '4111 1111 1111 1111'
+      fill_in 'Name', with: 'Test User'
+      fill_in 'Expiration', with: '09 / #{Time.current.year + 1}'
+      fill_in 'Card Code', with: '007'
+      click_button 'Continue'
+      expect(page).to have_content('Payment has been successfully created!')
+    end
+  end
+
+  context 'when required quantity is more than available' do
+    let(:product) { create(:product_not_backorderable) }
+
+    let(:order) do
+      create(:order_with_line_items, {
+        line_items_count: 1,
+        line_items_attributes: [{ quantity: 11, product: product }],
+        stock_location: product.master.stock_locations.first
+      })
+    end
+
+    let!(:chequing_payment_method) { create(:check_payment_method) }
+    let!(:payment_method) { create(:credit_card_payment_method, name: 'Multipass!') }
+
+    before do
+      visit spree.admin_order_payments_path(order.reload)
+    end
+
+    it 'displays an error' do
+      choose payment_method.name
+      fill_in 'Card Number', with: '4111 1111 1111 1111'
+      fill_in 'Name', with: 'Test User'
+      fill_in 'Expiration', with: '09 / #{Time.current.year + 1}'
+      fill_in 'Card Code', with: '007'
+      click_button 'Continue'
+      expect(page).to have_content t('spree.insufficient_stock_for_order')
     end
   end
 end
