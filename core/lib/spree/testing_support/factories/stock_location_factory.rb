@@ -1,5 +1,11 @@
+# frozen_string_literal: true
+
+require 'spree/testing_support/factories/country_factory'
+require 'spree/testing_support/factories/state_factory'
+require 'spree/testing_support/factories/product_factory'
+
 FactoryBot.define do
-  factory :stock_location, class: Spree::StockLocation do
+  factory :stock_location, class: 'Spree::StockLocation' do
     name 'NY Warehouse'
     address1 '1600 Pennsylvania Ave NW'
     city 'Washington'
@@ -10,7 +16,13 @@ FactoryBot.define do
 
     country  { |stock_location| Spree::Country.first || stock_location.association(:country) }
     state do |stock_location|
-      stock_location.country.states.first || stock_location.association(:state, country: stock_location.country)
+      if carmen_country.subregions?
+        stock_location.country.states.first || stock_location.association(:state, country: stock_location.country)
+      end
+    end
+
+    factory :stock_location_without_variant_propagation do
+      propagate_all_variants false
     end
 
     factory :stock_location_with_items do
