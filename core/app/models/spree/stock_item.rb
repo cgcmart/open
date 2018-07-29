@@ -1,34 +1,29 @@
+# frozen_string_literal: true
+
+require 'discard'
+
 module Spree
   class StockItem < Spree::Base
     acts_as_paranoid
 
-    with_options inverse_of: :stock_items do
-      belongs_to :stock_location, class_name: 'Spree::StockLocation'
-      belongs_to :variant, class_name: 'Spree::Variant'
-    end
+    include Discard::Model
+    self.discard_column = :deleted_at
+
+    belongs_to :stock_location, class_name: 'Spree::StockLocation', inverse_of: :stock_items
+    belongs_to :variant, -> { with_deleted }, class_name: 'Spree::Variant', inverse_of: :stock_items
     has_many :stock_movements, inverse_of: :stock_item
 
     validates :stock_location, :variant, presence: true
-    validates :variant_id, uniqueness: { scope: %i[stock_location_id deleted_at] }
-
-    validates :count_on_hand, numericality: {
-      greater_than_or_equal_to: 0,
-      less_than_or_equal_to: 2**31 - 1,
-      only_integer: true
-    }, if: :verify_count_on_hand?
+    validates :variant_id, uniqueness: { scope: %i[stock_location_id deleted_at] }, allow_blank: true, unless: :deleted_at
+    validates :count_on_hand, numericality: { greater_than_or_equal_to: 0 }, unless: :backorderable?
 
     delegate :weight, :should_track_inventory?, to: :variant
     delegate :name, to: :variant, prefix: true
-    delegate :product, to: :variant
 
     after_save :conditional_variant_touch, if: :saved_changes?
     after_touch { variant.touch }
-    after_destroy { variant.touch }
-
-    self.whitelisted_ransackable_attributes = %w[count_on_hand stock_location_id variant_id]
-    self.whitelisted_ransackable_associations = ['variant']
-
-    scope :with_active_stock_location, -> { joins(:stock_location).merge(Spree::StockLocation.active) }
+ 
+    self.whitelisted_ransackable_attributes = ['count_on_hand', 'stock_location_id']
 
     def backordered_inventory_units
       Spree::InventoryUnit.backordered_for_stock_item(self)
@@ -37,6 +32,9 @@ module Spree
     def adjust_count_on_hand(value)
       with_lock do
         set_count_on_hand(count_on_hand + value)
+        process_backorders(count_on_hand - count_on_hand_was)
+
+        save!
       end
     end
 
@@ -56,49 +54,57 @@ module Spree
       in_stock? || backorderable?
     end
 
-    def variant
-      Spree::Variant.unscoped { super }
-    end
-
     def reduce_count_on_hand_to_zero
       set_count_on_hand(0) if count_on_hand > 0
     end
 
+    def fill_status(quantity)
+      if count_on_hand >= quantity
+        on_hand = quantity
+        backordered = 0
+      else
+        on_hand = count_on_hand
+        on_hand = 0 if on_hand < 0
+        backordered = backorderable? ? (quantity - on_hand) : 0
+      end
+
+      [on_hand, backordered]
+    end
+
     private
 
-    def verify_count_on_hand?
-      count_on_hand_changed? && !backorderable? && (count_on_hand < count_on_hand_was) && (count_on_hand < 0)
+    def count_on_hand=(value)
+      write_attribute(:count_on_hand, value)
     end
 
     # Process backorders based on amount of stock received
     # If stock was -20 and is now -15 (increase of 5 units), then we can process atmost 5 inventory orders.
     # If stock was -20 but then was -25 (decrease of 5 units), do nothing.
     def process_backorders(number)
-      return unless number.positive?
-      units = backordered_inventory_units.first(number) # We can process atmost n backorders
-
-      units.each do |unit|
-        break unless number.positive?
-
-        if unit.quantity > number
-          # if required quantity is greater than available
-          # split off and fullfill that
-          split = unit.split_inventory!(number)
-          split.fill_backorder
-        else
-          unit.fill_backorder
-        end
-        number -= unit.quantity
+     if number > 0
+       backordered_inventory_units.first(number).each(&:fill_backorder)
       end
     end
 
     def conditional_variant_touch
-      # the variant_id changes from nil when a new stock location is added
-      stock_changed = (saved_change_to_count_on_hand? &&
-                        saved_change_to_count_on_hand.any?(&:zero?)) ||
-        saved_change_to_variant_id?
+      variant.touch if inventory_cache_threshold.nil? || should_touch_variant?
+    end
 
-      variant.touch if !Spree::Config.binary_inventory_cache || stock_changed
+    def should_touch_variant?
+      # the variant_id changes from nil when a new stock location is added
+      inventory_cache_threshold &&
+        (saved_change_to_count_on_hand && saved_change_to_count_on_hand.any? { |c| c < inventory_cache_threshold }) ||
+        saved_change_to_variant_id?
+    end
+
+    def inventory_cache_threshold
+      # only warn if store is setting binary_inventory_cache (default = false)
+      @cache_threshold ||= if Spree::Config.binary_inventory_cache
+        Spree::Deprecation.warn "Spree::Config.binary_inventory_cache=true is DEPRECATED. Instead use Spree::Config.inventory_cache_threshold=1"
+        1
+      else
+        Spree::Config.inventory_cache_threshold
+      end
     end
   end
 end
