@@ -1,116 +1,102 @@
+# frozen_string_literal: true
+
+require 'discard'
+
 module Spree
   class TaxRate < Spree::Base
     acts_as_paranoid
 
+        include Discard::Model
+    self.discard_column = :deleted_at
+
+    # Need to deal with adjustments before calculator is destroyed.
+    before_destroy :remove_adjustments_from_incomplete_orders
+    before_discard :remove_adjustments_from_incomplete_orders
+
     include Spree::CalculatedAdjustments
     include Spree::AdjustmentSource
 
-    with_options inverse_of: :tax_rates do
-      belongs_to :zone, class_name: 'Spree::Zone', optional: true
-      belongs_to :tax_category,
-                 class_name: 'Spree::TaxCategory'
-    end
+    belongs_to :zone, class_name: "Spree::Zone", inverse_of: :tax_rates
 
-    with_options presence: true do
-      validates :amount, numericality: { allow_nil: true }
-      validates :tax_category
-    end
+    has_many :tax_rate_tax_categories,
+      class_name: 'Spree::TaxRateTaxCategory',
+      dependent: :destroy,
+      inverse_of: :tax_rate
+    has_many :tax_categories,
+      through: :tax_rate_tax_categories,
+      class_name: 'Spree::TaxCategory',
+      inverse_of: :tax_rates
 
-    scope :by_zone, ->(zone) { where(zone_id: zone.id) }
-    scope :potential_rates_for_zone,
-          ->(zone) do
-            where(zone_id: Spree::Zone.potential_matching_zones(zone).pluck(:id))
-          end
-    scope :for_default_zone,
-          -> { potential_rates_for_zone(Spree::Zone.default_tax) }
-    scope :for_tax_category,
-          ->(category) { where(tax_category_id: category.try(:id)) }
+    has_many :adjustments, as: :source
+    has_many :shipping_rate_taxes, class_name: "Spree::ShippingRateTax"
+
+    validates :amount, presence: true, numericality: true
+
+    scope :for_address, ->(address) { joins(:zone).merge(Spree::Zone.for_address(address)) }
+    scope :for_country, ->(country) { for_address(Spree::Tax::TaxLocation.new(country: country)) }
+
+    scope :for_zone, ->(zone) do
+      if zone
+        where(zone_id: Spree::Zone.with_shared_members(zone).pluck(:id))
+      else
+        none
+      end
+    end
     scope :included_in_price, -> { where(included_in_price: true) }
 
-    # Gets the array of TaxRates appropriate for the specified tax zone
-    def self.match(order_tax_zone)
-      return [] unless order_tax_zone
-      potential_rates_for_zone(order_tax_zone)
+    # Creates necessary tax adjustments for the order.
+    def adjust(_order_tax_zone, item)
+      amount = compute_amount(item)
+
+      item.adjustments.create!(
+        source: self,
+        amount: amount,
+        order_id: item.order_id,
+        label: adjustment_label(amount),
+        included: included_in_price
+      )
     end
 
-    # Pre-tax amounts must be stored so that we can calculate
-    # correct rate amounts in the future. For example:
-    # https://github.com/spree/spree/issues/4318#issuecomment-34723428
-    def self.store_pre_tax_amount(item, rates)
-      pre_tax_amount = case item
-                       when Spree::LineItem then item.discounted_amount
-                       when Spree::Shipment then item.discounted_cost
-                       end
-
-      included_rates = rates.select(&:included_in_price)
-      if included_rates.any?
-        pre_tax_amount /= (1 + included_rates.sum(&:amount))
-      end
-
-      item.update_column(:pre_tax_amount, pre_tax_amount)
-    end
-
-    # Deletes all tax adjustments, then applies all applicable rates
-    # to relevant items.
-    def self.adjust(order, items)
-      rates = match(order.tax_zone)
-      tax_categories = rates.map(&:tax_category)
-
-      # using destroy_all to ensure adjustment destroy callback fires.
-      Spree::Adjustment.where(adjustable: items).tax.destroy_all
-
-      relevant_items = items.select do |item|
-        tax_categories.include?(item.tax_category)
-      end
-
-      relevant_items.each do |item|
-        relevant_rates = rates.select do |rate|
-          rate.tax_category == item.tax_category
-        end
-        store_pre_tax_amount(item, relevant_rates)
-        relevant_rates.each do |rate|
-          rate.adjust(order, item)
-        end
-      end
-
-      # updates pre_tax for items without any tax rates
-      remaining_items = items - relevant_items
-      remaining_items.each do |item|
-        store_pre_tax_amount(item, [])
-      end
-    end
-
-    def self.included_tax_amount_for(options)
-      return 0 unless options[:tax_zone] && options[:tax_category]
-      potential_rates_for_zone(options[:tax_zone]).
-        included_in_price.
-        for_tax_category(options[:tax_category]).
-        sum(:amount)
-    end
-
-    def adjust(order, item)
-      create_adjustment(order, item, included_in_price)
-    end
-
+    # This method is used by Adjustment#update to recalculate the cost.
     def compute_amount(item)
-      compute(item)
+      calculator.compute(item)
+    end
+
+    def active?
+      (starts_at.nil? || starts_at < Time.current) &&
+        (expires_at.nil? || expires_at > Time.current)
+    end
+
+    def adjustment_label(amount)
+      I18n.t(
+        translation_key(amount),
+        scope: "spree.adjustment_labels.tax_rates",
+        name: name.presence || tax_categories.map(&:name).join(", "),
+        amount: amount_for_adjustment_label
+      )
+    end
+
+    def tax_category=(category)
+      self.tax_categories = [category]
+    end
+
+    def tax_category
+      tax_categories[0]
     end
 
     private
 
-    def label
-      Spree.t included_in_price? ? :including_tax : :excluding_tax,
-              scope: 'adjustment_labels.tax_rates',
-              name: name.presence || tax_category.name,
-              amount: amount_for_label
-    end
-
-    def amount_for_label
-      return '' unless show_rate_in_label?
-      ' ' + ActiveSupport::NumberHelper::NumberToPercentageConverter.convert(
+    def amount_for_adjustment_label
+      ActiveSupport::NumberHelper::NumberToPercentageConverter.convert(
         amount * 100,
         locale: I18n.locale
       )
+    end
+
+    def translation_key(_amount)
+      key = included_in_price? ? "vat" : "sales_tax"
+      key += "_with_rate" if show_rate_in_label?
+      key.to_sym
     end
   end
 end
