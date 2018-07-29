@@ -1,33 +1,89 @@
+# frozen_string_literal: true
+
+require 'discard'
+
 module Spree
   class ShippingMethod < Spree::Base
     acts_as_paranoid
+
+    include Discard::Model
+    self.discard_column = :deleted_at
+
     include Spree::CalculatedAdjustments
-    DISPLAY = [:both, :front_end, :back_end]
-
-    # Used for #refresh_rates
-    DISPLAY_ON_FRONT_END = 1
-    DISPLAY_ON_BACK_END = 2
-
-    default_scope { where(deleted_at: nil) }
 
     has_many :shipping_method_categories, dependent: :destroy
     has_many :shipping_categories, through: :shipping_method_categories
     has_many :shipping_rates, inverse_of: :shipping_method
     has_many :shipments, through: :shipping_rates
 
-    has_many :shipping_method_zones, class_name: 'Spree::ShippingMethodZone',
-                                     foreign_key: 'shipping_method_id'
-    has_many :zones, through: :shipping_method_zones, class_name: 'Spree::Zone'
+    has_many :shipping_method_zones, dependent: :destroy
+    has_many :zones, through: :shipping_method_zones
 
-    belongs_to :tax_category, class_name: 'Spree::TaxCategory', optional: true
+    belongs_to :tax_category, -> { with_deleted }, class_name: 'Spree::TaxCategory'
+    has_many :shipping_method_stock_locations, dependent: :destroy, class_name: "Spree::ShippingMethodStockLocation"
+    has_many :stock_locations, through: :shipping_method_stock_locations
+
+    has_many :store_shipping_methods, inverse_of: :shipping_method
+    has_many :stores, through: :store_shipping_methods
 
     validates :name, presence: true
 
     validate :at_least_one_shipping_category
 
+    scope :available_to_store, ->(store) do
+      raise ArgumentError, "You must provide a store" if store.nil?
+      store.shipping_methods.empty? ? all : where(id: store.shipping_method_ids)
+    end
+
+    # @param shipping_category_ids [Array<Integer>] ids of desired shipping categories
+    # @return [ActiveRecord::Relation] shipping methods which are associated
+    #   with all of the provided shipping categories
+    def self.with_all_shipping_category_ids(shipping_category_ids)
+      # Some extra care is needed with the having clause to ensure we are
+      # counting distinct records of the join table. Otherwise a join could
+      # cause this to return incorrect results.
+      join_table = Spree::ShippingMethodCategory.arel_table
+      having = join_table[:id].count(true).eq(shipping_category_ids.count)
+      subquery = joins(:shipping_method_categories).
+        where(spree_shipping_method_categories: { shipping_category_id: shipping_category_ids }).
+        group('spree_shipping_methods.id').
+        having(having)
+
+      where(id: subquery.select(:id))
+    end
+
+    # @param stock_location [Spree::StockLocation] stock location
+    # @return [ActiveRecord::Relation] shipping methods which are available
+    #   with the stock location or are marked available_to_all
+    def self.available_in_stock_location(stock_location)
+      smsl_table = Spree::ShippingMethodStockLocation.arel_table
+
+      # We are searching for either a matching entry in the stock location join
+      # table or available_to_all being true.
+      # We need to use an outer join otherwise a shipping method with no
+      # associated stock locations will be filtered out of the results. In
+      # rails 5 this will be easy using .left_join and .or, but for now we must
+      # use arel to achieve this.
+      arel_join =
+        arel_table.join(smsl_table, Arel::Nodes::OuterJoin).
+        on(arel_table[:id].eq(smsl_table[:shipping_method_id])).
+        join_sources
+      arel_condition =
+        arel_table[:available_to_all].eq(true).or(smsl_table[:stock_location_id].eq(stock_location.id))
+
+      joins(arel_join).where(arel_condition).distinct
+    end
+
+    # @param address [Spree::Address] address to match against zones
+    # @return [ActiveRecord::Relation] shipping methods which are associated
+    #   with zones matching the provided address
+    def self.available_for_address(address)
+      joins(:zones).merge(Zone.for_address(address))
+    end
+
     def include?(address)
       return false unless address
-      zones.includes(:zone_members).any? do |zone|
+      zones.any? do |zone|
         zone.include?(address)
       end
     end
@@ -37,34 +93,11 @@ module Spree
       tracking_url.gsub(/:tracking/, ERB::Util.url_encode(tracking)) # :url_encode exists in 1.8.7 through 2.1.0
     end
 
-    def self.calculators
-      spree_calculators.send(model_name_without_spree_namespace).
-        select { |c| c.to_s.constantize < Spree::ShippingCalculator }
-    end
-
-    def tax_category
-      Spree::TaxCategory.unscoped { super }
-    end
-
-    def available_to_display?(display_filter)
-      (frontend? && display_filter == DISPLAY_ON_FRONT_END) ||
-        (backend? && display_filter == DISPLAY_ON_BACK_END)
-    end
-
     private
-
-    # Some shipping methods are only meant to be set via backend
-    def frontend?
-      display_on.in?(['both', 'front_end'])
-    end
-
-    def backend?
-      display_on.in?(['both', 'back_end'])
-    end
 
     def at_least_one_shipping_category
       if shipping_categories.empty?
-        errors.add(:base, :required_shipping_category)
+        errors[:base] << 'You need to select at least one shipping category'
       end
     end
   end
