@@ -4,7 +4,6 @@ require 'discard'
 
 class Spree::StoreCredit < Spree::PaymentSource
   acts_as_paranoid
-  include Spree::ParanoiaDeprecations
 
   include Discard::Model
   self.discard_column = :deleted_at
