@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require 'rails/all'
-require 'active_merchant'
 require 'acts_as_list'
 require 'awesome_nested_set'
 require 'cancan'
@@ -8,10 +9,7 @@ require 'kaminari/activerecord'
 require 'mail'
 require 'monetize'
 require 'paperclip'
-require 'mini_magick'
-require 'premailer/rails'
 require 'ransack'
-require 'responders'
 require 'state_machines-activerecord'
 
 # This is required because ActiveModel::Validations#invalid? conflicts with the
@@ -21,27 +19,12 @@ StateMachines::Machine.ignore_method_conflicts = true
 module Spree
   mattr_accessor :user_class
 
-  def self.user_class(constantize: true)
+  def self.user_class
     if @@user_class.is_a?(Class)
       raise 'Spree.user_class MUST be a String or Symbol object, not a Class object.'
     elsif @@user_class.is_a?(String) || @@user_class.is_a?(Symbol)
-      constantize ? @@user_class.to_s.constantize : @@user_class.to_s
+      @@user_class.to_s.constantize
     end
-  end
-
-  def self.admin_path
-    Spree::Config[:admin_path]
-  end
-
-  # Used to configure admin_path for Spree
-  #
-  # Example:
-  #
-  # write the following line in `config/initializers/spree.rb`
-  #   Spree.admin_path = '/custom-path'
-
-  def self.admin_path=(path)
-    Spree::Config[:admin_path] = path
   end
 
   # Used to configure Spree.
@@ -59,33 +42,44 @@ module Spree
   end
 
   module Core
-    autoload :ProductFilters, 'spree/core/product_filters'
-    autoload :TokenGenerator, 'spree/core/token_generator'
-
     class GatewayError < RuntimeError; end
-    class DestroyWithOrdersError < StandardError; end
   end
 end
 
 require 'spree/core/version'
 
-require 'spree/core/number_generator'
+require 'spree/core/active_merchant_dependencies'
+require 'spree/core/class_constantizer'
+require 'spree/core/environment_extension'
+require 'spree/core/environment/calculators'
+require 'spree/core/environment'
+require 'spree/promo/environment'
 require 'spree/migrations'
+require 'spree/migration_helpers'
 require 'spree/core/engine'
 
 require 'spree/i18n'
 require 'spree/localized_number'
 require 'spree/money'
 require 'spree/permitted_attributes'
-require 'spree/service_module'
 
 require 'spree/core/importer'
+require 'spree/core/permalinks'
 require 'spree/core/product_duplicator'
+require 'spree/core/current_store'
 require 'spree/core/controller_helpers/auth'
 require 'spree/core/controller_helpers/common'
 require 'spree/core/controller_helpers/order'
-require 'spree/core/controller_helpers/respond_with'
+require 'spree/core/controller_helpers/payment_parameters'
+require 'spree/core/controller_helpers/pricing'
 require 'spree/core/controller_helpers/search'
 require 'spree/core/controller_helpers/store'
 require 'spree/core/controller_helpers/strong_parameters'
+require 'spree/core/role_configuration'
+require 'spree/core/stock_configuration'
 require 'spree/core/validators/email'
+require 'spree/permission_sets'
+
+require 'spree/preferences/store'
+require 'spree/preferences/static_model_preferences'
+require 'spree/preferences/scoped_store'
