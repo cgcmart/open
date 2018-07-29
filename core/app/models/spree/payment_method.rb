@@ -1,43 +1,120 @@
+# frozen_string_literal: true
+
+require 'discard'
+
 module Spree
   class PaymentMethod < Spree::Base
     acts_as_paranoid
+
+    include Discard::Model
+    self.discard_column = :deleted_at
+
     acts_as_list
 
-    DISPLAY = [:both, :front_end, :back_end].freeze
+   # @private
+    def self.const_missing(name)
+      if name == :DISPLAY
+        const_set(:DISPLAY, [:both, :front_end, :back_end])
+      else
+        super
+      end
+    end
 
+    validates :name, :type, presence: true
+
+    has_many :payments, class_name: "Spree::Payment", inverse_of: :payment_method
+    has_many :credit_cards, class_name: "Spree::CreditCard"
+    has_many :store_payment_methods, inverse_of: :payment_method
+    has_many :stores, through: :store_payment_methods
+
+    scope :ordered_by_position, -> { order(:position) }
     scope :active,                 -> { where(active: true).order(position: :asc) }
-    scope :available,              -> { active.where(display_on: [:front_end, :back_end, :both]) }
-    scope :available_on_front_end, -> { active.where(display_on: [:front_end, :both]) }
-    scope :available_on_back_end,  -> { active.where(display_on: [:back_end, :both]) }
-
-    validates :name, presence: true
-
-    with_options dependent: :restrict_with_error do
-      has_many :payments, class_name: 'Spree::Payment', inverse_of: :payment_method
-      has_many :credit_cards, class_name: 'Spree::CreditCard'
+    scope :available_to_users, -> { where(available_to_users: true) }
+    scope :available_to_admin, -> { where(available_to_admin: true) }
+    scope :available_to_store, ->(store) do
+      raise ArgumentError, "You must provide a store" if store.nil?
+      store.payment_methods.empty? ? all : where(id: store.payment_method_ids)
     end
 
-    def self.providers
-      Rails.application.config.spree.payment_methods
+    delegate :authorize, :purchase, :capture, :void, :credit, to: :gateway
+
+    class ModelName < ActiveModel::Name
+      # Similar to ActiveModel::Name#human, but skips lookup_ancestors
+      def human(options = {})
+        defaults = [
+          i18n_key,
+          options[:default],
+          @human
+        ].compact
+        options = { scope: [:activerecord, :models], count: 1, default: defaults }.merge!(options.except(:default))
+        I18n.translate(defaults.shift, options)
+      end
     end
 
-    def provider_class
-      raise ::NotImplementedError, 'You must implement provider_class method for this gateway.'
+    class << self
+      def payment_methods
+        Rails.application.config.spree.payment_methods
+      end
+
+      def active
+        display_on = display_on.to_s
+
+        available_payment_methods =
+          case display_on
+          when 'front_end'
+            active.available_to_users
+          when 'back_end'
+            active.available_to_admin
+          else
+            active.available_to_users.available_to_admin
+          end
+        available_payment_methods.select do |p|
+          store.nil? || store.payment_methods.empty? || store.payment_methods.include?(p)
+        end
+      end
+
+      def model_name
+        ModelName.new(self, Spree)
+      end
+
+      def active.any?
+        where(type: to_s, active: true).count > 0
+      end
+
+      def with_deleted.find(*args)
+        unscoped { find(*args) }
+      end
     end
 
-    # The class that will process payments for this payment type, used for @payment.source
-    # e.g. CreditCard in the case of a the Gateway payment type
-    # nil means the payment method doesn't require a source e.g. check
+    def gateway
+      gateway_options = options
+      gateway_options.delete :login if gateway_options.key?(:login) && gateway_options[:login].nil?
+      if gateway_options[:server]
+        ActiveMerchant::Billing::Base.mode = gateway_options[:server].to_sym
+      end
+      @gateway ||= gateway_class.new(gateway_options)
+    end
+
+    # Represents all preferences as a Hash
+    #
+    # Each preference is a key holding the value(s) and gets passed to the gateway via +gateway_options+
+    #
+    # @return Hash
+    def options
+      preferences.to_hash
+    end
+
+    # The class that will store payment sources (re)usable with this payment method
+    #
+    # Used by Spree::Payment as source (e.g. Spree::CreditCard in the case of a credit card payment method).
+    #
+    # Returning nil means the payment method doesn't support storing sources (e.g. Spree::PaymentMethod::Check)
     def payment_source_class
-      raise ::NotImplementedError, 'You must implement payment_source_class method for this gateway.'
+      raise ::NotImplementedError, 'You must implement payment_source_class method for #{self.class}.'
     end
 
     def method_type
       type.demodulize.downcase
-    end
-
-    def self.find_with_destroyed(*args)
-      unscoped { find(*args) }
     end
 
     def payment_profiles_supported?
@@ -62,8 +139,12 @@ module Spree
       true
     end
 
-    def cancel(_response)
-      raise ::NotImplementedError, 'You must implement cancel method for this payment method.'
+    def try_void(_payment)
+      raise ::NotImplementedError,
+        "You need to implement `try_void` for #{self.class.name}. In that " \
+        'return a ActiveMerchant::Billing::Response object if the void succeeds '\
+        'or `false|nil` if the void is not possible anymore. ' \
+        'Spree will refund the amount of the payment then.'
     end
 
     def store_credit?
