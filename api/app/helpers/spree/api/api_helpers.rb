@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Api
     module ApiHelpers
@@ -32,7 +34,9 @@ module Spree
         :store_attributes,
         :tag_attributes,
         :customer_return_attributes,
-        :reimbursement_attributes
+        :reimbursement_attributes,
+        :store_credit_history_attributes,
+        :variant_property_attributes
       ]
 
       mattr_reader *ATTRIBUTES
@@ -52,7 +56,7 @@ module Spree
       @@product_attributes = [
         :id, :name, :description, :price, :display_price, :available_on,
         :slug, :meta_description, :meta_keywords, :shipping_category_id,
-        :taxon_ids, :total_on_hand
+        :taxon_ids, :total_on_hand, :meta_title
       ]
 
       @@product_property_attributes = [
@@ -62,6 +66,10 @@ module Spree
       @@variant_attributes = [
         :id, :name, :sku, :price, :weight, :height, :width, :depth, :is_master,
         :slug, :description, :track_inventory
+      ]
+
+      @@variant_property_attributes = [
+        :id, :property_id, :value, :property_name
       ]
 
       @@image_attributes = [
@@ -79,8 +87,11 @@ module Spree
         :user_id, :created_at, :updated_at, :completed_at, :payment_total,
         :shipment_state, :payment_state, :email, :special_instructions, :channel,
         :included_tax_total, :additional_tax_total, :display_included_tax_total,
-        :display_additional_tax_total, :tax_total, :currency, :considered_risky,
-        :canceler_id
+        :display_additional_tax_total, :tax_total, :currency,
+        :covered_by_store_credit, :display_total_applicable_store_credit,
+        :order_total_after_store_credit, :display_order_total_after_store_credit,
+        :total_applicable_store_credit, :display_total_available_store_credit,
+        :display_store_credit_remaining_after_capture, :canceler_id
       ]
 
       @@line_item_attributes = [:id, :quantity, :price, :variant_id]
@@ -90,23 +101,22 @@ module Spree
       @@payment_attributes = [
         :id, :source_type, :source_id, :amount, :display_amount,
         :payment_method_id, :state, :avs_response, :created_at,
-        :updated_at, :number
+        :updated_at
       ]
 
       @@payment_method_attributes = [:id, :name, :description]
 
-      @@shipment_attributes = [:id, :tracking, :number, :cost, :shipped_at, :state]
+      @@shipment_attributes = [:id, :tracking, :tracking_url, :number, :cost, :shipped_at, :state]
 
       @@taxonomy_attributes = [:id, :name]
 
       @@taxon_attributes = [
         :id, :name, :pretty_name, :permalink, :parent_id,
-        :taxonomy_id, :meta_title, :meta_description
+        :taxonomy_id
       ]
 
       @@inventory_unit_attributes = [
-        :id, :lock_version, :state, :variant_id, :shipment_id,
-        :return_authorization_id
+        :id, :state, :variant_id, :shipment_id
       ]
 
       @@return_authorization_attributes = [
@@ -115,8 +125,8 @@ module Spree
 
       @@address_attributes = [
         :id, :firstname, :lastname, :full_name, :address1, :address2, :city,
-        :zipcode, :phone, :company, :alternative_phone, :country_id, :state_id,
-        :state_name, :state_text
+        :zipcode, :phone, :company, :alternative_phone, :country_id, :country_iso,
+        :state_id, :state_name, :state_text
       ]
 
       @@country_attributes = [:id, :iso_name, :iso, :iso3, :name, :numcode]
@@ -125,13 +135,12 @@ module Spree
 
       @@adjustment_attributes = [
         :id, :source_type, :source_id, :adjustable_type, :adjustable_id,
-        :originator_type, :originator_id, :amount, :label, :mandatory,
-        :locked, :eligible, :created_at, :updated_at
+        :amount, :label, :promotion_code_id,
+        :finalized, :eligible, :created_at, :updated_at
       ]
 
       @@creditcard_attributes = [
-        :id, :month, :year, :cc_type, :last_digits, :name,
-        :gateway_customer_profile_id, :gateway_payment_profile_id
+        :id, :month, :year, :cc_type, :last_digits, :name
       ]
 
       @@payment_source_attributes = [
@@ -150,18 +159,18 @@ module Spree
       @@stock_movement_attributes = [:id, :quantity, :stock_item_id]
 
       @@stock_item_attributes = [
-        :id, :count_on_hand, :backorderable, :lock_version, :stock_location_id,
+        :id, :count_on_hand, :backorderable, :stock_location_id,
         :variant_id
       ]
 
       @@promotion_attributes = [
         :id, :name, :description, :expires_at, :starts_at, :type, :usage_limit,
-        :match_policy, :code, :advertise, :path
+        :match_policy, :advertise, :path
       ]
 
       @@store_attributes = [
         :id, :name, :url, :meta_description, :meta_keywords, :seo_title,
-        :mail_from_address, :default_currency, :code, :default
+        :mail_from_address, :default_currency, :code, :default, :available_locales
       ]
 
       @@tag_attributes = [:id, :name]
@@ -174,6 +183,11 @@ module Spree
       @@reimbursement_attributes = [
         :id, :reimbursement_status, :customer_return_id, :order_id,
         :number, :total, :created_at, :updated_at
+      ]
+
+      @@store_credit_history_attributes = [
+        :display_amount, :display_user_total_amount, :display_action,
+        :display_event_date, :display_remaining_amount
       ]
 
       def variant_attributes
