@@ -8,10 +8,6 @@
   <p>
     <%= t('.single_code_html', code: @promotion.codes.first.value) %>
   </p>
-<% elsif @promotion.codes.count > 1 %>
-  <p>
-    <%= t('.multiple_codes_html', count: @promotion.codes.count) %>
-  </p>
 <% end %>
 
 <% if @promotion.path %>
