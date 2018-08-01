@@ -1,26 +1,26 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class PromotionsController < ResourceController
-      before_action :load_data, except: :clone
+      before_action :load_data
 
       helper 'spree/admin/promotion_rules'
 
-      def clone
-        promotion = Spree::Promotion.find(params[:id])
-        duplicator = Spree::PromotionHandler::PromotionDuplicator.new(promotion)
+      def create
+        @promotion = Spree::Promotion.new(permitted_resource_params)
+        @promotion.codes.new(value: params[:single_code]) if params[:single_code].present?
 
-        @new_promo = duplicator.duplicate
-
-        if @new_promo.errors.empty?
-          flash[:success] = Spree.t('promotion_cloned')
-          redirect_to edit_admin_promotion_url(@new_promo)
+        if @promotion.save
+          flash[:success] = t('spree.promotion_successfully_created')
+          redirect_to location_after_save
         else
-          flash[:error] = Spree.t('promotion_not_cloned', error: @new_promo.errors.full_messages.to_sentence)
-          redirect_to admin_promotions_url(@new_promo)
+          flash[:error] = @promotion.errors.full_messages.join(', ')
+          render action: 'new'
         end
       end
 
-      protected
+      private
 
       def location_after_save
         spree.edit_admin_promotion_url(@promotion)
@@ -32,7 +32,7 @@ module Spree
       end
 
       def collection
-        return @collection if defined?(@collection)
+        return @collection if @collection
         params[:q] ||= HashWithIndifferentAccess.new
         params[:q][:s] ||= 'id desc'
 
