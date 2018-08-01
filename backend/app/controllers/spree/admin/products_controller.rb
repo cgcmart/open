@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class ProductsController < ResourceController
@@ -9,7 +11,6 @@ module Spree
       helper_method :clone_object_url
 
       def show
-        session[:return_to] ||= request.referer
         redirect_to action: :edit
       end
 
@@ -24,6 +25,11 @@ module Spree
         end
         if params[:product][:option_type_ids].present?
           params[:product][:option_type_ids] = params[:product][:option_type_ids].split(',')
+        end
+        if updating_variant_property_rules?
+          params[:product][:variant_property_rules_attributes].each do |_index, param_attrs|
+            param_attrs[:option_value_ids] = param_attrs[:option_value_ids].split(',')
+          end
         end
         invoke_callbacks(:update, :before)
         if @object.update_attributes(permitted_resource_params)
@@ -43,18 +49,10 @@ module Spree
       end
 
       def destroy
-        @product = Product.friendly.find(params[:id])
+        @product = Spree::Product.friendly.find(params[:id])
+        @product.discard
 
-        begin
-          # TODO: why is @product.destroy raising ActiveRecord::RecordNotDestroyed instead of failing with false result
-          if @product.destroy
-            flash[:success] = Spree.t('notice_messages.product_deleted')
-          else
-            flash[:error] = Spree.t('notice_messages.product_not_deleted', error: @product.errors.full_messages.to_sentence)
-          end
-        rescue ActiveRecord::RecordNotDestroyed => e
-          flash[:error] = Spree.t('notice_messages.product_not_deleted', error: e.message)
-        end
+        flash[:success] = t('spree.notice_messages.product_deleted')
 
         respond_with(@product) do |format|
           format.html { redirect_to collection_url }
@@ -65,74 +63,50 @@ module Spree
       def clone
         @new = @product.duplicate
 
-        if @new.persisted?
-          flash[:success] = Spree.t('notice_messages.product_cloned')
-          redirect_to edit_admin_product_url(@new)
+        if @new.save
+          flash[:success] = t('spree.notice_messages.product_cloned')
         else
-          flash[:error] = Spree.t('notice_messages.product_not_cloned', error: @new.errors.full_messages.to_sentence)
-          redirect_to admin_products_url
+          flash[:error] = t('spree.notice_messages.product_not_cloned')
         end
-      rescue ActiveRecord::RecordInvalid => e
-        # Handle error on uniqueness validation on product fields
-        flash[:error] = Spree.t('notice_messages.product_not_cloned', error: e.message)
-        redirect_to admin_products_url
+
+        redirect_to admin_products_url(@new)
       end
 
-      def stock
-        @variants = @product.variants.includes(*variant_stock_includes)
-        @variants = [@product.master] if @variants.empty?
-        @stock_locations = StockLocation.accessible_by(current_ability, :read)
-        if @stock_locations.empty?
-          flash[:error] = Spree.t(:stock_management_requires_a_stock_location)
-          redirect_to admin_stock_locations_path
-        end
-      end
-
-      protected
+      private
 
       def find_resource
-        Product.with_deleted.friendly.find(params[:id])
+        Spree::Product.with_deleted.friendly.find(params[:id])
       end
 
       def location_after_save
+        if updating_variant_property_rules?
+          url_params = {}
+          url_params[:ovi] = []
+          params[:product][:variant_property_rules_attributes].each do |_index, param_attrs|
+            url_params[:ovi] += param_attrs[:option_value_ids]
+          end
+          spree.admin_product_product_properties_url(@product, url_params)
+        else
         spree.edit_admin_product_url(@product)
+        end
       end
 
       def load_data
-        @taxons = Taxon.order(:name)
-        @option_types = OptionType.order(:name)
-        @tax_categories = TaxCategory.order(:name)
-        @shipping_categories = ShippingCategory.order(:name)
+        @tax_categories = Spree::TaxCategory.order(:name)
+        @shipping_categories = Spree::ShippingCategory.order(:name)
       end
 
       def collection
-        return @collection if @collection.present?
+        return @collection if @collection
         params[:q] ||= {}
-        params[:q][:deleted_at_null] ||= '1'
-        params[:q][:not_discontinued] ||= '1'
-
         params[:q][:s] ||= 'name asc'
-        @collection = super
-        # Don't delete params[:q][:deleted_at_null] here because it is used in view to check the
-        # checkbox for 'q[deleted_at_null]'. This also messed with pagination when deleted_at_null is checked.
-        if params[:q][:deleted_at_null] == '0'
-          @collection = @collection.with_deleted
-        end
         # @search needs to be defined as this is passed to search_form_for
-        # Temporarily remove params[:q][:deleted_at_null] from params[:q] to ransack products.
-        # This is to include all products and not just deleted products.
-        @search = @collection.ransack(params[:q].reject { |k, _v| k.to_s == 'deleted_at_null' })
+        @search = super.ransack(params[:q])
         @collection = @search.result.
-                      distinct_by_product_ids(params[:q][:s]).
-                      includes(product_includes).
-                      page(params[:page]).
-                      per(params[:per_page] || Spree::Config[:admin_products_per_page])
-        @collection
-      end
-
-      def create_before
-        return if params[:product][:prototype_id].blank?
-        @prototype = Spree::Prototype.find(params[:product][:prototype_id])
+              order(id: :asc).
+              includes(product_includes).
+              page(params[:page]).
+              per(Spree::Config[:admin_products_per_page])
       end
 
       def update_before
@@ -150,10 +124,16 @@ module Spree
         clone_admin_product_url resource
       end
 
-      private
-
       def variant_stock_includes
         [:images, stock_items: :stock_location, option_values: :option_type]
+      end
+
+      def variant_scope
+        @product.variants
+      end
+
+      def updating_variant_property_rules?
+        params[:product][:variant_property_rules_attributes].present?
       end
     end
   end
