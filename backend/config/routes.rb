@@ -10,6 +10,7 @@ Spree::Core::Engine.routes.draw do
     resources :promotions do
       resources :promotion_rules
       resources :promotion_actions
+      resources :promotion_codes, only: [:index]
       member do
         post :clone
       end
