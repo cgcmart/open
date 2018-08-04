@@ -1,6 +1,20 @@
+# frozen_string_literal: true
+
+require 'spree/testing_support/factories/promotion_code_factory'
+require 'spree/testing_support/factories/variant_factory'
+
 FactoryBot.define do
   factory :promotion, class: Spree::Promotion do
     name 'Promo'
+
+    transient do
+      code nil
+    end
+    before(:create) do |promotion, evaluator|
+      if evaluator.code
+        promotion.codes << build(:promotion_code, promotion: promotion, value: evaluator.code)
+      end
+    end
 
     trait :with_line_item_adjustment do
       transient do
@@ -37,10 +51,9 @@ FactoryBot.define do
 
       after(:create) do |promotion, evaluator|
         rule = Spree::Promotion::Rules::ItemTotal.create!(
-          preferred_operator_min: 'gte',
-          preferred_operator_max: 'lte',
-          preferred_amount_min: evaluator.item_total_threshold_amount,
-          preferred_amount_max: evaluator.item_total_threshold_amount + 100
+          promotion: promotion,
+          preferred_operator: 'gte',
+          preferred_amount: evaluator.item_total_threshold_amount
         )
         promotion.rules << rule
         promotion.save!
