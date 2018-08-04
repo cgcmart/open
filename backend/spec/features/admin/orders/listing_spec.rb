@@ -1,51 +1,53 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-describe 'Orders Listing', type: :feature do
+describe 'Orders Listing', type: :feature, js: true do
   stub_authorization!
 
-  let(:order1) do
-    create :order_with_line_items,
-           created_at: 1.day.from_now,
-           completed_at: 1.day.from_now,
-           considered_risky: true,
-           number: 'R100'
-  end
-
-  let(:order2) do
-    create :order,
-           created_at: 1.day.ago,
-           completed_at: 1.day.ago,
-           number: 'R200'
-  end
+  let!(:promotion) { create(:promotion_with_item_adjustment, code: "vnskseiw") }
+  let(:promotion_code) { promotion.codes.first }
 
   before do
     allow_any_instance_of(Spree::OrderInventory).to receive(:add_to_shipment)
-    # create the order instances after stubbing the `add_to_shipment` method
-    order1
-    order2
+    @order1 = create(:order_with_line_items, created_at: 1.day.from_now, completed_at: 1.day.from_now, number: "R100")
+    @order2 = create(:order, created_at: 1.day.ago, completed_at: 1.day.ago, number: "R200")
     visit spree.admin_orders_path
   end
 
+  it 'displays the new order button' do
+    expect(page).to have_link('New Order')
+  end
+
+  context 'without create permission' do
+    custom_authorization! do |_user|
+      can :manage, Spree::Order
+      cannot :create, Spree::Order
+    end
+
+    it 'does not display the new order button' do
+      expect(page).to_not have_link('New Order')
+    end
+  end
+
   describe 'listing orders' do
-    it 'lists existing orders' do
+    it 'should list existing orders' do
       within_row(1) do
         expect(column_text(2)).to eq 'R100'
-        expect(find('td:nth-child(3)')).to have_css '.label-considered_risky'
-        expect(column_text(4)).to eq 'cart'
+        expect(column_text(3)).to eq 'cart'
       end
 
       within_row(2) do
         expect(column_text(2)).to eq 'R200'
-        expect(find('td:nth-child(3)')).to have_css '.label-considered_safe'
       end
     end
 
-    it 'is able to sort the orders listing' do
+    it 'should be able to sort the orders listing' do
       # default is completed_at desc
       within_row(1) { expect(page).to have_content('R100') }
       within_row(2) { expect(page).to have_content('R200') }
 
-      click_link 'Completed At'
+      click_link 'Completed At', exact: false
 
       # Completed at desc
       within_row(1) { expect(page).to have_content('R200') }
@@ -59,166 +61,128 @@ describe 'Orders Listing', type: :feature do
     end
   end
 
-  describe 'searching orders' do
-    it 'is able to search orders' do
-      fill_in 'q_number_cont', with: 'R200'
-      click_on 'Filter Results'
-      within_row(1) do
-        expect(page).to have_content('R200')
-      end
+  context "searching orders" do
+    context "when there are multiple stores" do
+      let(:stores) { FactoryBot.create_pair(:store) }
 
-      # Ensure that the other order doesn't show up
-      within('table#listing_orders') { expect(page).not_to have_content('R100') }
-    end
-
-    it 'returns both complete and incomplete orders when only complete orders is not checked' do
-      Spree::Order.create! email: 'incomplete@example.com', completed_at: nil, state: 'cart'
-      click_on 'Filter'
-      uncheck 'q_completed_at_not_null'
-      click_on 'Filter Results'
-
-      expect(page).to have_content('R200')
-      expect(page).to have_content('incomplete@example.com')
-    end
-
-    it 'is able to filter risky orders' do
-      # Check risky and filter
-      check 'q_considered_risky_eq'
-      click_on 'Filter Results'
-
-      # Insure checkbox still checked
-      expect(find('#q_considered_risky_eq')).to be_checked
-      # Insure we have the risky order, R100
-      within_row(1) do
-        expect(page).to have_content('R100')
-      end
-      # Insure the non risky order is not present
-      expect(page).not_to have_content('R200')
-    end
-
-    it 'is able to filter on variant_sku' do
-      click_on 'Filter'
-      fill_in 'q_line_items_variant_sku_eq', with: order1.line_items.first.variant.sku
-      click_on 'Filter Results'
-
-      within_row(1) do
-        expect(page).to have_content(order1.number)
-      end
-
-      expect(page).not_to have_content(order2.number)
-    end
-
-    context 'when pagination is really short' do
       before do
-        @old_per_page = Spree::Config[:admin_orders_per_page]
-        Spree::Config[:admin_orders_per_page] = 1
-      end
-
-      after do
-        Spree::Config[:admin_orders_per_page] = @old_per_page
-      end
-
-      # Regression test for #4004
-      it 'is able to go from page to page for incomplete orders' do
-        Spree::Order.destroy_all
-        2.times { Spree::Order.create! email: 'incomplete@example.com', completed_at: nil, state: 'cart' }
-        click_on 'Filter'
-        uncheck 'q_completed_at_not_null'
-        click_on 'Filter Results'
-        within('.pagination') do
-          click_link '2'
+        stores.each do |store|
+          FactoryBot.create(:completed_order_with_totals, number: "R#{store.id}999", store: store)
         end
-        expect(page).to have_content('incomplete@example.com')
-        expect(find('#q_completed_at_not_null')).not_to be_checked
+      end
+
+      it "can find the orders belonging to a specific store" do
+        main_store, other_store = stores
+
+        click_on "Filter Results"
+        select main_store.name, from: I18n.t('spree.store')
+        click_on "Filter Results"
+
+        within_row(1) do
+          expect(page).to have_content("R#{main_store.id}999")
+        end
+
+        # Ensure that the other order doesn't show up
+        within("table#listing_orders") { expect(page).not_to have_content("R#{other_store.id}999") }
       end
     end
 
-    it 'is able to search orders using only completed at input' do
-      fill_in 'q_created_at_gt', with: Date.current
-      click_on 'Filter Results'
+    context "when there's a single store" do
+      it "should be able to search orders" do
+        click_on "Filter Results"
+        fill_in "q_number_start", with: "R200"
+        click_on 'Filter Results'
+        within_row(1) do
+          expect(page).to have_content("R200")
+        end
 
-      within_row(1) { expect(page).to have_content('R100') }
-
-      # Ensure that the other order doesn't show up
-      within('table#listing_orders') { expect(page).not_to have_content('R200') }
-    end
-
-    context 'filter on promotions' do
-      let!(:promotion) { create(:promotion_with_item_adjustment) }
-
-      before do
-        order1.promotions << promotion
-        order1.save
-        visit spree.admin_orders_path
+        # Ensure that the other order doesn't show up
+        within('table#listing_orders') { expect(page).not_to have_content('R100') }
       end
 
-      it 'only shows the orders with the selected promotion' do
-        select promotion.name, from: 'Promotion'
+      it "should be able to filter on variant_id" do
+        click_on "Filter Results"
+        select2_search @order1.products.first.sku, from: I18n.t('spree.variant')
+        click_on 'Filter Results'
+
+        within_row(1) do
+          expect(page).to have_content(@order1.number)
+        end
+
+        expect(page).not_to have_content(@order2.number)
+      end
+
+      context "when pagination is really short" do
+        before do
+          @old_per_page = Spree::Config[:orders_per_page]
+          Spree::Config[:orders_per_page] = 1
+        end
+
+        after do
+          Spree::Config[:orders_per_page] = @old_per_page
+        end
+
+        # Regression test for https://github.com/spree/spree/issues/4004
+        it 'should be able to go from page to page for incomplete orders' do
+          10.times { Spree::Order.create! email: 'incomplete@example.com' }
+          click_on 'Filter Results'
+          uncheck 'q_completed_at_not_null'
+          click_on 'Filter Results'
+          within('.pagination', match: :first) do
+            click_link '2'
+          end
+          expect(page).to have_content('incomplete@example.com')
+          expect(find('#q_completed_at_not_null')).not_to be_checked
+        end
+      end
+
+      it 'should be able to search orders using only completed at input' do
+        click_on "Filter Results"
+        fill_in 'q_created_at_gt', with: Date.current
         click_on 'Filter Results'
         within_row(1) { expect(page).to have_content('R100') }
+
+        # Ensure that the other order doesn't show up
         within('table#listing_orders') { expect(page).not_to have_content('R200') }
       end
-    end
 
-    it 'is able to apply a ransack filter by clicking a quickfilter icon', js: true do
-      label_pending = page.find '.label-pending'
-      parent_td = label_pending.find(:xpath, '..')
+      context 'filter on promotions' do
+        before(:each) do
+          @order1.order_promotions.build(
+            promotion: promotion,
+            promotion_code: promotion_code
+          )
+          order1.save
+          visit spree.admin_orders_path
+        end
 
-      # Click the quick filter Pending for order #R100
-      within(parent_td) do
-        find('.js-add-filter').click
+        it 'only shows the orders with the selected promotion' do
+          click_on "Filter Results"
+          fill_in "q_order_promotions_promotion_code_value_start", with: promotion.codes.first.value
+          click_on 'Filter Results'
+          within_row(1) { expect(page).to have_content('R100') }
+          within('table#listing_orders') { expect(page).not_to have_content('R200') }
+        end
       end
 
-      expect(page).to have_content('R100')
-      expect(page).not_to have_content('R200')
-    end
+      context "when toggling the completed orders checkbox" do
+        before do
+          create(:order, number: 'R300', completed_at: nil, state: 'cart')
+        end
 
-    context 'filter on shipment state' do
-      it 'only shows the orders with the selected shipment state' do
-        select Spree.t("payment_states.#{order1.shipment_state}"), from: 'Shipment State'
-        click_on 'Filter Results'
-        within_row(1) { expect(page).to have_content('R100') }
-        within('table#listing_orders') { expect(page).not_to have_content('R200') }
-      end
-    end
+        it "shows both complete and incomplete orders" do
+          check "q_completed_at_not_null"
+          click_on "Filter Results"
 
-    context 'filter on payment state' do
-      it 'only shows the orders with the selected payment state' do
-        select Spree.t("payment_states.#{order1.payment_state}"), from: 'Payment State'
-        click_on 'Filter Results'
-        within_row(1) { expect(page).to have_content('R100') }
-        within('table#listing_orders') { expect(page).not_to have_content('R200') }
-      end
-    end
+          expect(page).to have_content("R200")
+          expect(page).to_not have_content("R300")
 
-    # regression tests for https://github.com/spree/spree/issues/6888
-    context 'per page dropdown', js: true do
-      before do
-        select '45', from: 'per_page'
-        wait_for_ajax
-        expect(page).to have_select('per_page', selected: '45')
-        expect(page).to have_selector(:css, 'select.per-page-selected-45')
-      end
+          uncheck "q_completed_at_not_null"
+          click_on 'Filter Results'
 
-      it 'adds per_page parameter to url' do
-        expect(current_url).to match(/per_page\=45/)
-      end
-
-      it 'can be used with search filtering' do
-        click_on 'Filter'
-        fill_in 'q_number_cont', with: 'R200'
-        click_on 'Filter Results'
-        expect(page).not_to have_content('R100')
-        within_row(1) { expect(page).to have_content('R200') }
-        expect(current_url).to match(/per_page\=45/)
-        expect(page).to have_select('per_page', selected: '45')
-        select '60', from: 'per_page'
-        wait_for_ajax
-        expect(page).to have_select('per_page', selected: '60')
-        expect(page).to have_selector(:css, 'select.per-page-selected-60')
-        expect(page).not_to have_content('R100')
-        within_row(1) { expect(page).to have_content('R200') }
-        expect(current_url).to match(/per_page\=60/)
+          expect(page).to have_content("R200")
+          expect(page).to have_content("R300")
+        end
       end
     end
   end
