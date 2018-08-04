@@ -1,74 +1,100 @@
+# frozen_string_literal: true
+
 module Spree
   class Promotion < Spree::Base
     MATCH_POLICIES = %w(all any)
     UNACTIVATABLE_ORDER_STATES = ['complete', 'awaiting_return', 'returned']
 
-    attr_reader :eligibility_errors, :generate_code
+    attr_reader :eligibility_errors
 
-    belongs_to :promotion_category, optional: true
+    belongs_to :promotion_category
 
-    has_many :promotion_rules, autosave: true, dependent: :destroy
-    alias rules promotion_rules
+    has_many :promotion_rules, autosave: true, dependent: :destroy, inverse_of: :promotion
+    alias_method :rules, :promotion_rules
 
-    has_many :promotion_actions, autosave: true, dependent: :destroy
-    alias actions promotion_actions
+    has_many :promotion_actions, autosave: true, dependent: :destroy, inverse_of: :promotion
+    alias_method :actions, :promotion_actions
 
     has_many :order_promotions, class_name: 'Spree::OrderPromotion'
-    has_many :orders, through: :order_promotions, class_name: 'Spree::Order'
+    has_many :orders, through: :order_promotions
+
+    has_many :codes, class_name: "Spree::PromotionCode", inverse_of: :promotion, dependent: :destroy
+    alias_method :promotion_codes, :codes
 
     accepts_nested_attributes_for :promotion_actions, :promotion_rules
 
     validates_associated :rules
 
     validates :name, presence: true
-    validates :path, :code, uniqueness: { case_sensitive: false, allow_blank: true }
+    validates :path, uniqueness: { allow_blank: true }
     validates :usage_limit, numericality: { greater_than: 0, allow_nil: true }
-    validates :description, length: { maximum: 255 }, allow_blank: true
-    validate :expires_at_must_be_later_than_starts_at, if: -> { starts_at && expires_at }
+    validates :per_code_usage_limit, numericality: { greater_than_or_equal_to: 0, allow_nil: true }
+    validates :description, length: { maximum: 255 }
+    validate :apply_automatically_disallowed_with_codes_or_paths
 
     before_save :normalize_blank_values
 
     scope :coupons, -> { where.not(code: nil) }
     scope :advertised, -> { where(advertise: true) }
-    scope :applied, lambda {
-      joins(<<-SQL).distinct
-        INNER JOIN spree_order_promotions
-        ON spree_order_promotions.promotion_id = #{table_name}.id
-      SQL
-    }
-
-    self.whitelisted_ransackable_attributes = ['path', 'promotion_category_id', 'code']
-
-    def self.with_coupon_code(coupon_code)
-      where("lower(#{table_name}.code) = ?", coupon_code.strip.downcase).
-        includes(:promotion_actions).where.not(spree_promotion_actions: { id: nil }).
-        first
+    scope :active, -> do
+      table = arel_table
+      time = Time.current
+      where(table[:starts_at].eq(nil).or(table[:starts_at].lt(time))).
+        where(table[:expires_at].eq(nil).or(table[:expires_at].gt(time)))
     end
+    scope :applied, -> { joins(:order_promotions).distinct }
 
-    def self.active
-      where('spree_promotions.starts_at IS NULL OR spree_promotions.starts_at < ?', Time.current).
-        where('spree_promotions.expires_at IS NULL OR spree_promotions.expires_at > ?', Time.current)
+    self.whitelisted_ransackable_associations = ['codes']
+    self.whitelisted_ransackable_attributes = ['path', 'promotion_category_id']
+
+    # temporary code. remove after the column is dropped from the db.
+    def columns
+      super.reject { |column| column.name == "code" }
     end
 
     def self.order_activatable?(order)
       order && !UNACTIVATABLE_ORDER_STATES.include?(order.state)
     end
 
-    def generate_code=(generating_code)
-      if ActiveModel::Type::Boolean.new.cast(generating_code)
-        self.code = random_code
-      end
+    def code
+      raise "Attempted to call code on a Spree::Promotion. Promotions are now tied to multiple code records"
     end
 
-    def expired?
-      !!(starts_at && Time.current < starts_at || expires_at && Time.current > expires_at)
+    def code=(_val)
+      raise "Attempted to call code= on a Spree::Promotion. Promotions are now tied to multiple code records"
     end
 
-    def activate(payload)
-      order = payload[:order]
+    def self.with_coupon_code(val)
+      joins(:codes).where(
+        PromotionCode.arel_table[:value].eq(val.downcase)
+      ).first
+    end
+
+    def as_json(options = {})
+      options[:except] ||= :code
+      super
+    end
+
+    def active?
+      (starts_at.nil? || starts_at < Time.current) &&
+        (expires_at.nil? || expires_at > Time.current)
+    end
+
+    def inactive?
+      !active?
+    end
+
+    def activate(order:, line_item: nil, user: nil, path: nil, promotion_code: nil)
       return unless self.class.order_activatable?(order)
 
-      payload[:promotion] = self
+      payload = {
+        order: order,
+        promotion: self,
+        line_item: line_item,
+        user: user,
+        path: path,
+        promotion_code: promotion_code
+      }
 
       # Track results from actions to see if any action has been taken.
       # Actions should return nil/false if no action has been taken.
@@ -81,44 +107,24 @@ module Spree
 
       if action_taken
         # connect to the order
-        # create the join_table entry.
-        orders << order
-        save
+        order.order_promotions.find_or_create_by!(
+          promotion: self,
+          promotion_code: promotion_code,
+        )
+        order.promotions.reset
+        order_promotions.reset
+        orders.reset
       end
 
       action_taken
     end
 
-    # Called when a promotion is removed from the cart
-    def deactivate(payload)
-      order = payload[:order]
-      return unless self.class.order_activatable?(order)
-
-      payload[:promotion] = self
-
-      # Track results from actions to see if any action has been taken.
-      # Actions should return nil/false if no action has been taken.
-      # If an action returns true, then an action has been taken.
-      results = actions.map do |action|
-        action.revert(payload) if action.respond_to?(:revert)
-      end
-
-      # If an action has been taken, report back to whatever `d this promotion.
-      action_taken = results.include?(true)
-
-      if action_taken
-        # connect to the order
-        # create the join_table entry.
-        orders << order
-        save
-      end
-
-      action_taken
-    end
-
-    # called anytime order.update_with_updater! happens
-    def eligible?(promotable)
-      return false if expired? || usage_limit_exceeded?(promotable) || blacklisted?(promotable)
+    # called anytime order.recalculate happens
+    def eligible?(promotable, promotion_code: nil)
+      return false if inactive?
+      return false if usage_limit_exceeded?
+      return false if promotion_code && promotion_code.usage_limit_exceeded?
+      return false if blacklisted?(promotable)
       !!eligible_rules(promotable, {})
     end
 
@@ -128,54 +134,57 @@ module Spree
     def eligible_rules(promotable, options = {})
       # Promotions without rules are eligible by default.
       return [] if rules.none?
-      specific_rules = rules.select { |rule| rule.applicable?(promotable) }
+      eligible = lambda { |r| r.eligible?(promotable, options) }
+      specific_rules = rules.for(promotable)
       return [] if specific_rules.none?
-
-      rule_eligibility = Hash[specific_rules.map do |rule|
-        [rule, rule.eligible?(promotable, options)]
-      end]
 
       if match_all?
         # If there are rules for this promotion, but no rules for this
         # particular promotable, then the promotion is ineligible by default.
-        unless rule_eligibility.values.all?
+        unless specific_rules.all?(&eligible)
           @eligibility_errors = specific_rules.map(&:eligibility_errors).detect(&:present?)
           return nil
         end
         specific_rules
       else
-        unless rule_eligibility.values.any?
+        unless specific_rules.any?(&eligible)
           @eligibility_errors = specific_rules.map(&:eligibility_errors).detect(&:present?)
           return nil
         end
-
-        [rule_eligibility.detect { |_, eligibility| eligibility }.first]
+        specific_rules.select(&eligible)
       end
     end
 
     def products
-      rules.where(type: 'Spree::Promotion::Rules::Product').map(&:products).flatten.uniq
+      rules.where(type: "Spree::Promotion::Rules::Product").map(&:products).flatten.uniq
     end
 
-    def usage_limit_exceeded?(promotable)
-      usage_limit.present? && usage_limit > 0 && adjusted_credits_count(promotable) >= usage_limit
+    # Whether the promotion has exceeded it's usage restrictions.
+    #
+    # @return true or false
+    def usage_limit_exceeded?
+      if usage_limit
+        usage_count >= usage_limit
+      end
     end
 
-    def adjusted_credits_count(promotable)
-      adjustments = promotable.is_a?(Order) ? promotable.all_adjustments : promotable.adjustments
-      credits_count - adjustments.promotion.where(source_id: actions.pluck(:id)).size
+    # Number of times the code has been used overall
+    #
+    # @return [Integer] usage count
+    def usage_count
+      Spree::Adjustment.eligible.
+        promotion.
+        where(source_id: actions.map(&:id)).
+        joins(:order).
+        merge(Spree::Order.complete).
+        distinct.
+        count(:order_id)
     end
 
-    def credits
-      Adjustment.eligible.promotion.where(source_id: actions.map(&:id))
-    end
+    def line_item_actionable?(order, line_item, promotion_code: nil)
+      return false if blacklisted?(line_item)
 
-    def credits_count
-      credits.count
-    end
-
-    def line_item_actionable?(order, line_item)
-      if eligible? order
+      if eligible?(order, promotion_code: promotion_code)
         rules = eligible_rules(order)
         if rules.blank?
           true
@@ -197,7 +206,7 @@ module Spree
       ].any? do |adjustment_type|
         user.orders.complete.joins(adjustment_type).where(
           spree_adjustments: {
-            source_type: 'Spree::PromotionAction',
+            source_type: "Spree::PromotionAction",
             source_id: actions.map(&:id),
             eligible: true
           }
@@ -205,6 +214,20 @@ module Spree
           id: excluded_orders.map(&:id)
         ).any?
       end
+    end
+
+    # Removes a promotion and any adjustments or other side effects from an
+    # order.
+    # @param order [Spree::Order] the order to remove the promotion from.
+    # @return [void]
+    def remove_from(order)
+      actions.each do |action|
+        action.remove_from(order)
+      end
+      # note: this destroys the join table entry, not the promotion itself
+      order.promotions.destroy(self)
+      order.order_promotions.reset
+      order_promotions.reset
     end
 
     private
@@ -215,30 +238,22 @@ module Spree
         !promotable.product.promotionable?
       when Spree::Order
         promotable.line_items.any? &&
-          promotable.line_items.joins(:product).where(spree_products: { promotionable: true }).none?
+          promotable.line_items.joins(:product).where(spree_products: { promotionable: true }).exists?
       end
     end
 
     def normalize_blank_values
-      [:code, :path].each do |column|
-        self[column] = nil if self[column].blank?
-      end
+      self[:path] = nil if self[:path].blank?
     end
 
     def match_all?
       match_policy == 'all'
     end
 
-    def expires_at_must_be_later_than_starts_at
-      errors.add(:expires_at, :invalid_date_range) if expires_at < starts_at
-    end
-
-    def random_code
-      coupon_code = loop do
-        random_token = SecureRandom.hex(4)
-        break random_token unless self.class.exists?(code: random_token)
-      end
-      coupon_code
+    def apply_automatically_disallowed_with_codes_or_paths
+      return unless apply_automatically
+      errors.add(:apply_automatically, :disallowed_with_code) if codes.any?
+      errors.add(:apply_automatically, :disallowed_with_path) if path.present?
     end
   end
 end
