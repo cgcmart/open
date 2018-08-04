@@ -447,37 +447,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
     end
   end
 
-  # Regression test for #7734
-  context 'if multiple coupon promotions applied' do
-    let(:promotion) { Spree::Promotion.create(name: 'Order Promotion', code: 'o_promotion') }
-    let(:calculator) { Spree::Calculator::FlatPercentItemTotal.create(preferred_flat_percent: '90') }
-    let(:action) { Spree::Promotion::Actions::CreateAdjustment.create(calculator: calculator) }
-
-    let(:promotion_2) { Spree::Promotion.create(name: 'Line Item Promotion', code: 'li_promotion') }
-    let(:calculator_2) { Spree::Calculator::FlatRate.create(preferred_amount: '1000') }
-    let(:action_2) { Spree::Promotion::Actions::CreateItemAdjustments.create(calculator: calculator_2) }
-
-    before do
-      promotion.actions << action
-      promotion_2.actions << action_2
-
-      add_mug_to_cart
-    end
-
-    it "totals aren't negative" do
-      fill_in 'Coupon Code', with: promotion.code
-      click_on 'Apply'
-
-      fill_in 'Coupon Code', with: promotion_2.code
-      click_on 'Apply'
-
-      expect(page).to have_content(promotion.name)
-      expect(page).to have_content(promotion_2.name)
-      expect(Spree::Order.last.total.to_f).to eq 0.0
-    end
-  end
-
-  context 'if coupon promotion, submits coupon along with payment', js: true do
+  context 'Coupon promotion', js: true do
     let!(:promotion) { Spree::Promotion.create(name: 'Huhuhu', code: 'huhu') }
     let!(:calculator) { Spree::Calculator::FlatPercentItemTotal.create(preferred_flat_percent: '10') }
     let!(:action) { Spree::Promotion::Actions::CreateItemAdjustments.create(calculator: calculator) }
@@ -489,7 +459,6 @@ describe 'Checkout', type: :feature, inaccessible: true do
       click_on 'Checkout'
 
       fill_in 'order_email', with: 'test@example.com'
-      click_on 'Continue'
       fill_in_address
       click_on 'Save and Continue'
 
@@ -497,75 +466,28 @@ describe 'Checkout', type: :feature, inaccessible: true do
       expect(page).to have_current_path(spree.checkout_state_path('payment'))
     end
 
-    it 'makes sure payment reflects order total with discounts' do
-      fill_in 'Coupon Code', with: promotion.code
-      click_on 'Save and Continue'
+    it 'applies them & refreshes the page on user clicking the Apply Code button' do
+      fill_in 'Coupon Code', with: promotion.code.first.value
+      click_on 'Apply Code'
 
       expect(page).to have_content(promotion.name)
-      expect(Spree::Payment.first.amount.to_f).to eq Spree::Order.last.total.to_f
+      expect(page).to have_content("-$2.00")
     end
 
-    context 'invalid coupon' do
-      it 'doesnt create a payment record' do
+    context 'with invalid coupon' do
+      it 'does not apply the promotion' do
         fill_in 'Coupon Code', with: 'invalid'
-        click_on 'Save and Continue'
+        click_on 'Apply Code'
 
         expect(Spree::Payment.count).to eq 0
-        expect(page).to have_content(Spree.t(:coupon_code_not_found))
+        expect(page).to have_content(t('spree.coupon_code_not_found'))
       end
     end
 
     context "doesn't fill in coupon code input" do
       it 'advances just fine' do
         click_on 'Save and Continue'
-        expect(page).to have_current_path(spree.order_path(Spree::Order.last))
-      end
-    end
-
-    context 'the promotion makes order free (downgrade it total to 0.0)' do
-      let(:promotion2) { Spree::Promotion.create(name: 'test-7450', code: 'test-7450') }
-      let(:calculator2) do
-        Spree::Calculator::FlatRate.create(preferences: { currency: 'USD', amount: BigDecimal.new('99999') })
-      end
-      let(:action2) { Spree::Promotion::Actions::CreateItemAdjustments.create(calculator: calculator2) }
-
-      before { promotion2.actions << action2 }
-
-      context 'user choose to pay by check' do
-        it 'move user to complete checkout step' do
-          fill_in 'Coupon Code', with: promotion2.code
-          click_on 'Save and Continue'
-
-          expect(page).to have_content(promotion2.name)
-          expect(Spree::Order.last.total.to_f).to eq(0)
-          expect(page).to have_current_path(spree.order_path(Spree::Order.last))
-        end
-      end
-
-      context 'user choose to pay by card' do
-        let(:bogus) { create(:credit_card_payment_method) }
-
-        before do
-          order = Spree::Order.last
-          allow(order).to receive_messages(available_payment_methods: [bogus])
-          allow_any_instance_of(Spree::CheckoutController).to receive_messages(current_order: order)
-
-          visit spree.checkout_state_path(:payment)
-        end
-
-        it 'move user to confirmation checkout step' do
-          fill_in 'Name on card', with: 'Spree Commerce'
-          fill_in 'Card Number', with: '4111111111111111'
-          fill_in 'card_expiry', with: '04 / 20'
-          fill_in 'Card Code', with: '123'
-
-          fill_in 'Coupon Code', with: promotion2.code
-          click_on 'Save and Continue'
-
-          expect(page).to have_content(promotion2.name)
-          expect(Spree::Order.last.total.to_f).to eq(0)
-          expect(page).to have_current_path(spree.checkout_state_path('confirm'))
-        end
+        expect(page).to have_current_path(spree.checkout_state_path('confirm'))
       end
     end
   end
@@ -663,184 +585,100 @@ describe 'Checkout', type: :feature, inaccessible: true do
     end
   end
   
-  context "order's address is outside the default included tax zone" do
-    context 'so that no taxation applies to its product' do
+  context "with attempted XSS", js: true do
+    shared_examples "safe from XSS" do
+      # We need a country with states required but no states so that we have
+      # access to the state_name input
+      let!(:canada) { create(:country, name: 'Canada', iso: "CA", states_required: true) }
       before do
-        usa = Spree::Country.find_by(name: 'United States of America')
-        north_america_zone = create(:zone,
-                                    name: 'North America',
-                                    kind: 'country',
-                                    default_tax: true).tap do |zone|
-          zone.members << create(:zone_member, zoneable: usa)
-        end
-
-        australia = create(:country,
-                           name: 'Australia',
-                           iso: 'AU',
-                           iso_name: 'AUSTRALIA',
-                           iso3: 'AUS',
-                           states_required: true).tap do |country|
-          country.states << create(:state,
-                                   name: 'New South Wales',
-                                   abbr: 'NSW')
-        end
-        australia_zone = create(:zone,
-                                name: 'Australia',
-                                kind: 'country',
-                                default_tax: false).tap do |zone|
-          zone.members << create(:zone_member, zoneable: australia)
-        end
-
-        default_tax_category = create(:tax_category, name: 'Default', is_default: true)
-
-        create(:shipping_method,
-               name: 'Default',
-               display_on: 'both',
-               zones: [australia_zone],
-               tax_category: default_tax_category).tap do |sm|
-          sm.calculator.preferred_amount = 10
-          sm.calculator.preferred_currency = Spree::Config[:currency]
-          sm.calculator.save
-        end
-
-        create(:tax_rate,
-               name: 'USA included',
-               amount: 0.23,
-               zone: north_america_zone,
-               tax_category: default_tax_category,
-               show_rate_in_label: true,
-               included_in_price: true)
-
-        create(:product, name: 'Spree Bag', price: 100, tax_category: default_tax_category)
-        create(:product, name: 'Spree T-Shirt', price: 100, tax_category: default_tax_category)
+        canada.states.destroy_all
+        zone.members.create!(zoneable: canada)
       end
 
-      it 'correctly displays other product taxless price which has been added to cart later' do
-        visit spree.root_path
+      it "displays the entered state name without evaluating" do
+        add_mug_to_cart
+        visit spree.checkout_state_path(:address)
+        fill_in_address
 
-        click_link 'Spree Bag'
-        click_on 'Add To Cart'
-        click_on 'Checkout'
+        state_name_css = "order_bill_address_attributes_state_name"
 
-        fill_in 'order_email', with: 'test@example.com'
+        select "Canada", from: "order_bill_address_attributes_country_id"
+        fill_in 'Customer E-Mail', with: 'test@example.com'
+        fill_in state_name_css, with: xss_string
+        fill_in "Zip", with: "H0H0H0"
 
-        within '#checkout_form_address' do
-          address = 'order_bill_address_attributes'
-
-          fill_in "#{address}_firstname", with: 'John'
-          fill_in "#{address}_lastname", with: 'Doe'
-          fill_in "#{address}_address1", with: '199 George Street'
-          fill_in "#{address}_city", with: 'Sydney'
-          select 'Australia', from: "#{address}_country_id"
-          select 'New South Wales', from: "#{address}_state_id"
-          fill_in "#{address}_zipcode", with: '2000'
-          fill_in "#{address}_phone", with: '123456789'
-        end
         click_on 'Save and Continue'
+        visit spree.checkout_state_path(:address)
 
-        visit spree.root_path
-
-        click_link 'Spree T-Shirt'
-        click_on 'Add To Cart'
-
-        expect(page).not_to have_content('$100.00')
-        expect(page.all('td.cart-item-price')).to all(have_content('$81.30'))
+        expect(page).to have_field(state_name_css, with: xss_string)
       end
+    end
+
+    let(:xss_string) { %(<script>throw("XSS")</script>) }
+    include_examples "safe from XSS"
+
+    context "escaped XSS string" do
+      let(:xss_string) { '\x27\x3e\x3cscript\x3ethrow(\x27XSS\x27)\x3c/script\x3e' }
+      include_examples "safe from XSS"
     end
   end
 
-  context 'user has store credits', js: true do
-    let(:bogus) { create(:credit_card_payment_method) }
-    let(:store_credit_payment_method) { create(:store_credit_payment_method) }
-    let(:user) { create(:user) }
-    let(:order) { OrderWalkthrough.up_to(:payment) }
+  context "using credit card" do
+    let!(:payment_method) { create(:credit_card_payment_method) }
 
-    let(:prepare_checkout!) do
-      order.update(user: user)
-      allow(order).to receive_messages(available_payment_methods: [bogus, store_credit_payment_method])
+    # Regression test for https://github.com/solidusio/solidus/issues/1421
+    it "works with card number 1", js: true do
+      add_mug_to_cart
 
-      allow_any_instance_of(Spree::CheckoutController).to receive_messages(current_order: order)
-      allow_any_instance_of(Spree::CheckoutController).to receive_messages(try_spree_current_user: user)
-      allow_any_instance_of(Spree::OrdersController).to receive_messages(try_spree_current_user: user)
-      visit spree.checkout_state_path(:payment)
+      click_on "Checkout"
+      fill_in "order_email", with: "test@example.com"
+      fill_in_address
+      click_on "Save and Continue"
+      click_on "Save and Continue"
+
+      fill_in_credit_card(number: "1")
+      click_on "Save and Continue"
+
+      expect(page).to have_current_path("/checkout/confirm")
     end
 
-    context 'when not all Store Credits are used' do
-      let!(:store_credit) { create(:store_credit, user: user) }
-      let!(:additional_store_credit) { create(:store_credit, user: user, amount: 13) }
+    it "works with card number 4111111111111111", js: true do
+      add_mug_to_cart
 
-      before { prepare_checkout! }
+      click_on "Checkout"
+      fill_in "order_email", with: "test@example.com"
+      fill_in_address
+      click_on "Save and Continue"
+      click_on "Save and Continue"
 
-      it 'page has data for (multiple) Store Credits' do
-        expect(page).to have_selector('[data-hook="checkout_payment_store_credit_available"]')
-        expect(page).to have_selector('button[name="apply_store_credit"]')
+      fill_in_credit_card(number: "4111 1111 1111 1111")
+      click_on "Save and Continue"
 
-        amount = Spree::Money.new(store_credit.amount_remaining + additional_store_credit.amount_remaining)
-        expect(page).to have_content(t('spree.store_credit.available_amount', amount: amount))
-      end
-
-      it 'apply store credits button should move checkout to next step if amount is sufficient' do
-        click_button 'Apply Store Credit'
-        expect(page).to have_current_path(spree.order_path(order))
-        expect(page).to have_content(Spree.t('order_processed_successfully'))
-      end
-
-      it 'apply store credits button should wait on payment step for other payment' do
-        store_credit.update(amount_used: 145)
-        additional_store_credit.update(amount_used: 12)
-        click_button 'Apply Store Credit'
-
-        expect(page).to have_current_path(spree.checkout_state_path(:payment))
-        amount = Spree::Money.new(store_credit.amount_remaining + additional_store_credit.amount_remaining)
-        remaining_amount = Spree::Money.new(order.total - amount.money.to_f)
-        expect(page).to have_content(t('spree.store_credit.applicable_amount', amount: amount))
-        expect(page).to have_content(t('spree.store_credit.additional_payment_needed', amount: remaining_amount))
-        expect(page).to have_content(t('spree.store_credit.remove'))
-      end
-
-      context 'remove store credits payments' do
-        before do
-          store_credit.update(amount: 5)
-          additional_store_credit.update(amount: 5)
-          click_button 'Apply Store Credit'
-        end
-        it 'remove store credits button should remove store_credits' do
-          click_button 'Remove Store Credit'
-          expect(page).to have_current_path(spree.checkout_state_path(:payment))
-          expect(page).to have_content(t('spree.store_credit.available_amount', amount: order.display_total_available_store_credit))
-          expect(page).to have_selector('button[name="apply_store_credit"]')
-        end
-      end
+      expect(page).to have_current_path("/checkout/confirm")
     end
+  end
 
-    context 'when all Store Credits are used' do
-      before do
-        create(:store_credit, user: user, amount_used: 150)
-        prepare_checkout!
-      end
-
-      it 'page has no data for Store Credits when all Store Credits are used' do
-        expect(page).not_to have_selector('[data-hook="checkout_payment_store_credit_available"]')
-        expect(page).not_to have_selector('button[name="apply_store_credit"]')
-      end
-    end
+  def fill_in_credit_card(number:)
+    fill_in "Card Number", with: number
+    fill_in "Expiration", with: "12 / 24"
+    fill_in "Card Code", with: "123"
   end
 
   def fill_in_address
-    address = 'order_bill_address_attributes'
-    fill_in "#{address}_firstname", with: 'Ryan'
-    fill_in "#{address}_lastname", with: 'Bigg'
-    fill_in "#{address}_address1", with: '143 Swan Street'
-    fill_in "#{address}_city", with: 'Richmond'
-    select country.name, from: "#{address}_country_id"
-    select state.name, from: "#{address}_state_id"
-    fill_in "#{address}_zipcode", with: '12345'
-    fill_in "#{address}_phone", with: '(555) 555-5555'
+    address = "order_bill_address_attributes"
+    fill_in "#{address}_firstname", with: "Ryan"
+    fill_in "#{address}_lastname", with: "Bigg"
+    fill_in "#{address}_address1", with: "143 Swan Street"
+    fill_in "#{address}_city", with: "Richmond"
+    select "United States of America", from: "#{address}_country_id"
+    select "Alabama", from: "#{address}_state_id"
+    fill_in "#{address}_zipcode", with: "12345"
+    fill_in "#{address}_phone", with: "(555) 555-5555"
   end
 
   def add_mug_to_cart
     visit spree.root_path
     click_link mug.name
-    click_button 'add-to-cart-button'
+    click_button "add-to-cart-button"
   end
 end
