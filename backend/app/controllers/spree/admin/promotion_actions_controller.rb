@@ -1,13 +1,15 @@
+# frozen_string_literal: true
+
 class Spree::Admin::PromotionActionsController < Spree::Admin::BaseController
   before_action :load_promotion, only: [:create, :destroy]
   before_action :validate_promotion_action_type, only: :create
 
   def create
-    @calculators = Spree::Promotion::Actions::CreateAdjustment.calculators
-    @promotion_action = params[:action_type].constantize.new(params[:promotion_action])
+    @calculators = Rails.application.config.spree.calculators.promotion_actions_create_adjustments
+    @promotion_action = @promotion_action_type.new(params[:promotion_action])
     @promotion_action.promotion = @promotion
     if @promotion_action.save
-      flash[:success] = Spree.t(:successfully_created, resource: Spree.t(:promotion_action))
+      flash[:success] = t('spree.successfully_created', resource: t('spree.promotion_action'))
     end
     respond_to do |format|
       format.html { redirect_to spree.edit_admin_promotion_path(@promotion) }
@@ -17,8 +19,8 @@ class Spree::Admin::PromotionActionsController < Spree::Admin::BaseController
 
   def destroy
     @promotion_action = @promotion.promotion_actions.find(params[:id])
-    if @promotion_action.destroy
-      flash[:success] = Spree.t(:successfully_removed, resource: Spree.t(:promotion_action))
+    if @promotion_action.discard
+      flash[:success] = t('spree.successfully_removed', resource: t('spree.promotion_action'))
     end
     respond_to do |format|
       format.html { redirect_to spree.edit_admin_promotion_path(@promotion) }
@@ -33,9 +35,13 @@ class Spree::Admin::PromotionActionsController < Spree::Admin::BaseController
   end
 
   def validate_promotion_action_type
-    valid_promotion_action_types = Rails.application.config.spree.promotions.actions.map(&:to_s)
-    unless valid_promotion_action_types.include?(params[:action_type])
-      flash[:error] = Spree.t(:invalid_promotion_action)
+    requested_type = params[:action_type]
+    promotion_action_types = Rails.application.config.spree.promotions.actions
+    @promotion_action_type = promotion_action_types.detect do |klass|
+      klass.name == requested_type
+    end
+    if !@promotion_action_type
+      flash[:error] = t('spree.invalid_promotion_action')
       respond_to do |format|
         format.html { redirect_to spree.edit_admin_promotion_path(@promotion) }
         format.js   { render layout: false }
