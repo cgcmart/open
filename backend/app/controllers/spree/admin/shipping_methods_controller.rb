@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class ShippingMethodsController < ResourceController
@@ -6,7 +8,7 @@ module Spree
       before_action :set_zones, only: [:create, :update]
 
       def destroy
-        @object.destroy
+        @object.discard
 
         flash[:success] = flash_message_for(@object, :successfully_removed)
 
@@ -19,14 +21,14 @@ module Spree
       private
 
       def set_shipping_category
-        return true if params['shipping_method'][:shipping_categories].blank?
+        return true if params['shipping_method'][:shipping_categories] == ''
         @shipping_method.shipping_categories = Spree::ShippingCategory.where(id: params['shipping_method'][:shipping_categories])
         @shipping_method.save
         params[:shipping_method].delete(:shipping_categories)
       end
 
       def set_zones
-        return true if params['shipping_method'][:zones].blank?
+        return true if params['shipping_method'][:zones] == ''
         @shipping_method.zones = Spree::Zone.where(id: params['shipping_method'][:zones])
         @shipping_method.save
         params[:shipping_method].delete(:zones)
@@ -39,7 +41,7 @@ module Spree
       def load_data
         @available_zones = Zone.order(:name)
         @tax_categories = Spree::TaxCategory.order(:name)
-        @calculators = ShippingMethod.calculators.sort_by(&:name)
+        @calculators = Rails.application.config.spree.calculators.shipping_methods
       end
     end
   end
