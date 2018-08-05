@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class RefundsController < ResourceController
-      belongs_to 'spree/payment', find_by: :number
+      belongs_to 'spree/payment'
       before_action :load_order
 
       helper_method :refund_reasons
