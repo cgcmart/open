@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Spree::Admin::ResourceController < Spree::Admin::BaseController
   include Spree::Backend::Callbacks
 
@@ -36,7 +38,10 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
     else
       invoke_callbacks(:update, :fails)
       respond_with(@object) do |format|
-        format.html { render action: :edit }
+        format.html do
+          flash.now[:error] = @object.errors.full_messages.join(", ")
+          render_after_update_error
+        end
         format.js { render layout: false }
       end
     end
@@ -55,37 +60,51 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
     else
       invoke_callbacks(:create, :fails)
       respond_with(@object) do |format|
-        format.html { render action: :new }
+        format.html do
+          flash.now[:error] = @object.errors.full_messages.join(", ")
+          render_after_update_error
+        end
         format.js { render layout: false }
       end
     end
   end
 
   def update_positions
-    ApplicationRecord.transaction do
+    ActiveRecord.transaction do
       params[:positions].each do |id, index|
         model_class.find(id).set_list_position(index)
       end
     end
 
     respond_to do |format|
-      format.js { render plain: 'Ok' }
+      format.js { head :no_content }
     end
   end
 
   def destroy
     invoke_callbacks(:destroy, :before)
-    if @object.destroy
+    
+    destroy_result =
+      if @object.respond_to?(:discard)
+        @object.discard
+      elsif @object.respond_to?(:paranoia_destroy)
+        @object.paranoia_destroy
+      else
+        @object.destroy
+      end
+
+    if destroy_result
       invoke_callbacks(:destroy, :after)
       flash[:success] = flash_message_for(@object, :successfully_removed)
+      respond_with(@object) do |format|
+        format.html { redirect_to location_after_destroy }
+        format.js   { render partial: "spree/admin/shared/destroy" }
+      end
     else
       invoke_callbacks(:destroy, :fails)
-      flash[:error] = @object.errors.full_messages.join(', ')
-    end
-
-    respond_with(@object) do |format|
-      format.html { redirect_to location_after_destroy }
-      format.js   { render_js_for_destroy }
+      respond_with(@object) do |format|
+        format.html { redirect_to location_after_destroy }
+      end
     end
   end
 
@@ -97,13 +116,13 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
     def belongs_to(model_name, options = {})
       @parent_data ||= {}
       @parent_data[:model_name] = model_name
-      @parent_data[:model_class] = model_name.to_s.classify.constantize
+      @parent_data[:model_class] = (options[:model_class] || model_name.to_s.classify.constantize)
       @parent_data[:find_by] = options[:find_by] || :id
     end
   end
 
   def model_class
-    @model_class ||= resource.model_class
+    "Spree::#{controller_name.classify}".constantize
   end
 
   def resource_not_found
@@ -111,10 +130,17 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
     redirect_to collection_url
   end
 
-  def resource
-    return @resource if @resource
-    parent_model_name = parent_data[:model_name] if parent_data
-    @resource = Spree::Admin::Resource.new controller_path, controller_name, parent_model_name, object_name
+  def parent_model_name
+    self.class.parent_data[:model_name].gsub('spree/', '')
+  end
+
+  def model_name
+    Spree::Deprecation.warn('model_name is deprecated. Please use parent_model_name instead.', caller)
+    parent_model_name
+  end
+
+  def object_name
+    controller_name.singularize
   end
 
   def load_resource
@@ -150,16 +176,18 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
   end
 
   def parent
-    if parent_data.present?
-      @parent ||= parent_data[:model_class].
-                  # Don't use `find_by_attribute_name` to workaround globalize/globalize#423 bug
-                  send(:find_by, parent_data[:find_by].to_s => params["#{resource.model_name}_id"])
+    if parent?
+      @parent ||= self.class.parent_data[:model_class].find_by(self.class.parent_data[:find_by] => params["#{parent_model_name}_id"])
       instance_variable_set("@#{resource.model_name}", @parent)
     end
   end
 
+  def parent?
+    self.class.parent_data.present?
+  end
+
   def find_resource
-    if parent_data.present?
+    if parent?
       parent.send(controller_name).find(params[:id])
     else
       model_class.find(params[:id])
@@ -167,7 +195,7 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
   end
 
   def build_resource
-    if parent_data.present?
+    if parent?
       parent.send(controller_name).build
     else
       model_class.new
@@ -175,9 +203,8 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
   end
 
   def collection
-    return parent.send(controller_name) if parent_data.present?
-    if model_class.respond_to?(:accessible_by) &&
-        !current_ability.has_block?(params[:action], model_class)
+    return parent.send(controller_name) if parent?
+    if model_class.respond_to?(:accessible_by) && !current_ability.has_block?(params[:action], model_class)
       model_class.accessible_by(current_ability, action)
     else
       model_class.where(nil)
@@ -195,7 +222,7 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
   # URL helpers
 
   def new_object_url(options = {})
-    if parent_data.present?
+    if parent?
       spree.new_polymorphic_url([:admin, parent, model_class], options)
     else
       spree.new_polymorphic_url([:admin, model_class], options)
@@ -203,39 +230,35 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
   end
 
   def edit_object_url(object, options = {})
-    if parent_data.present?
-      spree.send "edit_admin_#{resource.model_name}_#{resource.object_name}_url",
-                 parent, object, options
+    if parent?
+      spree.polymorphic_url([:edit, :admin, parent, object], options)
     else
-      spree.send "edit_admin_#{resource.object_name}_url", object, options
+      spree.polymorphic_url([:edit, :admin, object], options)
     end
   end
 
   def object_url(object = nil, options = {})
     target = object ? object : @object
-    if parent_data.present?
-      spree.send "admin_#{resource.model_name}_#{resource.object_name}_url", parent, target, options
+    if parent?
+      spree.polymorphic_url([:admin, parent, target], options)
     else
-      spree.send "admin_#{resource.object_name}_url", target, options
+      spree.polymorphic_url([:admin, target], options)
     end
   end
 
   def collection_url(options = {})
-    if parent_data.present?
+    if parent?
       spree.polymorphic_url([:admin, parent, model_class], options)
     else
       spree.polymorphic_url([:admin, model_class], options)
     end
   end
 
-  # This method should be overridden when object_name does not match the controller name
-  def object_name; end
-
   # Allow all attributes to be updatable.
   #
   # Other controllers can, should, override it to set custom logic
   def permitted_resource_params
-    params[resource.object_name].present? ? params.require(resource.object_name).permit! : ActionController::Parameters.new
+    params[object_name].present? ? params.require(object_name).permit! : ActionController::Parameters.new.permit!
   end
 
   def collection_actions
@@ -248,5 +271,13 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
 
   def new_actions
     [:new, :create]
+  end
+
+  def render_after_create_error
+    render action: 'new'
+  end
+
+  def render_after_update_error
+    render action: 'edit'
   end
 end
