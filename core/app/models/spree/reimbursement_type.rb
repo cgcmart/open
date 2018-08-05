@@ -1,12 +1,10 @@
+# frozen_string_literal: true
+
 module Spree
   class ReimbursementType < Spree::Base
     include Spree::NamedType
 
-    KINDS = %w(Spree::ReimbursementType::Credit
-               Spree::ReimbursementType::Exchange
-               Spree::ReimbursementType::OriginalPayment
-               Spree::ReimbursementType::StoreCredit).freeze
-    ORIGINAL = 'original'.freeze
+    ORIGINAL = 'original'
 
     has_many :return_items
 
