@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class StockLocationsController < ResourceController
@@ -7,10 +9,9 @@ module Spree
 
       def set_country
         @stock_location.country = Spree::Country.default
-        unless @stock_location.country
-          flash[:error] = Spree.t(:stock_locations_need_a_default_country)
-          redirect_to admin_stock_locations_path
-        end
+        rescue ActiveRecord::RecordNotFound
+        flash[:error] = t('spree.stock_locations_need_a_default_country')
+        (admin_stock_locations_path) && return
       end
     end
   end
