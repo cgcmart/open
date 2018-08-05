@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class TaxRatesController < ResourceController
@@ -8,7 +10,7 @@ module Spree
       def load_data
         @available_zones = Zone.order(:name)
         @available_categories = TaxCategory.order(:name)
-        @calculators = TaxRate.calculators.sort_by(&:name)
+        @calculators = Rails.application.config.spree.calculators.tax_rates
       end
     end
   end
