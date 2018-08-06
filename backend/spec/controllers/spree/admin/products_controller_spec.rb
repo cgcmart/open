@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Spree::Admin::ProductsController, type: :controller do
@@ -6,142 +8,191 @@ describe Spree::Admin::ProductsController, type: :controller do
   context '#index' do
     let(:ability_user) { stub_model(Spree::LegacyUser, has_spree_role?: true) }
 
-    # Regression test for #1259
+    # Regression test for https://github.com/spree/spree/issues/1259
     it 'can find a product by SKU' do
       product = create(:product, sku: 'ABC123')
-      spree_get :index, q: { sku_start: 'ABC123' }
+      get :index, params: { q: { sku_start: 'ABC123' } }
       expect(assigns[:collection]).not_to be_empty
       expect(assigns[:collection]).to include(product)
     end
+
+    # Regression test for https://github.com/spree/spree/issues/1903
+    context 'when soft deleted products exist' do
+      let!(:soft_deleted_product) { create(:product, sku: "ABC123") }
+      before { soft_deleted_product.discard }
+
+      context 'when params[:q][:with_deleted] is not set' do
+        let(:params) { { q: {} } }
+
+        it 'filters out soft-deleted products by default' do
+          get :index, params: params
+          expect(assigns[:collection]).to_not include(soft_deleted_product)
+        end
+      end
+
+      context 'when params[:q][:with_deleted] is set to "true"' do
+        let(:params) { { q: { with_deleted: 'true' } } }
+
+        it 'includes soft-deleted products' do
+          get :index, params: params
+          expect(assigns[:collection]).to include(soft_deleted_product)
+        end
+      end
+    end
   end
 
-  # regression test for #1370
+  # regression test for https://github.com/spree/spree/issues/1370
   context 'adding properties to a product' do
     let!(:product) { create(:product) }
-
     specify do
-      spree_put :update, id: product.to_param, product: { product_properties_attributes: { '1' => { property_name: 'Foo', value: 'bar' } } }
+      put :update, params: { id: product.to_param, product: { product_properties_attributes: { '1' => { property_name: 'Foo', value: 'bar' } } } }
       expect(flash[:success]).to eq("Product #{product.name.inspect} has been successfully updated!")
     end
   end
 
-  # regression test for #801
-  describe '#destroy' do
-    let(:product) { mock_model(Spree::Product) }
-    let(:products) { double(ActiveRecord::Relation) }
-
-    def send_request
-      spree_delete :destroy, id: product, format: :js
+  describe "creating variant property rules" do
+    let(:first_property) { create(:property) }
+    let(:second_property) { create(:property) }
+    let(:option_value) { create(:option_value) }
+    let!(:product) { create(:product, option_types: [option_value.option_type]) }
+    let(:payload) do
+      {
+        id: product.to_param,
+        product: {
+          id: product.id,
+          variant_property_rules_attributes: {
+            "0" => {
+              option_value_ids: option_value.id,
+              values_attributes: {
+                "0" => {
+                  property_name: first_property.name,
+                  value: "First"
+                },
+                "1" => {
+                  property_name: second_property.name,
+                  value: "Second"
+                }
+              }
+            }
+          }
+        }
+      }
     end
 
-    context 'will successfully destroy product' do
-      before do
-        allow(Spree::Product).to receive(:friendly).and_return(products)
-        allow(products).to receive(:find).with(product.id.to_s).and_return(product)
-        allow(product).to receive(:destroy).and_return(true)
-      end
+    subject { put :update, params: payload }
 
-      describe 'expects to receive' do
-        it { expect(Spree::Product).to receive(:friendly).and_return(products) }
-        it { expect(products).to receive(:find).with(product.id.to_s).and_return(product) }
-        it { expect(product).to receive(:destroy).and_return(true) }
-
-        after { send_request }
-      end
-
-      describe 'assigns' do
-        before { send_request }
-        it { expect(assigns(:product)).to eq(product) }
-      end
-
-      describe 'response' do
-        before { send_request }
-        it { expect(response).to have_http_status(:ok) }
-        it { expect(flash[:success]).to eq(Spree.t('notice_messages.product_deleted')) }
-      end
+    it "creates a variant property rule" do
+      expect { subject }.to change { product.variant_property_rules.count }.by(1)
     end
 
-    context 'will not successfully destroy product' do
-      let(:error_msg) { 'Failed to delete' }
+    it "creates a variant property rule condition" do
+      expect { subject }.to change { product.variant_property_rule_conditions.count }.by(1)
+    end
 
-      before do
-        allow(Spree::Product).to receive(:friendly).and_return(products)
-        allow(products).to receive(:find).with(product.id.to_s).and_return(product)
-        allow(product).to receive_message_chain(:errors, :full_messages).and_return([error_msg])
-        allow(product).to receive(:destroy).and_return(false)
-      end
+    it "creates a variant property rule value for the 'First' value" do
+      subject
+      expect(product.variant_property_rule_values.find_by(value: 'First')).to_not be_nil
+    end
 
-      describe 'expects to receive' do
-        it { expect(Spree::Product).to receive(:friendly).and_return(products) }
-        it { expect(products).to receive(:find).with(product.id.to_s).and_return(product) }
-        it { expect(product).to receive(:destroy).and_return(false) }
+    it "creates a variant property rule value for the 'Second' value" do
+      subject
+      expect(product.variant_property_rule_values.find_by(value: 'Second')).to_not be_nil
+    end
 
-        after { send_request }
-      end
-
-      describe 'assigns' do
-        before { send_request }
-        it { expect(assigns(:product)).to eq(product) }
-      end
-
-      describe 'response' do
-        before { send_request }
-        it { expect(response).to have_http_status(:ok) }
-
-        it 'set flash error' do
-          expected_error = Spree.t('notice_messages.product_not_deleted', error: error_msg)
-          expect(flash[:error]).to eq(expected_error)
-        end
-      end
+    it "redirects to the product properties page" do
+      subject
+      expect(response).to redirect_to(spree.admin_product_product_properties_path(product, ovi: [option_value.id]))
     end
   end
 
-  describe '#clone' do
-    subject(:send_request) do
-      spree_post :clone, id: product, format: :js
+  describe "updating variant property rules" do
+    let(:first_property) { create(:property) }
+    let(:second_property) { create(:property) }
+    let(:option_value) { create(:option_value) }
+    let(:original_option_value) { create(:option_value) }
+    let!(:product) { create(:product, option_types: [option_value.option_type]) }
+    let!(:rule) do
+      create(:variant_property_rule, product: product, option_value: original_option_value)
+    end
+    let(:payload) do
+      {
+        id: product.to_param,
+        product: {
+          id: product.id,
+          variant_property_rules_attributes: {
+            "0" => {
+              id: rule.id,
+              option_value_ids: option_value.id,
+              values_attributes: {
+                "0" => {
+                  property_name: first_property.name,
+                  value: "First Edit"
+                },
+                "1" => {
+                  property_name: second_property.name,
+                  value: "Second Edit"
+                }
+              }
+            }
+          }
+        }
+      }
     end
 
-    let(:product) { create(:custom_product, name: 'MyProduct', sku: 'MySku') }
-    let(:product2) { create(:custom_product, name: 'COPY OF MyProduct', sku: 'COPY OF MySku') }
-    let(:variant) { create(:master_variant, name: 'COPY OF MyProduct', sku: 'COPY OF MySku', created_at: product.created_at - 1.day) }
+    subject { put :update, params: payload }
 
-    context 'will successfully clone product' do
-      before do
-        allow(product).to receive(:duplicate).and_return(product2)
-      end
-
-      describe 'response' do
-        before { send_request }
-        it { expect(response).to have_http_status(:found) }
-        it { expect(response).to be_redirect }
-        it { expect(flash[:success]).to eq(Spree.t('notice_messages.product_cloned')) }
-      end
+    it "does not create any new rules" do
+      expect { subject }.to_not change { Spree::VariantPropertyRule.count }
     end
 
-    context 'will not successfully clone product' do
-      before do
-        variant
-      end
+    it "replaces the rule's condition" do
+      expect { subject }.to change { rule.reload.option_value_ids }.from([original_option_value.id]).to([option_value.id])
+    end
 
-      describe 'response' do
-        before { send_request }
-        it { expect(response).to have_http_status(:found) }
-        it { expect(response).to be_redirect }
+    it "adds two values to the rule" do
+      expect { subject }.to change { rule.values.count }.by(2)
+    end
 
-        it 'set flash error' do
-          expected_error = Spree.t('notice_messages.product_not_cloned', error: 'Validation failed: Sku has already been taken')
-          expect(flash[:error]).to eq(expected_error)
-        end
-      end
+    it "creates the 'First Edit' value" do
+      subject
+      expect(rule.values.find_by(value: 'First Edit')).to_not be_nil
+    end
+
+    it "creates the 'Second Edit' value" do
+      subject
+      expect(rule.values.find_by(value: 'Second Edit')).to_not be_nil
+    end
+
+    it "redirects to the product properties page" do
+      subject
+      expect(response).to redirect_to(spree.admin_product_product_properties_path(product, ovi: [option_value.id]))
     end
   end
 
-  context 'stock' do
-    let(:product) { create(:product) }
+  context "cloning a product" do
+    let!(:product) { create(:product) }
 
-    it 'restricts stock location based on accessible attributes' do
-      expect(Spree::StockLocation).to receive(:accessible_by).and_return([])
-      spree_get :stock, id: product
+    it "duplicates the product" do
+      expect do
+        post :clone, params: { id: product.id }
+      end.to change { Spree::Product.count }.by(1)
+    end
+  end
+
+  # regression test for https://github.com/spree/spree/issues/801
+  context "destroying a product" do
+    let(:product) do
+      product = create(:product)
+      create(:variant, product: product)
+      product
+    end
+
+    it "deletes all the variants (including master) for the product" do
+      delete :destroy, params: { id: product }
+      expect(product.reload.deleted_at).not_to be_nil
+      product.variants_including_master.each do |variant|
+        expect(variant.reload.deleted_at).not_to be_nil
+      end
     end
   end
 end
