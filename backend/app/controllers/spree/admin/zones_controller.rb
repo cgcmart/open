@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     class ZonesController < ResourceController
@@ -7,7 +9,7 @@ module Spree
         @zone.zone_members.build
       end
 
-      protected
+      private
 
       def collection
         params[:q] ||= {}
@@ -17,9 +19,9 @@ module Spree
       end
 
       def load_data
-        @countries = Country.order(:name)
-        @states = State.order(:name)
-        @zones = Zone.order(:name)
+        @countries = Spree::Country.order(:name)
+        @states = Spree::State.order(:name)
+        @zones = Spree::Zone.order(:name)
       end
     end
   end
