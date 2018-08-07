@@ -1,26 +1,20 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::ProductProperty, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::ProductProperty, type: :model do
   context 'touching' do
-    it 'updates product' do
-      pp = create(:product_property)
-      expect(pp.product).to receive(:touch)
-      pp.touch
-    end
-  end
+    let(:product_property) { create(:product_property) }
+    let(:product) { product_property.product }
 
-  context 'property_name=' do
     before do
-      @pp = create(:product_property)
+      product.update_columns(updated_at: 1.day.ago)
     end
 
-    it 'assigns property' do
-      @pp.property_name = 'Size'
-      expect(@pp.property.name).to eq('Size')
-    end
-  end
+    subject { product_property.touch }
 
-  context 'ransackable_associations' do
-    it { expect(Spree::ProductProperty.whitelisted_ransackable_associations).to include('property') }
+    it 'touches the product' do
+      expect { subject }.to change { product.reload.updated_at }
+    end
   end
 end
