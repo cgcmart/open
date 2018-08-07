@@ -1,4 +1,6 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module ThirdParty
   class Extension < Spree::Base
@@ -7,7 +9,7 @@ module ThirdParty
   end
 end
 
-describe Spree::Product, type: :model do
+RSpec.describe Spree::Product, type: :model do
   context 'product instance' do
     let(:product) { create(:product) }
     let(:variant) { create(:variant, product: product) }
@@ -26,56 +28,92 @@ describe Spree::Product, type: :model do
       end
 
       it 'calls #duplicate_extra' do
-        expect_any_instance_of(Spree::Product).to receive(:duplicate_extra).
-          with(product)
-        expect(product).not_to receive(:duplicate_extra)
-        product.duplicate
+        expect_any_instance_of(Spree::Product).to receive(:duplicate_extra) do |product, old_product|
+          product.name = old_product.name.reverse
+        end
+
+        clone = product.duplicate
+        expect(clone.name).to eq(product.name.reverse)
       end
     end
 
-    context 'master variant' do
-      context 'when master variant changed' do
-        before do
-          product.master.sku = 'Something changed'
+    describe "#save" do
+      before { product.update_columns(updated_at: 1.day.ago) }
+      subject { product.save! }
+
+      shared_examples "a change occurred" do
+        it "should change updated_at" do
+          expect { subject }.to change{ product.updated_at }
         end
 
-        it 'saves the master' do
-          expect(product.master).to receive(:save!)
-          product.save
+        it "should touch taxons" do
+          taxon = create(:taxon, product_ids: [product.id])
+          taxon.update_columns(updated_at: 1.day.ago)
+          product.taxons.reload
+          expect { subject }.to change{ taxon.reload.updated_at }
         end
       end
 
-      context 'when master default price changed' do
+      shared_examples "no change occurred" do
+        it "should not change updated_at" do
+          expect { subject }.not_to change{ product.updated_at }
+        end
+
+        it "should not touch taxons" do
+          taxon = create(:taxon, products: [product])
+          taxon.update_columns(updated_at: 1.day.ago)
+          product.taxons.reload
+          expect { subject }.not_to change{ taxon.reload.updated_at }
+        end
+      end
+
+      context "when nothing has changed" do
+        it_behaves_like "no change occurred"
+      end
+
+      context "when the product itself was changed" do
+        before do
+          product.name = "Perri-air"
+        end
+
+        it_behaves_like "a change occurred"
+      end
+
+      context "when master variant changed" do
+        before do
+          product.master.sku = "Something changed"
+        end
+
+        it_behaves_like "a change occurred"
+
+        it "saves the master" do
+          product.save!
+          expect(product.reload.master.sku).to eq "Something changed"
+        end
+      end
+
+      context "when master default price changed" do
         before do
           master = product.master
           master.default_price.price = 11
           master.save!
+          product.update_columns(updated_at: 1.day.ago)
           product.master.default_price.price = 12
         end
 
-        it 'saves the master' do
-          expect(product.master).to receive(:save!)
-          product.save
-        end
+        it_behaves_like "a change occurred"
 
-        it 'saves the default price' do
-          expect(product.master.default_price).to receive(:save)
-          product.save
-        end
-      end
-
-      context "when master variant and price haven't changed" do
-        it 'does not save the master' do
-          expect(product.master).not_to receive(:save!)
-          product.save
+        it "saves the default_price" do
+          product.save!
+          expect(product.reload.master.default_price.price).to eq 12
         end
       end
     end
 
     context 'product has no variants' do
-      context '#destroy' do
-        it 'sets deleted_at value' do
-          product.destroy
+      context '#discard' do
+        it 'should set deleted_at value' do
+          product.discard
           expect(product.deleted_at).not_to be_nil
           expect(product.master.reload.deleted_at).not_to be_nil
         end
@@ -87,17 +125,17 @@ describe Spree::Product, type: :model do
         create(:variant, product: product)
       end
 
-      context '#destroy' do
-        it 'sets deleted_at value' do
-          product.destroy
+      context '#discard' do
+        it 'should set deleted_at value' do
+          product.discard
           expect(product.deleted_at).not_to be_nil
-          expect(product.variants_including_master.all? { |v| !v.deleted_at.nil? }).to be true
+          expect(product.variants_including_master).to all(be_discarded)
         end
       end
     end
 
     context '#price' do
-      # Regression test for #1173
+      # Regression test for https://github.com/spree/spree/issues/1173
       it 'strips non-price characters' do
         product.price = '$10'
         expect(product.price).to eq(10.0)
@@ -125,12 +163,12 @@ describe Spree::Product, type: :model do
     end
 
     context '#available?' do
-      it 'is available if date is in the past' do
+      it 'should be available if date is in the past' do
         product.available_on = 1.day.ago
         expect(product).to be_available
       end
 
-      it 'is not available if date is nil or in the future' do
+      it 'should not be available if date is nil or in the future' do
         product.available_on = nil
         expect(product).not_to be_available
 
@@ -138,20 +176,9 @@ describe Spree::Product, type: :model do
         expect(product).not_to be_available
       end
 
-      it 'is not available if destroyed' do
-        product.destroy
+      it 'should not be available if soft-destroyed' do
+        product.discard
         expect(product).not_to be_available
-      end
-    end
-
-    context '#can_supply?' do
-      it 'is true' do
-        expect(product.can_supply?).to be(true)
-      end
-
-      it 'is false' do
-        product.variants_including_master.each { |v| v.stock_items.update_all count_on_hand: 0, backorderable: false }
-        expect(product.can_supply?).to be(false)
       end
     end
 
@@ -166,17 +193,118 @@ describe Spree::Product, type: :model do
       end
     end
 
+    context "variants_and_option_values_for" do
+      let!(:high) { create(:variant, product: product) }
+      let!(:low) { create(:variant, product: product) }
+
+      context "when one product does not have option values" do
+        before { high.option_values.destroy_all }
+
+        it "returns only variants with option values" do
+          expect(product.variants_and_option_values_for).to eq([low])
+        end
+      end
+
+      context "when asking with different pricing options" do
+        let(:pricing_options) { Spree::Config.pricing_options_class.new(currency: "EUR") }
+
+        before do
+          low.prices.create(amount: 99.00, currency: "EUR")
+        end
+
+        it "returns only variants which have matching prices" do
+          expect(product.variants_and_option_values_for).to contain_exactly(low, high)
+          expect(product.variants_and_option_values_for(pricing_options)).to contain_exactly(low)
+        end
+      end
+
+      context 'when a variant has a fallback price' do
+        before do
+          low.prices.create(country_iso: nil)
+        end
+
+        it "returns that variant once" do
+          expect(product.variants_and_option_values_for.length).to eq(2)
+        end
+      end
+    end
+
+    describe "#variant_option_values_by_option_type" do
+      let(:size) { create(:option_type, name: 'size') }
+      let(:length) { create(:option_type, name: 'length') }
+      let(:product) { create(:product, option_types: [size, length]) }
+      let(:size_small) { create(:option_value, name: 'small', option_type: size, position: 3) }
+      let(:size_medium) { create(:option_value, name: 'medium', option_type: size, position: 1) }
+      let(:size_large) { create(:option_value, name: 'large', option_type: size, position: 2) }
+      let!(:variant) { create(:variant, product: product, option_values: [size_small, size_medium]) }
+
+      subject { product.variant_option_values_by_option_type }
+
+      it "returns the option values associated with the product's variants grouped by option type" do
+        expect(subject).to eq({ size => [size_medium, size_small] })
+      end
+    end
+
+    describe "#find_variant_property_rule" do
+      let(:option_value) { create(:option_value) }
+
+      subject { product.find_variant_property_rule([option_value.id]) }
+
+      context "a matching rule exists" do
+        let!(:rule) do
+          create(:variant_property_rule, product: product, option_value: option_value)
+        end
+
+        it "returns the rule" do
+          expect(subject).to eq rule
+        end
+      end
+
+      context "a matching rule doesn't exist" do
+        it "returns nil" do
+          expect(subject).to be_nil
+        end
+      end
+    end
+
+    describe 'Variants sorting' do
+      let(:master){ product.master }
+
+      let!(:second) { create(:variant, product: product) }
+      let!(:third)  { create(:variant, product: product) }
+      let!(:first)  { create(:variant, product: product) }
+
+      before do
+        first.update_columns(position: 2)
+        second.update_columns(position: 3)
+        third.update_columns(position: 4)
+      end
+
+      context 'without master variant' do
+        it 'sorts variants by position' do
+          expect(product.variants).to eq([first, second, third])
+        end
+      end
+
+      context 'with master variant' do
+        it 'sorts variants by position' do
+          expect(product.variants_including_master).to eq([master, first, second, third])
+        end
+      end
+    end
+
     context 'has stock movements' do
+      let(:product) { create(:product) }
       let(:variant) { product.master }
       let(:stock_item) { variant.stock_items.first }
 
       it 'doesnt raise ReadOnlyRecord error' do
         Spree::StockMovement.create!(stock_item: stock_item, quantity: 1)
-        expect { product.destroy }.not_to raise_error
+        product.discard
       end
     end
 
-    # Regression test for #3737
+    # Regression test for https://github.com/spree/spree/issues/3737
     context 'has stock items' do
       it 'can retrieve stock items' do
         expect(product.master.stock_items.first).not_to be_nil
@@ -191,29 +319,10 @@ describe Spree::Product, type: :model do
         expect(product.slug).not_to match '/'
       end
 
-      it 'stores old slugs in FriendlyIds history' do
-        expect(product).to receive(:create_slug)
-        # Set it, otherwise the create_slug method avoids writing a new one
-        product.slug = 'custom-slug'
-        product.run_callbacks :save
-      end
-
-      context 'when product destroyed' do
-        it 'renames slug' do
-          expect { product.destroy }.to change(product, :slug)
-        end
-
-        context 'when slug is already at or near max length' do
-          before do
-            product.slug = 'x' * 255
-            product.save!
-          end
-
-          it 'truncates renamed slug to ensure it remains within length limit' do
-            product.destroy
-            expect(product.slug.length).to eq 255
-          end
-        end
+      it 'renames slug on destroy' do
+        old_slug = product.slug
+        product.discard
+        expect(old_slug).to_not eq product.slug
       end
 
       it 'validates slug uniqueness' do
@@ -239,64 +348,77 @@ describe Spree::Product, type: :model do
       end
     end
 
-    describe '#discontinue_on_must_be_later_than_available_on' do
-      before { product.available_on = Date.today }
+    describe "#discard" do
+      let(:product) { create(:product, slug: 'my-awesome-product') }
 
-      context 'available_on is a date earlier than discontinue_on' do
-        before { product.discontinue_on = 5.days.from_now }
+      it "destroys related associations" do
+        create(:variant, product: product)
+        product.option_types = [create(:option_type)]
+        product.master.images = [create(:image)]
+        product.taxons = [create(:taxon)]
+        product.properties = [create(:property)]
 
-        it 'is valid' do
-          expect(product).to be_valid
-        end
+        product.discard
+
+        product.reload
+        expect(product.option_types).to be_empty
+        expect(product.images).to be_empty
+        expect(product.taxons).to be_empty
+        expect(product.properties).to be_empty
       end
 
-      context 'available_on is a date earlier than discontinue_on' do
-        before { product.discontinue_on = 5.days.ago }
+      it "removes from product promotion rules" do
+        promotion = create(:promotion)
+        rule = promotion.rules.create!(type: 'Spree::Promotion::Rules::Product', products: [product])
 
-        context 'is not valid' do
-          before { product.valid? }
+        product.discard
 
-          it { expect(product).not_to be_valid }
-          it { expect(product.errors[:discontinue_on]).to include(I18n.t(:invalid_date_range, scope: 'activerecord.errors.models.spree/product.attributes.discontinue_on')) }
-        end
+        rule.reload
+        expect(rule.products).to be_empty
       end
 
-      context 'available_on and discontinue_on are nil' do
-        before do
-          product.discontinue_on = nil
-          product.available_on = nil
+      it "replaces the slug" do
+        product.discard
+
+        expect(product.slug).to match /\A\d+_my-awesome-product\z/
+
+        # Ensure a new product can be created with the slug
+        new_product = create(:product, slug: 'my-awesome-product')
+        expect(new_product.slug).to eq('my-awesome-product')
+      end
+    end
+
+    context "associations" do
+      describe "product_option_types" do
+        context "with no existing option types" do
+          before { product.update_columns(updated_at: 1.day.ago) }
+
+          it "touches the product instance when an option type is added" do
+            expect {
+              product.product_option_types.create(option_type: create(:option_type, name: 'new-option-type'))
+            }.to change { product.reload.updated_at }
+          end
         end
 
-        it 'is valid' do
-          expect(product).to be_valid
+        context "with an existing option type" do
+          before do
+            product.product_option_types.create(option_type: create(:option_type, name: 'new-option-type'))
+            product.update_columns(updated_at: 1.day.ago)
+          end
+
+          it "touches product instance when an option type is removed" do
+            expect {
+              product.product_option_types = []
+            }.to change { product.reload.updated_at }
+          end
         end
       end
     end
 
-    context 'hard deletion' do
-      it 'doesnt raise ActiveRecordError error' do
-        expect { product.really_destroy! }.not_to raise_error
-      end
-    end
-
-    context 'history' do
-      before do
-        @product = create(:product)
-      end
-
-      it 'keeps the history when the product is destroyed' do
-        @product.destroy
-
-        expect(@product.slugs.with_deleted).not_to be_empty
-      end
-
-      it 'updates the history when the product is restored' do
-        @product.destroy
-
-        @product.restore(recursive: true)
-
-        latest_slug = @product.slugs.find_by slug: @product.slug
-        expect(latest_slug).not_to be_nil
+    context "#really_destroy!" do
+      it "destroy the product" do
+        product.really_destroy!
+        expect(product).not_to be_persisted
       end
     end
   end
@@ -304,7 +426,7 @@ describe Spree::Product, type: :model do
   context 'properties' do
     let(:product) { create(:product) }
 
-    it 'properly assigns properties' do
+    it 'should properly assign properties' do
       product.set_property('the_prop', 'value1')
       expect(product.property('the_prop')).to eq('value1')
 
@@ -312,40 +434,23 @@ describe Spree::Product, type: :model do
       expect(product.property('the_prop')).to eq('value2')
     end
 
-    it 'does not create duplicate properties when set_property is called' do
-      expect do
+    it 'should not create duplicate properties when set_property is called' do
+      expect {
         product.set_property('the_prop', 'value2')
         product.save
         product.reload
-      end.not_to change(product.properties, :length)
+      }.not_to change(product.properties, :length)
 
-      expect do
+      expect {
         product.set_property('the_prop_new', 'value')
         product.save
         product.reload
         expect(product.property('the_prop_new')).to eq('value')
-      end.to change { product.properties.length }.by(1)
+      }.to change { product.properties.length }.by(1)
     end
 
-    context 'optional property_presentation' do
-      subject { Spree::Property.where(name: 'foo').first.presentation }
-
-      let(:name) { 'foo' }
-      let(:presentation) { 'baz' }
-
-      describe 'is not used' do
-        before { product.set_property(name, 'bar') }
-        it { is_expected.to eq name }
-      end
-
-      describe 'is used' do
-        before { product.set_property(name, 'bar', presentation) }
-        it { is_expected.to eq presentation }
-      end
-    end
-
-    # Regression test for #2455
-    it "does not overwrite properties' presentation names" do
+    # Regression test for https://github.com/spree/spree/issues/2455
+    it "should not overwrite properties' presentation names" do
       Spree::Property.where(name: 'foo').first_or_create!(presentation: "Foo's Presentation Name")
       product.set_property('foo', 'value1')
       product.set_property('bar', 'value2')
@@ -353,22 +458,20 @@ describe Spree::Product, type: :model do
       expect(Spree::Property.where(name: 'bar').first.presentation).to eq('bar')
     end
 
-    # Regression test for #4416
+    # Regression test for https://github.com/spree/spree/issues/4416
     context '#possible_promotions' do
-      let!(:possible_promotion) { create(:promotion, advertise: true, starts_at: 1.day.ago) }
-      let!(:unadvertised_promotion) { create(:promotion, advertise: false, starts_at: 1.day.ago) }
-      let!(:inactive_promotion) { create(:promotion, advertise: true, starts_at: 1.day.since) }
-
-      before do
-        product.promotion_rules.create!(promotion: possible_promotion)
-        product.promotion_rules.create!(promotion: unadvertised_promotion)
-        product.promotion_rules.create!(promotion: inactive_promotion)
+      let!(:promotion) do
+        create(:promotion, advertise: true, starts_at: 1.day.ago)
+      end
+      let!(:rule) do
+        Spree::Promotion::Rules::Product.create(
+          promotion: promotion,
+          products: [product]
+        )
       end
 
       it 'lists the promotion as a possible promotion' do
-        expect(product.possible_promotions).to include(possible_promotion)
-        expect(product.possible_promotions).not_to include(unadvertised_promotion)
-        expect(product.possible_promotions).not_to include(inactive_promotion)
+        expect(product.possible_promotions).to include(promotion)
       end
     end
   end
@@ -449,25 +552,25 @@ describe Spree::Product, type: :model do
 
   context '#images' do
     let(:product) { create(:product) }
-    let(:image) { File.open(File.expand_path('../../../fixtures/thinking-cat.jpg', __FILE__)) }
+    let(:image) { File.open(File.expand_path('../../fixtures/thinking-cat.jpg', __dir__)) }
     let(:params) { { viewable_id: product.master.id, viewable_type: 'Spree::Variant', attachment: image, alt: 'position 2', position: 2 } }
 
     before do
       Spree::Image.create(params)
-      Spree::Image.create(params.merge(alt: 'position 1', position: 1))
-      Spree::Image.create(params.merge(viewable_type: 'ThirdParty::Extension', alt: 'position 1', position: 2))
+      Spree::Image.create(params.merge({ alt: 'position 1', position: 1 }))
+      Spree::Image.create(params.merge({ viewable_type: 'ThirdParty::Extension', alt: 'position 1', position: 2 }))
     end
 
     it 'only looks for variant images' do
       expect(product.images.size).to eq(2)
     end
 
-    it 'is sorted by position' do
+    it 'should be sorted by position' do
       expect(product.images.pluck(:alt)).to eq(['position 1', 'position 2'])
     end
   end
 
-  # Regression tests for #2352
+  # Regression tests for https://github.com/spree/spree/issues/2352
   context 'classifications and taxons' do
     it 'is joined through classifications' do
       reflection = Spree::Product.reflect_on_association(:taxons)
@@ -483,23 +586,25 @@ describe Spree::Product, type: :model do
   context '#total_on_hand' do
     let(:product) { create(:product) }
 
-    it 'is infinite if track_inventory_levels is false' do
+    it 'should be infinite if track_inventory_levels is false' do
       Spree::Config[:track_inventory_levels] = false
       expect(build(:product, variants_including_master: [build(:master_variant)]).total_on_hand).to eql(Float::INFINITY)
     end
 
-    it 'is infinite if variant is on demand' do
+    it 'should be infinite if variant is on demand' do
       Spree::Config[:track_inventory_levels] = true
       expect(build(:product, variants_including_master: [build(:on_demand_master_variant)]).total_on_hand).to eql(Float::INFINITY)
     end
 
-    it 'returns sum of stock items count_on_hand' do
+    it 'should return sum of stock items count_on_hand' do
+      product = create(:product)
       product.stock_items.first.set_count_on_hand 5
       product.variants_including_master.reload # force load association
       expect(product.total_on_hand).to be(5)
     end
 
     it 'returns sum of stock items count_on_hand when variants_including_master is not loaded' do
+      product = create(:product)
       product.stock_items.first.set_count_on_hand 5
       expect(product.reload.total_on_hand).to be(5)
     end
@@ -507,87 +612,36 @@ describe Spree::Product, type: :model do
 
   # Regression spec for https://github.com/spree/spree/issues/5588
   context '#validate_master when duplicate SKUs entered' do
-    subject { second_product }
-
     let!(:first_product) { create(:product, sku: 'a-sku') }
     let(:second_product) { build(:product, sku: 'a-sku') }
 
+    subject { second_product }
     it { is_expected.to be_invalid }
   end
 
-  it 'initializes a master variant when building a product' do
-    product = Spree::Product.new
-    expect(product.master.is_master).to be true
-  end
+  describe '.new' do
+    let(:product) { Spree::Product.new(attributes) }
 
-  context '#discontinue!' do
-    let(:product) { create(:product, sku: 'a-sku') }
-
-    it 'sets the discontinued' do
-      product.discontinue!
-      product.reload
-      expect(product.discontinued?).to be(true)
-    end
-
-    it 'changes updated_at' do
-      Timecop.scale(1000) do
-        expect { product.discontinue! }.to change(product, :updated_at)
+    shared_examples "new product with master" do
+      it "initializes master correctly" do
+        expect(product.master.is_master).to be true
+        expect(product.master.product).to be product
       end
     end
-  end
 
-  context '#discontinued?' do
-    let(:product_live) { build(:product, sku: 'a-sku') }
-    let(:product_discontinued) { build(:product, sku: 'a-sku', discontinue_on: Time.now - 1.day) }
-
-    it 'is false' do
-      expect(product_live.discontinued?).to be(false)
+    context 'no attributes' do
+      let(:attributes) { {} }
+      it_behaves_like 'new product with master'
     end
 
-    it 'is true' do
-      expect(product_discontinued.discontinued?).to be(true)
-    end
-  end
+  context 'initializing with variant attributes' do
+      let(:attributes) { { sku: 'FOO' } }
 
-  context 'acts_as_taggable' do
-    let(:product) { create(:product) }
+      it_behaves_like 'new product with master'
 
-    it 'adds tags' do
-      product.tag_list.add('awesome')
-      expect(product.tag_list).to include('awesome')
-    end
-
-    it 'removes tags' do
-      product.tag_list.remove('awesome')
-      expect(product.tag_list).not_to include('awesome')
-    end
-  end
-
-  context '#brand' do
-    let(:taxonomy) { create(:taxonomy, name: I18n.t('spree.taxonomy_brands_name')) }
-    let(:product) { create(:product, taxons: [taxonomy.taxons.first]) }
-
-    it 'fetches Brand Taxon' do
-      expect(product.brand).to eql(taxonomy.taxons.first)
-    end
-  end
-
-  context '#category' do
-    let(:taxonomy) { create(:taxonomy, name: I18n.t('spree.taxonomy_categories_name')) }
-    let(:product) { create(:product, taxons: [taxonomy.taxons.first]) }
-
-    it 'fetches Category Taxon' do
-      expect(product.category).to eql(taxonomy.taxons.first)
-    end
-  end
-
-  describe '#ensure_no_line_items' do
-    let(:product) { create(:product) }
-    let!(:line_item) { create(:line_item, variant: product.master) }
-
-    it 'adds error on product destroy' do
-      expect(product.destroy).to eq false
-      expect(product.errors[:base]).to include I18n.t('activerecord.errors.models.spree/product.attributes.base.cannot_destroy_if_attached_to_line_items')
-    end
-  end
+      it 'initializes the variant with the correct attributes' do
+        expect(product.master.sku).to eq 'FOO'
+        expect(product.sku).to eq 'FOO'
+      end
+  end  
 end
