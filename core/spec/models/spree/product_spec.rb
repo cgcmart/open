@@ -634,7 +634,7 @@ RSpec.describe Spree::Product, type: :model do
       it_behaves_like 'new product with master'
     end
 
-  context 'initializing with variant attributes' do
+    context 'initializing with variant attributes' do
       let(:attributes) { { sku: 'FOO' } }
 
       it_behaves_like 'new product with master'
@@ -643,5 +643,6 @@ RSpec.describe Spree::Product, type: :model do
         expect(product.master.sku).to eq 'FOO'
         expect(product.sku).to eq 'FOO'
       end
+    end
   end  
 end
