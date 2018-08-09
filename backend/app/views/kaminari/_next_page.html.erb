@@ -1,7 +1,3 @@
-<li class="next <%= "disabled" if current_page.last? %>">
-  <% if current_page.last? %>
-    <a href="javascript:;">&raquo;</a>
-  <% else %>
-    <%= link_to_unless current_page.last?, raw(t 'views.pagination.next'), url, rel: 'next', remote: remote, class: 'page-link' %>
-  <% end %>
+<li class="page-item">
+  <%= link_to_unless current_page.last?, raw(t 'views.pagination.next'), url, rel: 'next', remote: remote, class: 'page-link' %>
 </li>
