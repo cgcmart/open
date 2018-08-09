@@ -1,6 +1,13 @@
+# frozen_string_literal: true
+
 module Spree
   module Admin
     module AdjustmentsHelper
+      def adjustment_state(adjustment)
+        icon = adjustment.finalized? ? 'lock' : 'unlock'
+        content_tag(:span, '', class: "fa fa-#{icon}")
+      end
+
       def display_adjustable(adjustable)
         case adjustable
         when Spree::LineItem
@@ -19,16 +26,16 @@ module Spree
         parts = []
         parts << variant.product.name
         parts << "(#{variant.options_text})" if variant.options_text.present?
-        parts << line_item.display_total
+        parts << line_item.display_amount
         safe_join(parts, '<br />'.html_safe)
       end
 
       def display_shipment(shipment)
-        "#{Spree.t(:shipment)} ##{shipment.number}<br>#{shipment.display_cost}".html_safe
+        "#{t('spree.shipment')} ##{shipment.number}<br>#{shipment.display_cost}".html_safe
       end
 
       def display_order(_order)
-        Spree.t(:order)
+        t('spree.order')
       end
     end
   end
