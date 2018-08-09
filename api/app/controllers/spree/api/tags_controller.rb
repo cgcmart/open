@@ -11,14 +11,15 @@ module Spree
             Tag.ransack(params[:q]).result
         end
 
-        @tags = @tags.page(params[:page]).per(params[:per_page])
-
-        expires_in 15.minutes, public: true
-        headers['Surrogate-Control'] = "max-age=#{15.minutes}"
+        @tags = pagenate(@tags)
         respond_with(@tags)
       end
 
       private
+
+      def default_per_page
+        500
+      end
 
       def tags_params
         params.require(:tag).permit(permitted_tags_attributes)
