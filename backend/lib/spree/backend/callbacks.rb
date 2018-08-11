@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Backend
     module Callbacks
@@ -9,19 +11,23 @@ module Spree
         protected
 
         def new_action
-          custom_callback(:new_action)
+          @callbacks ||= {}
+          @callbacks[:new_action] ||= Spree::ActionCallbacks.new
         end
 
         def create
-          custom_callback(:create)
+          @callbacks ||= {}
+          @callbacks[:create] ||= Spree::ActionCallbacks.new
         end
 
         def update
-          custom_callback(:update)
+          @callbacks ||= {}
+          @callbacks[:update] ||= Spree::ActionCallbacks.new
         end
 
         def destroy
-          custom_callback(:destroy)
+          @callbacks ||= {}
+          @callbacks[:destroy] ||= Spree::ActionCallbacks.new
         end
 
         def custom_callback(action)
