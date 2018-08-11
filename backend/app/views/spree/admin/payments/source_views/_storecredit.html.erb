@@ -1,29 +1,28 @@
-<fieldset data-hook="store_credit">
-  <legend><%= Spree.t(:store_credit_name) %></legend>
-  <table class="table table-condensed table-bordered">
-    <tr>
-      <th width="20%"><%= Spree.t(:used) %>:</th>
-      <td><%= payment.source.display_amount_used %></td>
-    </tr>
-    <tr>
-      <th><%= Spree.t(:amount) %>:</th>
-      <td><%= payment.source.display_amount %></td>
-    </tr>
-    <tr>
-      <th><%= Spree.t(:memo) %>:</th>
-      <td><%= payment.source.memo %></td>
-    </tr>
-    <tr>
-      <th><%= Spree.t(:type) %>:</th>
-      <td><%= payment.source.category_name %></td>
-    </tr>
-    <tr>
-      <th><%= Spree.t(:created_by) %>:</th>
-      <td><%= payment.source.created_by_email %></td>
-    </tr>
-    <tr>
-      <th><%= Spree.t(:issued_on) %>:</th>
-      <td><%= pretty_time(payment.source.created_at) %></td>
-    </tr>
-  </table>
+<fieldset data-hook="store-credit">
+  <legend align="center"><%= Spree::StoreCredit.model_name.human %></legend>
+
+  <div class="row">
+    <div class="col-4">
+      <dl>
+        <dt><%= Spree::StoreCreditCategory.model_name.human %>:</dt>
+        <dd><%= payment.source.category.name%></dd>
+
+        <dt><%= Spree::StoreCredit.human_attribute_name(:memo) %>:</dt>
+        <dd><%= payment.source.memo %></dd>
+
+        <dt><%= Spree::StoreCredit.human_attribute_name(:created_by) %>:</dt>
+        <dd><%= payment.source.created_by.email %></dd>
+
+        <dt><%= Spree::StoreCredit.human_attribute_name(:issued_on) %>:</dt>
+        <dd><%= l payment.source.created_at.to_date %></dd>
+      </dl>
+
+      <p>
+        <%= link_to(
+          t('spree.admin.store_credits.view'),
+          admin_user_store_credit_path(payment.source.user, payment.source)
+        ) %>
+      </p>
+    </div>
+  </div>
 </fieldset>
