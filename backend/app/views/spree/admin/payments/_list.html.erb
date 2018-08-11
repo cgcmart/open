@@ -1,36 +1,71 @@
-<table class="table table-bordered" id='payments' data-order-id='<%= @order.number %>'>
+<table class="index table-responsive" id='payments' data-order-id='<%= @order.number %>'>
+  <colgroup>
+    <col style="width: 15%"/>
+    <col style="width: 15%"/>
+    <col style="width: 15%"/>
+    <col style="width: 10%"/>
+    <col style="width: 10%"/>
+    <col style="width: 20%"/>
+    <col style="width: 15%"/>
+  </colgroup>
   <thead>
     <tr data-hook="payments_header">
       <th><%= Spree::Payment.human_attribute_name(:number) %></th>
-      <th><%= "#{Spree.t('date')}/#{Spree.t('time')}" %></th>
-      <th class="text-center"><%= Spree.t(:amount) %></th>
-      <th class="text-center"><%= Spree.t(:payment_method) %></th>
-      <th class="text-center"><%= Spree.t(:transaction_id) %></th>
-      <th class="text-center"><%= Spree.t(:payment_state) %></th>
-      <th class="actions text-center"></th>
+      <th><%= Spree::Payment.human_attribute_name(:created_at) %></th>
+      <th><%= Spree::PaymentMethod.model_name.human %></th>
+      <th><%= Spree::Payment.human_attribute_name(:response_code) %></th>
+      <th><%= Spree::Payment.human_attribute_name(:state) %></th>
+      <th class="align-right"><%= Spree::Payment.human_attribute_name(:amount) %></th>
+      <th class="actions"></th>
     </tr>
   </thead>
   <tbody>
     <% payments.each do |payment| %>
-      <tr id="<%= dom_id(payment) %>" data-hook="payments_row" data-number="<%= payment.number %>">
+      <tr id="<%= dom_id(payment) %>" data-hook="payments_row" class="payment vertical-middle" data-payment-id="<%= payment.id %>">
         <td><%= link_to payment.number, spree.admin_order_payment_path(@order, payment) %></td>
-        <td><%= pretty_time(payment.created_at) %></td>
-        <td class="amount text-center"><%= payment.display_amount %></td>
-        <td class="text-center"><%= payment_method_name(payment) %></td>
-        <td class="text-center"><%= payment.transaction_id %></td>
-        <td class="text-center">
-          <span class="label label-<%= payment.state %>">
-            <%= Spree.t(payment.state, scope: :payment_states, default: payment.state.capitalize) %>
+        <td><%= l(payment.created_at, format: :short) %></td>
+        <td><%= payment.payment_method.name %></td>
+        <td><%= payment.transaction_id %></td>
+        <td>
+          <span class="pill pill-<%= payment.state %>">
+            <%= t(payment.state, scope: 'spree.payment_states') %>
           </span>
         </td>
-        <td class="actions actions-2 text-center">
-          <% payment.actions.each do |action| %>
-            <% if action == 'credit' %>
-              <%= link_to_with_icon('refund', Spree.t(:refund), new_admin_order_payment_refund_path(@order, payment), no_text: true, class: "btn btn-default btn-sm") if can?(:create, Spree::Refund) %>
-            <% else %>
-              <%= link_to_with_icon(action, Spree.t(action), fire_admin_order_payment_path(@order, payment, e: action), method: :put, no_text: true, data: { action: action }, class: "btn btn-default btn-sm") if can?(action.to_sym, payment) %>
+        <td class="amount align-right">
+          <div class="editing-show">
+            <form class="editing-show">
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span class="input-group-text number-with-currency-symbol">
+                    <%= ::Money::Currency.find(@order.currency).symbol %>
+                  </span>
+                </div>
+                <%= text_field_tag :amount, payment.amount, class: 'js-edit-amount align-right form-control' %>
+              </div>
+            </form>
+          </div>
+          <span class="js-display-amount editing-hide"><%= payment.display_amount.to_html %></span>
+        </td>
+        <td class="actions">
+          <div class="editing-show">
+            <%= link_to_with_icon 'save', t('spree.actions.save'), nil, no_text: true, class: "js-save", data: {action: 'save'} %>
+            <%= link_to_with_icon 'cancel', t('spree.actions.cancel'), nil, no_text: true, class: "js-cancel", data: {action: 'cancel'} %>
+          </div>
+          <div class="editing-hide">
+            <% if payment.pending? %>
+              <%= link_to_with_icon 'edit', t('spree.actions.edit'), nil, no_text: true, class: "js-edit", data: {action: 'edit'} %>
             <% end %>
-          <% end %>
+            <% allowed_actions = payment.actions.select { |a| can?(a.to_sym, payment) } %>
+            <% allowed_actions.each do |action| %>
+              <% if action == 'credit' %>
+                <%= link_to_with_icon 'reply', t('spree.refund'), new_admin_order_payment_refund_path(@order, payment), no_text: true %>
+              <% elsif action == 'capture' && !@order.completed? %>
+                <%# no capture prior to completion. payments get captured when the order completes. %>
+              <% else %>
+                <%= link_to_with_icon action, t(action, scope: 'spree'), fire_admin_order_payment_path(@order, payment, e: action), method: :put, no_text: true, data: {action: action} %>
+              <% end %>
+            <% end %>
+          </div>
         </td>
       </tr>
     <% end %>
