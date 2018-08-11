@@ -9,7 +9,7 @@ module Spree
 
       describe '#index' do
         subject do
-          get :index, order_id: order.to_param
+          get :index, params: { order_id: order }
         end
 
         let!(:order) { create(:order) }
