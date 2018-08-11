@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Spree::Admin::RefundsController do
@@ -5,18 +7,19 @@ describe Spree::Admin::RefundsController do
 
   describe 'POST create' do
     context 'a Spree::Core::GatewayError is raised' do
-      subject do
-        spree_post :create,
-                   refund: { amount: '50.0', refund_reason_id: '1' },
-                   order_id: payment.order.to_param,
-                   payment_id: payment.to_param
-      end
-
       let(:payment) { create(:payment) }
 
-      before do
+      subject do
+        post :create, params: {
+          refund: { amount: '50.0', refund_reason_id: '1' },
+          order_id: payment.order_id,
+          payment_id: payment.id
+        }
+      end
+
+      before(:each) do
         def controller.create
-          raise Spree::Core::GatewayError, 'An error has occurred'
+          raise Spree::Core::GatewayError.new('An error has occurred')
         end
       end
 
