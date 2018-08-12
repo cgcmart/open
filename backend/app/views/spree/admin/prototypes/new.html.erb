@@ -1,11 +1,12 @@
 <%= render partial: 'spree/admin/shared/error_messages', locals: { target: @prototype } %>
 
 <% content_for :page_title do %>
-  <%= link_to Spree.t(:prototypes), spree.admin_prototypes_url %> /
-  <%= Spree.t(:new_prototype) %>
+  <%= link_to t('spree.prototypes'), spree.admin_prototypes_url %> /
+  <%= t('spree.new_prototype') %>
 <% end %>
 
 <%= form_for [:admin, @prototype] do |f| %>
+  <legend align="center"><%= t('spree.new_prototype') %></legend>
   <fieldset data-hook="new_prototype">
     <%= render partial: 'form', locals: { f: f } %>
     <%= render partial: 'spree/admin/shared/new_resource_links' %>
