@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-describe 'Prototypes', type: :feature, js: true do
+describe 'Prototypes', type: :feature do
   stub_authorization!
 
   context 'listing prototypes' do
-    it 'is able to list existing prototypes' do
+    it 'should be able to list existing prototypes' do
       create(:property, name: 'model', presentation: 'Model')
       create(:property, name: 'brand', presentation: 'Brand')
       create(:property, name: 'shirt_fabric', presentation: 'Fabric')
@@ -42,20 +42,19 @@ describe 'Prototypes', type: :feature, js: true do
   end
 
   context 'creating a prototype' do
-    it 'allows an admin to create a new product prototype' do
+    it 'should allow an admin to create a new product prototype', js: true do
       visit spree.admin_path
-      click_link 'Products'
+      click_nav 'Products'
       click_link 'Prototypes'
-
       click_link 'new_prototype_link'
-      within('.content-header') do
+      within('#new_prototype') do
         expect(page).to have_content('New Prototype')
       end
       fill_in 'prototype_name', with: 'male shirts'
       click_button 'Create'
       expect(page).to have_content('successfully created!')
 
-      visit spree.admin_prototypes_path
+      click_link 'Prototype'
       within_row(1) { click_icon :edit }
       fill_in 'prototype_name', with: 'Shirt 99'
       click_button 'Update'
@@ -65,7 +64,7 @@ describe 'Prototypes', type: :feature, js: true do
   end
 
   context 'editing a prototype' do
-    it 'allows to empty its properties' do
+    it 'should allow to empty its properties' do
       model_property = create(:property, name: 'model', presentation: 'Model')
       brand_property = create(:property, name: 'brand', presentation: 'Brand')
 
@@ -75,7 +74,7 @@ describe 'Prototypes', type: :feature, js: true do
       end
 
       visit spree.admin_path
-      click_link 'Products'
+      click_nav 'Products'
       click_link 'Prototypes'
 
       click_icon :edit
@@ -87,27 +86,26 @@ describe 'Prototypes', type: :feature, js: true do
 
       click_button 'Update'
 
-      click_icon :edit
+      click_on :edit
 
       expect(find_field('prototype_property_ids').value).to be_empty
     end
   end
 
-  it 'is deletable' do
+  it 'should be deletable' do
     shirt_prototype = create(:prototype, name: 'Shirt', properties: [])
     shirt_prototype.taxons << create(:taxon)
 
     visit spree.admin_path
-    click_link 'Products'
+    click_nav 'Products'
     click_link 'Prototypes'
 
-    spree_accept_alert do
-      within("#spree_prototype_#{shirt_prototype.id}") do
-        page.find('.delete-resource').click
-      end
-      wait_for_ajax
-
-      expect(page).to have_content("Prototype \"#{shirt_prototype.name}\" has been successfully removed!")
+    within("#spree_prototype_#{shirt_prototype.id}") do
+      page.find('.delete-resource').click
     end
+    
+    page.evaluate_script('window.confirm = function() { return true; }')
+
+    expect(page).to have_content("Prototype \"#{shirt_prototype.name}\" has been successfully removed!")
   end
 end
