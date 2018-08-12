@@ -107,6 +107,13 @@ module Spree
               includes(product_includes).
               page(params[:page]).
               per(Spree::Config[:admin_products_per_page])
+
+        @collection
+      end
+
+      def create_before
+        return if params[:product][:prototype_id].blank?
+        @prototype = Spree::Prototype.find(params[:product][:prototype_id])
       end
 
       def update_before
