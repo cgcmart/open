@@ -1,8 +1,14 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Products', type: :feature do
   context 'as admin user' do
     stub_authorization!
+
+    before(:each) do
+      visit spree.admin_path
+    end
 
     def build_option_type_with_values(name, values)
       ot = FactoryBot.create(:option_type, name: name)
@@ -19,8 +25,8 @@ describe 'Products', type: :feature do
           create(:product, name: 'zomg shirt', price: 5)
         end
 
-        it 'lists existing products with correct sorting by name' do
-          visit spree.admin_products_path
+        it 'should list existing products with correct sorting by name' do
+          click_nav 'Products'
           # Name ASC
           within_row(1) { expect(page).to have_content('apache baseball cap') }
           within_row(2) { expect(page).to have_content('zomg shirt') }
@@ -31,8 +37,8 @@ describe 'Products', type: :feature do
           within_row(2) { expect(page).to have_content('apache baseball cap') }
         end
 
-        it 'lists existing products with correct sorting by price' do
-          visit spree.admin_products_path
+        it 'should list existing products with correct sorting by price' do
+          click_nav 'Products'
           # Name ASC (default)
           within_row(1) { expect(page).to have_content('apache baseball cap') }
           within_row(2) { expect(page).to have_content('zomg shirt') }
@@ -48,10 +54,13 @@ describe 'Products', type: :feature do
         context 'using Russian Rubles' do
           before do
             Spree::Config[:currency] = 'RUB'
+          end
+
+          let!(:product) do
             create(:product, name: 'Just a product', price: 19.99)
           end
 
-          # Regression test for #2737
+          # Regression test for https://github.com/spree/spree/issues/2737
           context 'uses руб as the currency symbol' do
             it 'on the products listing page' do
               visit spree.admin_products_path
@@ -60,53 +69,91 @@ describe 'Products', type: :feature do
           end
         end
       end
+
+      context "when none of the product prices are in the same currency as the default in the store" do
+        before do
+          Spree::Config[:currency] = "MXN"
+        end
+
+        let!(:product) do
+          create(:product, name: "Just a product", price: 19.99)
+        end
+
+        it 'defaults it to Spree::Config.currency and sets the price as blank' do
+          Spree::Config[:currency] = "USD"
+          visit spree.admin_product_path(product)
+          within("#product_price_field") do
+            expect(page).to have_content("USD")
+          end
+        end
+      end
     end
 
     context 'searching products' do
-      it 'is able to search deleted products' do
+      it 'should be able to search deleted products' do
         create(:product, name: 'apache baseball cap', deleted_at: '2011-01-06 18:21:13')
         create(:product, name: 'zomg shirt')
 
-        visit spree.admin_products_path
+        click_nav 'Products'
         expect(page).to have_content('zomg shirt')
         expect(page).not_to have_content('apache baseball cap')
-
         check 'Show Deleted'
-        click_on 'Search'
-
+        click_button 'Search'
+        expect(find('input[name="q[with_deleted]"]')).to be_checked
         expect(page).to have_content('zomg shirt')
         expect(page).to have_content('apache baseball cap')
-
         uncheck 'Show Deleted'
-        click_on 'Search'
-
+        click_button 'Search'
         expect(page).to have_content('zomg shirt')
         expect(page).not_to have_content('apache baseball cap')
       end
 
-      it 'is able to search products by their properties' do
+      it 'should be able to search products by their properties' do
         create(:product, name: 'apache baseball cap', sku: 'A100')
         create(:product, name: 'apache baseball cap2', sku: 'B100')
         create(:product, name: 'zomg shirt')
 
-        visit spree.admin_products_path
-        fill_in 'q_name_cont', with: 'ap'
-        click_on 'Search'
-
+        click_nav 'Products'
+        fill_in 'Name', with: 'ap'
+        click_button 'Search'
         expect(page).to have_content('apache baseball cap')
         expect(page).to have_content('apache baseball cap2')
         expect(page).not_to have_content('zomg shirt')
 
-        fill_in 'q_variants_including_master_sku_cont', with: 'A1'
-        click_on 'Search'
-
+        fill_in 'SKU', with: 'A1'
+        click_button 'Search'
         expect(page).to have_content('apache baseball cap')
         expect(page).not_to have_content('apache baseball cap2')
         expect(page).not_to have_content('zomg shirt')
       end
+
+      # Regression test for https://github.com/solidusio/solidus/issues/2016
+      it "should be able to search and sort by price" do
+        product = create(:product, name: 'apache baseball cap', sku: "A001")
+        create(:variant, product: product, sku: "A002")
+        create(:product, name: 'zomg shirt', sku: "Z001")
+
+        click_nav "Products"
+        expect(page).to have_content("apache baseball cap")
+        expect(page).to have_content("zomg shirt")
+        expect(page).to have_css('#listing_products > tbody > tr', count: 2)
+
+        fill_in "SKU", with: "A"
+        click_button 'Search'
+        expect(page).to have_content("apache baseball cap")
+        expect(page).not_to have_content("zomg shirt")
+        expect(page).to have_css('#listing_products > tbody > tr', count: 1)
+
+        # Sort by master price
+        click_on 'Master Price'
+        expect(page).to have_css('.sort_link.asc', text: 'Master Price')
+        expect(page).to have_content("apache baseball cap")
+        expect(page).not_to have_content("zomg shirt")
+        expect(page).to have_css('#listing_products > tbody > tr', count: 1)
+      end
     end
 
-    context 'creating a new product from a prototype', js: true do
+    context 'creating a new product from a prototype' do
       def build_option_type_with_values(name, values)
         ot = FactoryBot.create(:option_type, name: name)
         values.each do |val|
@@ -134,26 +181,23 @@ describe 'Products', type: :feature do
         hash
       end
 
-      before do
+      before(:each) do
         @option_type_prototype = prototype
         @property_prototype = create(:prototype, name: 'Random')
         @shipping_category = create(:shipping_category)
-        visit spree.admin_products_path
+        click_nav 'Products'
         click_link 'admin_new_product'
         within('#new_product') do
           expect(page).to have_content('SKU')
         end
       end
 
-      it 'allows an admin to create a new product and variants from a prototype' do
+      it 'should allow an admin to create a new product and variants from a prototype', js: true do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
         fill_in 'product_available_on', with: '2012/01/24'
-        # Just so the datepicker gets out of poltergeists way.
-        page.execute_script("$('#ui-datepicker-div').hide();")
         select 'Size', from: 'Prototype'
-        wait_for_ajax
         check 'Large'
         select @shipping_category.name, from: 'product_shipping_category_id'
         click_button 'Create'
@@ -161,7 +205,7 @@ describe 'Products', type: :feature do
         expect(Spree::Product.last.variants.length).to eq(1)
       end
 
-      it 'does not display variants when prototype does not contain option types' do
+      it 'should not display variants when prototype does not contain option types', js: true do
         select 'Random', from: 'Prototype'
 
         fill_in 'product_name', with: 'Baseball Cap'
@@ -169,53 +213,28 @@ describe 'Products', type: :feature do
         expect(page).not_to have_content('Variants')
       end
 
-      context 'with html5 validations' do
-        it 'keeps option values selected if validation fails' do
-          fill_in 'product_name', with: 'Baseball Cap'
-          fill_in 'product_sku', with: 'B100'
-          fill_in 'product_price', with: '100'
-          select 'Size', from: 'Prototype'
-          wait_for_ajax
-          check 'Large'
-          click_button 'Create'
-
-          message = page.find('#product_shipping_category_id').native.attribute('validationMessage')
-          expect(message).to eq('Please select an item in the list.')
-          expect(field_labeled('Size')).to be_checked
-          expect(field_labeled('Large')).to be_checked
-          expect(field_labeled('Small')).not_to be_checked
-        end
-      end
-
-      context 'without html5 validations' do
-        it 'keeps option values selected if validation fails' do
-          disable_html5_validation
-          fill_in 'product_name', with: 'Baseball Cap'
-          fill_in 'product_sku', with: 'B100'
-          fill_in 'product_price', with: '100'
-          select 'Size', from: 'Prototype'
-          wait_for_ajax
-          check 'Large'
-          click_button 'Create'
-          expect(page).to have_content("Shipping Category can't be blank")
-          expect(field_labeled('Size')).to be_checked
-          expect(field_labeled('Large')).to be_checked
-          expect(field_labeled('Small')).not_to be_checked
-        end
+      it 'should keep option values selected if validation fails', js: true do
+        fill_in 'product_name', with: 'Baseball Cap'
+        fill_in 'product_sku', with: 'B100'
+        fill_in 'product_price', with: '100'
+        select 'Size', from: 'Prototype'
+        check 'Large'
+        click_button 'Create'
+        expect(page).to have_content("Shipping category can't be blank")
+        expect(field_labeled('Size')).to be_checked
+        expect(field_labeled('Large')).to be_checked
+        expect(field_labeled('Small')).not_to be_checked
       end
     end
 
     context 'creating a new product' do
-      before do
+      before(:each) do
         @shipping_category = create(:shipping_category)
-        visit spree.admin_products_path
-        click_link 'admin_new_product'
-        within('#new_product') do
-          expect(page).to have_content('SKU')
-        end
+        click_nav 'Products'
+        click_on 'New Product'
       end
 
-      it 'allows an admin to create a new product' do
+      it 'should allow an admin to create a new product', js: true do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
@@ -227,7 +246,7 @@ describe 'Products', type: :feature do
         expect(page).to have_content('successfully updated!')
       end
 
-      it 'shows validation errors' do
+      it 'should show validation errors', js: false do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
@@ -262,15 +281,18 @@ describe 'Products', type: :feature do
                                           })
         end
 
-        it 'shows localized price value on validation errors', js: true do
+        it 'should show localized price value on validation errors', js: true do
+          fill_in 'Name', with: ' '
+          select @shipping_category.name, from: 'product_shipping_category_id'
           fill_in 'product_price', with: '19,99'
           click_button 'Create'
-          expect(find('input#product_price').value).to eq('19,99')
+          expect(page).to have_content("Name can't be blank")
+          expect(page).to have_field('product_price', with: '19,99')
         end
       end
 
-      # Regression test for #2097
-      it 'can set the count on hand to a null value' do
+      # Regression test for https://github.com/spree/spree/issues/2097
+      it 'can set the count on hand to a null value', js: true do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_price', with: '100'
         select @shipping_category.name, from: 'product_shipping_category_id'
@@ -282,30 +304,29 @@ describe 'Products', type: :feature do
     end
 
     context 'cloning a product', js: true do
-      it 'allows an admin to clone a product' do
+      it 'should allow an admin to clone a product' do
         create(:product)
 
-        visit spree.admin_products_path
+        click_nav 'Products'
         within_row(1) do
-          click_icon :clone
+          click_icon :copy
         end
 
         expect(page).to have_content('Product has been cloned')
       end
 
       context 'cloning a deleted product' do
-        it 'allows an admin to clone a deleted product' do
+        it 'should allow an admin to clone a deleted product' do
           create(:product, name: 'apache baseball cap')
 
-          visit spree.admin_products_path
-          click_on 'Filter'
+          click_nav 'Products'
           check 'Show Deleted'
-          click_on 'Search'
+          click_button 'Search'
 
           expect(page).to have_content('apache baseball cap')
 
           within_row(1) do
-            click_icon :clone
+            click_icon :copy
           end
 
           expect(page).to have_content('Product has been cloned')
@@ -313,7 +334,7 @@ describe 'Products', type: :feature do
       end
     end
 
-    context 'updating a product' do
+    context 'updating a product', js: true do
       let(:product) { create(:product) }
 
       let(:prototype) do
@@ -321,82 +342,33 @@ describe 'Products', type: :feature do
         FactoryBot.create(:prototype, name: 'Size', option_types: [size])
       end
 
-      before do
+      before(:each) do
         @option_type_prototype = prototype
         @property_prototype = create(:prototype, name: 'Random')
       end
 
-      it 'parses correctly available_on' do
+      it 'should parse correctly available_on' do
         visit spree.admin_product_path(product)
         fill_in 'product_available_on', with: '2012/12/25'
         click_button 'Update'
         expect(page).to have_content('successfully updated!')
-        expect(Spree::Product.last.available_on.to_s).to eq('2012-12-25 00:00:00 UTC')
+        expect(Spree::Product.last.available_on).to eq('Tue, 25 Dec 2012 00:00:00 UTC +00:00')
       end
 
-      it 'adds option_types when selecting a prototype', js: true do
+      it 'should add option_types when selecting a prototype', js: true do
         visit spree.admin_product_path(product)
-        within('#sidebar') do
-          click_link 'Properties'
-        end
+        click_link 'Product Properties'
         click_link 'Select From Prototype'
 
-        within("#prototypes tr#row_#{prototype.id}") do
-          click_link 'Select'
-          wait_for_ajax
-        end
-
-        within(:css, 'tr.product_property:first-child') do
-          expect(first('input[type=text]').value).to eq('baseball_cap_color')
-        end
-      end
-
-      context 'using a locale with a different decimal format' do
-        before do
-          # change English locale's separator and delimiter to match 19,99 format
-          I18n.backend.store_translations(
-            :en,
-            number: {
-              currency: {
-                format: {
-                  separator: ',',
-                  delimiter: '.'
-                }
-              },
-              format: {
-                separator: ',',
-                delimiter: '.'
-              }
-            }
-          )
-        end
-
-        after do
-          # revert changes to English locale
-          I18n.backend.store_translations(
-            :en,
-            number: {
-              currency: {
-                format: {
-                  separator: '.',
-                  delimiter: ','
-                }
-              },
-              format: {
-                separator: '.',
-                delimiter: ','
-              }
-            }
-          )
-        end
-
-        it 'parses correctly decimal values like weight' do
-          visit spree.admin_product_path(product)
-          fill_in 'product_weight', with: '1'
-          click_button 'Update'
-          weight_prev = find('#product_weight').value
-          click_button 'Update'
-          expect(find('#product_weight').value).to eq(weight_prev)
+        row = find('#prototypes tr', text: 'Size')
+        row.click_link 'Select'
+        # The following is unfortunate.
+        # It is tough to distinguish between the different fields, so we assert
+        # that there are two rows (ensuring one has been added) and then
+        # inspect the first one.
+        expect(page).to have_css('#product_properties .product_property', count: 2)
+        within('#product_properties .product_property:nth-child(1)') do
+          expect(find('input[type=text]', match: :first).value).to eq('baseball_cap_color')
         end
       end
     end
@@ -404,18 +376,23 @@ describe 'Products', type: :feature do
     context 'deleting a product', js: true do
       let!(:product) { create(:product) }
 
-      it 'is still viewable' do
+      it 'product details are still viewable' do
         visit spree.admin_products_path
-        spree_accept_alert do
-          click_icon :delete
-          wait_for_ajax
+        expect(page).to have_content(product.name)
+        accept_alert do
+          click_icon :trash
         end
-        click_on 'Filter'
+
+        expect(page).to have_no_content(product.name)
+
         # This will show our deleted product
-        check 'Show Deleted'
-        click_on 'Search'
+        check "Show Deleted"
+        click_button "Search"
         click_link product.name
-        expect(find('#product_price').value.to_f).to eq(product.price.to_f)
+        expect(page).to have_field('Master Price', with: product.price.to_f)
+        expect(page).to_not have_content('Images')
+        expect(page).to_not have_content('Prices')
+        expect(page).to_not have_content('Product Properties')
       end
     end
   end
@@ -430,20 +407,19 @@ describe 'Products', type: :feature do
     end
     let!(:product) { create(:product) }
 
-    it 'only displays accessible links on index' do
+    it 'should only display accessible links on index' do
       visit spree.admin_products_path
-
       expect(page).to have_link('Products')
       expect(page).not_to have_link('Option Types')
       expect(page).not_to have_link('Properties')
       expect(page).not_to have_link('Prototypes')
       expect(page).not_to have_link('New Product')
-      expect(page).not_to have_css('.icon-clone')
-      expect(page).to have_css('.icon-edit')
-      expect(page).not_to have_css('.delete-resource')
+      expect(page).not_to have_css('a.clone')
+      expect(page).to have_css('a.edit')
+      expect(page).not_to have_css('a.delete-resource')
     end
 
-    it 'only displays accessible links on edit' do
+    it 'should only display accessible links on edit' do
       visit spree.admin_product_path(product)
 
       # product tabs should be hidden
