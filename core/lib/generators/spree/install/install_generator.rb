@@ -86,20 +86,20 @@ module Spree
     end
 
     def configure_application
-      application <<-APP
-
-        config.to_prepare do
-          # Load application's model / class decorators
-          Dir.glob(File.join(File.dirname(__FILE__), "../app/**/*_decorator*.rb")) do |c|
-          Rails.configuration.cache_classes ? require(c) : load(c)
-          end
-
-          # Load application's view overrides
-          Dir.glob(File.join(File.dirname(__FILE__), "../app/overrides/*.rb")) do |c|
-          Rails.configuration.cache_classes ? require(c) : load(c)
-          end
+      config.to_prepare do
+        application <<-APP
+     
+        # Load application's model / class decorators
+        Dir.glob(File.join(File.dirname(__FILE__), "../app/**/*_decorator*.rb")) do |c|
+        Rails.configuration.cache_classes ? require(c) : load(c)
         end
-      APP
+
+        # Load application's view overrides
+        Dir.glob(File.join(File.dirname(__FILE__), "../app/overrides/*.rb")) do |c|
+        Rails.configuration.cache_classes ? require(c) : load(c)
+        end
+        APP
+      end
 
       if !options[:enforce_available_locales].nil?
         application <<-APP # Prevent this deprecation message: https://github.com/svenfuchs/i18n/commit/3b6e56e
