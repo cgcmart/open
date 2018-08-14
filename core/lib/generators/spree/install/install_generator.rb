@@ -1,12 +1,13 @@
+# frozen_string_literal: true
+
 require 'rails/generators'
-require 'highline/import'
 require 'bundler'
 require 'bundler/cli'
-require 'active_support/core_ext/string/indent'
-require 'spree/core'
 
 module Spree
   class InstallGenerator < Rails::Generators::Base
+    CORE_MOUNT_ROUTE = "mount Spree::Core::Engine"
+
     class_option :migrate, type: :boolean, default: true, banner: 'Run Spree migrations'
     class_option :seed, type: :boolean, default: true, banner: 'load seed data (migrations must be run)'
     class_option :sample, type: :boolean, default: true, banner: 'load sample data (migrations must be run)'
@@ -22,7 +23,7 @@ module Spree
       paths = superclass.source_paths
       paths << File.expand_path('../templates', "../../#{__FILE__}")
       paths << File.expand_path('../templates', "../#{__FILE__}")
-      paths << File.expand_path('../templates', __FILE__)
+      paths << File.expand_path('../templates', __dir__)
       paths.flatten
     end
 
@@ -59,22 +60,18 @@ module Spree
     def setup_assets
       @lib_name = 'spree'
       %w{javascripts stylesheets images}.each do |path|
-        if Spree::Core::Engine.frontend_available? || Rails.env.test?
-          empty_directory "vendor/assets/#{path}/spree/frontend"
-        end
-        if Spree::Core::Engine.backend_available? || Rails.env.test?
-          empty_directory "vendor/assets/#{path}/spree/backend"
-        end
+        empty_directory "vendor/assets/#{path}/spree/frontend" if defined? Spree::Frontend || Rails.env.test?
+        empty_directory "vendor/assets/#{path}/spree/backend" if defined? Spree::Backend || Rails.env.test?
       end
 
-      if Spree::Core::Engine.frontend_available? || Rails.env.test?
-        template 'vendor/assets/javascripts/spree/frontend/all.js'
-        template 'vendor/assets/stylesheets/spree/frontend/all.css'
+      if defined? Spree::Frontend || Rails.env.test?
+        template "vendor/assets/javascripts/spree/frontend/all.js"
+        template "vendor/assets/stylesheets/spree/frontend/all.css"
       end
 
-      if Spree::Core::Engine.backend_available? || Rails.env.test?
-        template 'vendor/assets/javascripts/spree/backend/all.js'
-        template 'vendor/assets/stylesheets/spree/backend/all.css'
+      if defined? Spree::Backend || Rails.env.test?
+        template "vendor/assets/javascripts/spree/backend/all.js"
+        template "vendor/assets/stylesheets/spree/backend/all.css"
       end
     end
 
@@ -89,32 +86,28 @@ module Spree
     end
 
     def configure_application
-      application <<-APP.strip_heredoc.indent!(4)
+      application <<-APP config.to_prepare do
+        # Load application's model / class decorators
+        Dir.glob(File.join(File.dirname(__FILE__), "../app/**/*_decorator*.rb")) do |c|
+        Rails.configuration.cache_classes ? require(c) : load(c)
+      end
 
-        config.to_prepare do
-          # Load application's model / class decorators
-          Dir.glob(File.join(File.dirname(__FILE__), "../app/**/*_decorator*.rb")) do |c|
-            Rails.configuration.cache_classes ? require(c) : load(c)
-          end
-
-          # Load application's view overrides
-          Dir.glob(File.join(File.dirname(__FILE__), "../app/overrides/*.rb")) do |c|
-            Rails.configuration.cache_classes ? require(c) : load(c)
-          end
+        # Load application's view overrides
+        Dir.glob(File.join(File.dirname(__FILE__), "../app/overrides/*.rb")) do |c|
+          Rails.configuration.cache_classes ? require(c) : load(c)
         end
+      end
       APP
 
-      unless options[:enforce_available_locales].nil?
-        application <<-APP.strip_heredoc.indent!(4)
-          # Prevent this deprecation message: https://github.com/svenfuchs/i18n/commit/3b6e56e
-          I18n.enforce_available_locales = #{options[:enforce_available_locales]}
+      if !options[:enforce_available_locales].nil?
+        application <<-APP # Prevent this deprecation message: https://github.com/svenfuchs/i18n/commit/3b6e56e
+        I18n.enforce_available_locales = #{options[:enforce_available_locales]}
         APP
       end
     end
 
     def include_seed_data
       append_file 'db/seeds.rb', <<-SEEDS.strip_heredoc
-
         Spree::Core::Engine.load_seed if defined?(Spree::Core)
         Spree::Auth::Engine.load_seed if defined?(Spree::Auth)
       SEEDS
@@ -122,28 +115,18 @@ module Spree
 
     def install_migrations
       say_status :copying, 'migrations'
-      silence_stream(STDOUT) do
-        silence_warnings { rake 'railties:install:migrations' }
-      end
+      rake 'railties:install:migrations'
     end
 
     def create_database
       say_status :creating, 'database'
-      silence_stream(STDOUT) do
-        silence_stream(STDERR) do
-          silence_warnings { rake 'db:create' }
-        end
-      end
+      rake 'db:create'
     end
 
     def run_migrations
       if @run_migrations
         say_status :running, 'migrations'
-        silence_stream(STDOUT) do
-          silence_stream(STDERR) do
-            silence_warnings { rake 'db:migrate' }
-          end
-        end
+        rake 'db:migrate VERBOSE=false'
       else
         say_status :skipping, "migrations (don't forget to run rake db:migrate)"
       end
@@ -151,22 +134,13 @@ module Spree
 
     def populate_seed_data
       if @load_seed_data
-        say_status :loading,  'seed data'
+        say_status :loading, 'seed data'
         rake_options = []
         rake_options << 'AUTO_ACCEPT=1' if options[:auto_accept]
         rake_options << "ADMIN_EMAIL=#{options[:admin_email]}" if options[:admin_email]
         rake_options << "ADMIN_PASSWORD=#{options[:admin_password]}" if options[:admin_password]
 
-        cmd = -> { rake("db:seed #{rake_options.join(' ')}") }
-        if options[:auto_accept] || (options[:admin_email] && options[:admin_password])
-          silence_stream(STDOUT) do
-            silence_stream(STDERR) do
-              silence_warnings &cmd
-            end
-          end
-        else
-          cmd.call
-        end
+        rake("db:seed #{rake_options.join(' ')}")
       else
         say_status :skipping, 'seed data (you can always run rake db:seed)'
       end
@@ -175,21 +149,17 @@ module Spree
     def load_sample_data
       if @load_sample_data
         say_status :loading, 'sample data'
-        silence_stream(STDOUT) do
-          silence_stream(STDERR) do
-            silence_warnings { rake 'spree_sample:load' }
-          end
-        end
+        rake 'spree_sample:load'
       else
         say_status :skipping, 'sample data (you can always run rake spree_sample:load)'
       end
     end
 
-    def notify_about_routes
-      insert_into_file(File.join('config', 'routes.rb'),
-                       after: "Rails.application.routes.draw do\n") do
-        <<-ROUTES.strip_heredoc.indent!(2)
-          # This line mounts Spree's routes at the root of your application.
+    def install_routes
+      routes_file_path = File.join('config', 'routes.rb')
+      unless File.read(routes_file_path).include? CORE_MOUNT_ROUTE
+        insert_into_file routes_file_path, after: "Rails.application.routes.draw do\n" do
+        <<-ROUTES           # This line mounts Spree's routes at the root of your application.
           # This means, any requests to URLs such as /products, will go to
           # Spree::ProductsController.
           # If you would like to change where this engine is mounted, simply change the
@@ -197,15 +167,16 @@ module Spree
           #
           # We ask that you don't use the :as option here, as Spree relies on it being
           # the default of "spree".
-          mount Spree::Core::Engine, at: '/'
+          #{CORE_MOUNT_ROUTE}, at: '/'
         ROUTES
+        end
       end
 
       unless options[:quiet]
         puts '*' * 50
         puts "We added the following line to your application's config/routes.rb file:"
         puts ' '
-        puts "    mount Spree::Core::Engine, at: '/'"
+        puts "    #{CORE_MOUNT_ROUTE}, at: '/'"
       end
     end
 
@@ -216,36 +187,6 @@ module Spree
         puts ' '
         puts 'Enjoy!'
       end
-    end
-
-    protected
-
-    def javascript_exists?(script)
-      extensions = %w(.js.coffee .js.erb .js.coffee.erb .js)
-      file_exists?(extensions, script)
-    end
-
-    def stylesheet_exists?(stylesheet)
-      extensions = %w(.css.scss .css.erb .css.scss.erb .css)
-      file_exists?(extensions, stylesheet)
-    end
-
-    def file_exists?(extensions, filename)
-      extensions.detect do |extension|
-        File.exist?("#{filename}#{extension}")
-      end
-    end
-
-    private
-
-    def silence_stream(stream)
-      old_stream = stream.dup
-      stream.reopen(RbConfig::CONFIG['host_os'] =~ /mswin|mingw/ ? 'NUL:' : '/dev/null')
-      stream.sync = true
-      yield
-    ensure
-      stream.reopen(old_stream)
-      old_stream.close
     end
   end
 end
