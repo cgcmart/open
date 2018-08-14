@@ -1,40 +1,41 @@
-# TODO: let friendly id take care of sanitizing the url
-require 'stringex'
+# frozen_string_literal: true
+
+require 'spree/core/product_filters'
 
 module Spree
   class Taxon < Spree::Base
-    extend FriendlyId
-    friendly_id :permalink, slug_column: :permalink, use: :history
-    before_validation :set_permalink, on: :create, if: :name
-
     acts_as_nested_set dependent: :destroy
 
     belongs_to :taxonomy, class_name: 'Spree::Taxonomy', inverse_of: :taxons
     has_many :classifications, -> { order(:position) }, dependent: :delete_all, inverse_of: :taxon
     has_many :products, through: :classifications
 
-    has_many :prototype_taxons, class_name: 'Spree::PrototypeTaxon', dependent: :destroy
-    has_many :prototypes, through: :prototype_taxons, class_name: 'Spree::Prototype'
+    has_many :prototype_taxons, dependent: :destroy
+    has_many :prototypes, through: :prototype_taxons
 
-    has_many :promotion_rule_taxons, class_name: 'Spree::PromotionRuleTaxon', dependent: :destroy
-    has_many :promotion_rules, through: :promotion_rule_taxons, class_name: 'Spree::PromotionRule'
+    has_many :promotion_rule_taxons
+    has_many :promotion_rules, through: :promotion_rule_taxons
 
-    validates :name, presence: true, uniqueness: { scope: [:parent_id, :taxonomy_id], allow_blank: true }
-    validates :permalink, uniqueness: { case_sensitive: false }
-    validates_associated :icon
-    validate :check_for_root, on: :create
-    with_options length: { maximum: 255 }, allow_blank: true do
-      validates :meta_keywords
-      validates :meta_description
-      validates :meta_title
-    end
+    before_create :set_permalink
+    before_update :set_permalink
+    after_update :update_child_permalinks, if: :saved_change_to_permalink?
+
+    validates :name, presence: true
+    validates :meta_keywords, length: { maximum: 255 }
+    validates :meta_description, length: { maximum: 255 }
+    validates :meta_title, length: { maximum: 255 }
 
     after_save :touch_ancestors_and_taxonomy
     after_touch :touch_ancestors_and_taxonomy
 
-    has_one :icon, as: :viewable, dependent: :destroy, class_name: 'Spree::TaxonIcon'
+    has_attached_file :icon,
+      styles: { mini: '32x32>', normal: '128x128>' },
+      default_style: :mini,
+      url: '/spree/taxons/:id/:style/:basename.:extension',
+      path: ':rails_root/public/spree/taxons/:id/:style/:basename.:extension',
+      default_url: '/assets/default_taxon.png'
 
-    self.whitelisted_ransackable_associations = %w[taxonomy]
+    validates_attachment :icon, content_type: { content_type: ['image/jpg', 'image/jpeg', 'image/png'] }
 
     # indicate which filters should be used for a taxon
     # this method should be customized to your own site
@@ -50,56 +51,95 @@ module Spree
 
     # Return meta_title if set otherwise generates from root name and/or taxon name
     def seo_title
-      if meta_title.blank?
-        root? ? name : "#{root.name} - #{name}"
-      else
+      if meta_title.present?
         meta_title
-      end
-    end
-
-    # Creates permalink base for friendly_id
-    def set_permalink
-      if parent.present?
-        self.permalink = [parent.permalink, (permalink.blank? ? name.to_url : permalink.split('/').last)].join('/')
       else
-        self.permalink = name.to_url if permalink.blank?
+        root? ? name : "#{root.name} - #{name}"
       end
     end
 
+    # Sets this taxons permalink to a valid url encoded string based on its
+    # name and its parents permalink (if present.)
+    def set_permalink
+      permalink_tail = permalink.split('/').last if permalink.present?
+      permalink_tail ||= Spree::Config.taxon_url_parametizer_class.parameterize(name)
+      self.permalink_part = permalink_tail
+    end
+
+    # Update the permalink for this taxon and all children (if necessary)
+    def update_permalinks
+      set_permalink
+
+      # This will trigger update_child_permalinks if permalink has changed
+      save!
+    end
+
+    # Update the permalinks for all children
+    def update_child_permalinks
+      children.each(&:update_permalinks)
+    end
+
+    # @return [String] this taxon's permalink
+    def to_param
+      permalink
+    end
+
+    # @return [ActiveRecord::Relation<Spree::Product>] the active products the belong to this taxon
     def active_products
-      products.active
+      products.not_deleted.available
     end
 
+    # @return [ActiveRecord::Relation<Spree::Product>] all self and descendant products
+    def all_products
+      scope = Product.joins(:taxons)
+      scope.where(
+        spree_taxons: { id: self_and_descendants.select(:id) }
+      )
+    end
+
+    # @return [ActiveRecord::Relation<Spree::Variant>] all self and descendant variants, including master variants.
+    def all_variants
+      Variant.where(product_id: all_products.select(:id))
+    end
+
+    # @return [String] this taxon's ancestors names followed by its own name,
+    #   separated by arrows
     def pretty_name
-      ancestor_chain = ancestors.inject('') do |name, ancestor|
-        name += "#{ancestor.name} -> "
-      end
-      ancestor_chain + name.to_s
+      ancestor_chain = ancestors.map(&:name)
+      ancestor_chain << name
+      ancestor_chain.join(" -> ")
     end
 
-    # awesome_nested_set sorts by :lft and :rgt. This call re-inserts the child
-    # node so that its resulting position matches the observable 0-indexed position.
-    # ** Note ** no :position column needed - a_n_s doesn't handle the reordering if
-    #  you bring your own :order_column.
-    #
-    #  See #3390 for background.
+    # @see https://github.com/spree/spree/issues/3390
     def child_index=(idx)
+      # awesome_nested_set sorts by :lft and :rgt. This call re-inserts the
+      # child node so that its resulting position matches the observable
+      # 0-indexed position.
+      #
+      # NOTE: no :position column needed - awesom_nested_set doesn't handle the
+      # reordering if you bring your own :order_column.
       move_to_child_with_index(parent, idx.to_i) unless new_record?
+    end
+
+    def permalink_part
+      permalink.split('/').last
+    end
+
+    def permalink_part=(value)
+      if parent.present?
+        self.permalink = "#{parent.permalink}/#{value}"
+      else
+        self.permalink = value
+      end
     end
 
     private
 
     def touch_ancestors_and_taxonomy
       # Touches all ancestors at once to avoid recursive taxonomy touch, and reduce queries.
-      ancestors.update_all(updated_at: Time.current)
+      self.class.where(id: ancestors.pluck(:id)).update_all(updated_at: Time.current)
       # Have taxonomy touch happen in #touch_ancestors_and_taxonomy rather than association option in order for imports to override.
       taxonomy.try!(:touch)
-    end
-
-    def check_for_root
-      if taxonomy.try(:root).present? && parent_id == nil
-        errors.add(:root_conflict, 'this taxonomy already has a root taxon')
-      end
     end
   end
 end
