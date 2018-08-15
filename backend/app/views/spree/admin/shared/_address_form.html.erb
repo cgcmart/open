@@ -1,79 +1,64 @@
 <% s_or_b = type.chars.first %>
 
 <div id="<%= type %>" data-hook="address_fields">
-  <%= field_container f.object, :firstname, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :firstname, Spree.t(:first_name) %>
-    <%= f.text_field :firstname, class: 'form-control' %>
-    <%= error_message_on f.object, :firstname %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :firstname %>
+    <%= f.text_field :firstname, class: 'fullwidth' %>
+  </div>
 
-  <%= field_container f.object, :lastname, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :lastname, Spree.t(:last_name) %>
-    <%= f.text_field :lastname, class: 'form-control' %>
-    <%= error_message_on f.object, :lastname %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :lastname %>
+    <%= f.text_field :lastname, class: 'fullwidth' %>
+  </div>
 
   <% if Spree::Config[:company] %>
-    <%= field_container f.object, :company, class: ["form-group", "#{type}-row"] do %>
-      <%= f.label :company, Spree.t(:company) %>
-      <%= f.text_field :company, class: 'form-control' %>
-      <%= error_message_on f.object, :company %>
-    <% end %>
+    <div class="field <%= "#{type}-row" %>">
+      <%= f.label :company %>
+      <%= f.text_field :company, class: 'fullwidth' %>
+    </div>
   <% end %>
 
-  <%= field_container f.object, :address1, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :address1, Spree.t(:street_address) %>
-    <%= f.text_field :address1, class: 'form-control' %>
-    <%= error_message_on f.object, :address1 %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :address1 %>
+    <%= f.text_field :address1, class: 'fullwidth' %>
+  </div>
 
-  <%= field_container f.object, :address2, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :address2, Spree.t(:street_address_2) %>
-    <%= f.text_field :address2, class: 'form-control' %>
-    <%= error_message_on f.object, :address2 %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :address2 %>
+    <%= f.text_field :address2, class: 'fullwidth' %>
+  </div>
 
-  <%= field_container f.object, :city, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :city, Spree.t(:city) %>
-    <%= f.text_field :city, class: 'form-control' %>
-    <%= error_message_on f.object, :city %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :city %>
+    <%= f.text_field :city, class: 'fullwidth' %>
+  </div>
 
-  <%= field_container f.object, :zipcode, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :zipcode, Spree.t(:zip) %>
-    <%= f.text_field :zipcode, class: 'form-control' %>
-    <%= error_message_on f.object, :zipcode %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :zipcode %>
+    <%= f.text_field :zipcode, class: 'fullwidth' %>
+  </div>
 
-  <div class="form-group <%= "#{type}-row" %>">
-    <%= f.label :country_id, Spree.t(:country) %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :country_id, Spree::Country.model_name.human %>
     <span id="<%= s_or_b %>country">
-      <%= f.collection_select :country_id, available_countries, :id, :name, {}, { class: 'select2' } %>
+      <%= f.collection_select :country_id, available_countries, :id, :name, {}, {class: 'custom-select fullwidth js-country_id'} %>
     </span>
   </div>
 
-  <%= field_container f.object, :state, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :state_id, Spree.t(:state) %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :state_id, Spree::State.model_name.human %>
     <span id="<%= s_or_b %>state">
+      <%= f.hidden_field :state_name, value: nil %>
       <%= f.text_field :state_name,
             style: "display: #{f.object.country.states.empty? ? 'block' : 'none' };",
-            disabled: !f.object.country.states.empty?, class: 'form-control state_name' %>
-      <%= f.collection_select :state_id, f.object.country.states.sort, :id, :name, { include_blank: true }, { class: 'select2', style: "display: #{f.object.country.states.empty? ? 'none' : 'block' };", disabled: f.object.country.states.empty? } %>
+           disabled: !f.object.country.states.empty?, class: 'fullwidth state_name js-state_name' %>
+      <%= f.hidden_field :state_id, value: nil %>
+      <%= f.collection_select :state_id, f.object.country.states.sort, :id, :name, {include_blank: true}, {class: 'custom-select fullwidth js-state_id', style: "display: #{f.object.country.states.empty? ? 'none' : 'block' };", disabled: f.object.country.states.empty?} %>
     </span>
-    <%= error_message_on f.object, :state_id %>
-  <% end %>
+  </div>
 
-  <%= field_container f.object, :phone, class: ["form-group", "#{type}-row"] do %>
-    <%= f.label :phone, Spree.t(:phone) %>
-    <%= f.phone_field :phone, class: 'form-control' %>
-    <%= error_message_on f.object, :phone %>
-  <% end %>
+  <div class="field <%= "#{type}-row" %>">
+    <%= f.label :phone %>
+    <%= f.phone_field :phone, class: 'fullwidth' %>
+  </div>
 </div>
-
-<% content_for :head do %>
-  <%= javascript_tag do %>
-    $(document).ready(function(){
-      $('span#<%= s_or_b %>country .select2').on('change', function() { update_state('<%= s_or_b %>'); });
-    });
-  <% end %>
-<% end %>
