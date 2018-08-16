@@ -1,46 +1,35 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Adjustments', type: :feature do
   stub_authorization!
 
-  let!(:order) { create(:completed_order_with_totals, line_items_count: 5) }
-  let!(:line_item) do
-    line_item = order.line_items.first
-    # so we can be sure of a determinate price in our assertions
-    line_item.update_column(:price, 10)
-    line_item
-  end
+  let!(:ship_address) { create(:address) }
+  let!(:tax_zone) { create(:global_zone) } # will include the above address
+  let!(:tax_rate) { create(:tax_rate, amount: 0.20, zone: tax_zone, tax_categories: [tax_category]) }
 
-  before do
-    create(:tax_adjustment,
-            adjustable: line_item,
-            state: 'closed',
-            order: order,
-            label: 'VAT 5%',
-            amount: 10)
+  let!(:order) { create(:completed_order_with_totals, line_items_attributes: [{ price: 10, variant: variant }] * 5, ship_address: ship_address) }
+  let!(:line_item){ order.line_item[10] }
+  let(:tax_category) { create(:tax_category) }
+  let(:variant) { create(:variant, tax_category: tax_category) }
 
-    order.adjustments.create!(order: order, label: 'Rebate', amount: 10)
+  let!(:adjustment) { order.adjustments.create!(order: order, label: 'Rebate', amount: 10) }
 
-    # To ensure the order totals are correct
-    order.update_totals
-    order.persist_totals
+  before(:each) do
+    order.recalculate
 
-    visit spree.admin_orders_path
-    within_row(1) { click_on order.number }
-    click_on 'Adjustments'
-  end
-
-  after do
-    order.reload.all_adjustments.each do |adjustment|
-      expect(adjustment.order_id).to equal(order.id)
-    end
+    visit spree.admin_path
+    click_link "Orders"
+    within_row(1) { click_icon :edit }
+    click_link "Adjustments"
   end
 
   context 'admin managing adjustments' do
-    it 'displays the correct values for existing order adjustments' do
-      within_row(1) do
-        expect(column_text(2)).to eq('VAT 5%')
-        expect(column_text(3)).to eq('$10.00')
+    it 'should display the correct values for existing order adjustments' do
+      within first('table tr', text: 'Tax') do
+        expect(column_text(2)).to match(/TaxCategory - \d+ 20\.000%/)
+        expect(column_text(3)).to eq("$2.00")
       end
     end
 
@@ -50,37 +39,41 @@ describe 'Adjustments', type: :feature do
   end
 
   context 'admin creating a new adjustment' do
-    before do
+    before(:each) do
       click_link 'New Adjustment'
     end
 
     context 'successfully' do
-      it 'creates a new adjustment' do
+      it 'should creates a new adjustment' do
         fill_in 'adjustment_amount', with: '10'
         fill_in 'adjustment_label', with: 'rebate'
         click_button 'Continue'
-        expect(page).to have_content('successfully created!')
-        expect(page).to have_content('Total: $80.00')
+        order.reload.all_adjustments.each do |adjustment|
+          expect(adjustment.order_id).to equal(order.id)
+        end
       end
     end
 
     context 'with validation errors' do
-      it 'does not create a new adjustment' do
+      it 'should not create a new adjustment' do
         fill_in 'adjustment_amount', with: ''
         fill_in 'adjustment_label', with: ''
         click_button 'Continue'
         expect(page).to have_content("Label can't be blank")
+        expect(page).to have_content('Amount is not a number')
       end
     end
   end
 
-  context 'admin editing an adjustment', js: true do
-    before do
-      within_row(2) { click_icon :edit }
+  context 'admin editing an adjustment' do
+    before(:each) do
+      within('table tr', text: 'Rebate') do
+        click_icon :edit
+      end
     end
 
     context 'successfully' do
-      it 'updates the adjustment' do
+      it 'should update the adjustment' do
         fill_in 'adjustment_amount', with: '99'
         fill_in 'adjustment_label', with: 'rebate 99'
         click_button 'Continue'
@@ -95,21 +88,31 @@ describe 'Adjustments', type: :feature do
     end
 
     context 'with validation errors' do
-      it 'does not update the adjustment' do
+      it 'should not update the adjustment' do
         fill_in 'adjustment_amount', with: ''
         fill_in 'adjustment_label', with: ''
         click_button 'Continue'
         expect(page).to have_content("Label can't be blank")
+        expect(page).to have_content('Amount is not a number')
       end
     end
   end
 
   context 'deleting an adjustment' do
-    it 'updates the total', js: true do
-      spree_accept_alert do
-        within_row(2) do
-          click_icon(:delete)
-          wait_for_ajax
+    context 'when the adjustment is finalized' do
+      let!(:adjustment) { super().tap(&:finalize!) }
+
+      it 'should not be possible' do
+        within('table tr', text: 'Rebate') do
+          expect(page).not_to have_css('.fa-trash')
+        end
+      end
+    end
+
+    it 'should update the total', js: true do
+      accept_alert do
+        within('table tr', text: 'Rebate') do
+          click_icon(:trash)
         end
       end
 
