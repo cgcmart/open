@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Tax Categories', type: :feature do
@@ -9,10 +11,10 @@ describe 'Tax Categories', type: :feature do
   end
 
   context 'admin visiting tax categories list' do
-    it 'displays the existing tax categories' do
+    it 'should display the existing tax categories' do
       create(:tax_category, name: 'Clothing', tax_code: 'CL001', description: 'For Clothing')
       click_link 'Tax Categories'
-      within('h1') { expect(page).to have_content('Tax Categories') }
+      expect(page).to have_content("SettingsTaxesTax Categories")
       within_row(1) do
         expect(column_text(1)).to eq('Clothing')
         expect(column_text(2)).to eq('CL001')
@@ -28,7 +30,7 @@ describe 'Tax Categories', type: :feature do
       click_link 'admin_new_tax_categories_link'
     end
 
-    it 'is able to create new tax category' do
+    it 'should be able to create new tax category' do
       expect(page).to have_content('New Tax Category')
       fill_in 'tax_category_name', with: 'sports goods'
       fill_in 'tax_category_description', with: 'sports goods desc'
@@ -36,14 +38,14 @@ describe 'Tax Categories', type: :feature do
       expect(page).to have_content('successfully created!')
     end
 
-    it 'shows validation errors if there are any' do
+    it 'should show validation errors if there are any' do
       click_button 'Create'
       expect(page).to have_content("Name can't be blank")
     end
   end
 
   context 'admin editing a tax category' do
-    it 'is able to update an existing tax category', js: true do
+    it 'should be able to update an existing tax category' do
       create(:tax_category)
       click_link 'Tax Categories'
       within_row(1) { click_icon :edit }
