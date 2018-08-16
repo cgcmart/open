@@ -1,28 +1,43 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Spree
   module Admin
-    class DummyModelsController < Spree::Admin::ResourceController
+    class WidgetsController < Spree::Admin::ResourceController
       prepend_view_path('spec/test_views')
 
       def model_class
-        Spree::DummyModel
+        Widget
       end
     end
   end
 end
 
-describe Spree::Admin::DummyModelsController, type: :controller do
+describe Spree::Admin::WidgetsController, type: :controller do
   stub_authorization!
 
   after(:all) do
     Rails.application.reload_routes!
   end
 
+   with_model 'Widget', scope: :all do
+    table do |t|
+      t.string :name
+      t.integer :position
+      t.timestamps null: false
+    end
+
+    model do
+      acts_as_list
+      validates :name, presence: true
+    end
+   end
+
   before do
     Spree::Core::Engine.routes.draw do
       namespace :admin do
-        resources :dummy_models do
+        resources :widgets do
           post :update_positions, on: :member
         end
       end
@@ -31,7 +46,7 @@ describe Spree::Admin::DummyModelsController, type: :controller do
 
   describe '#new' do
     subject do
-      spree_get :new
+      get :new
     end
 
     it 'succeeds' do
@@ -41,11 +56,11 @@ describe Spree::Admin::DummyModelsController, type: :controller do
   end
 
   describe '#edit' do
-    subject do
-      spree_get :edit, id: dummy_model.to_param
-    end
+    let(:widgets) { Widget.create!(name: 'a widget') }
 
-    let(:dummy_model) { Spree::DummyModel.create!(name: 'a dummy_model') }
+    subject do
+      get :edit, params: { id: widget.to_param }
+    end
 
     it 'succeeds' do
       subject
@@ -54,98 +69,99 @@ describe Spree::Admin::DummyModelsController, type: :controller do
   end
 
   describe '#create' do
-    subject { spree_post :create, params }
-
     let(:params) do
-      { dummy_model: { name: 'a dummy_model' } }
+      { widget: { name: 'a widget' } }
     end
 
+    subject { post :create, params: params }
+
     it 'creates the resource' do
-      expect { subject }.to change { Spree::DummyModel.count }.by(1)
+      expect { subject }.to change { Widget.count }.by(1)
+    end
+
+    context 'failure' do
+      let(:params) do
+        { widget: { name: '' } } # blank name generates an error
+      end
+
+      it 'sets a flash error' do
+        subject
+        expect(flash[:error]).to eq assigns(:widget).errors.full_messages.join(', ')
+      end
     end
 
     context 'without any parameters' do
       let(:params) { {} }
 
       before do
-        allow_any_instance_of(Spree::DummyModel).to receive(:name).and_return('some name')
+        allow_any_instance_of(Widget).to receive(:name).and_return('some name')
       end
 
       it 'creates the resource' do
-        expect { subject }.to change { Spree::DummyModel.count }.by(1)
+        expect { subject }.to change { Widget.count }.by(1)
       end
     end
   end
 
   describe '#update' do
-    subject { spree_put :update, params }
-
-    let(:dummy_model) { Spree::DummyModel.create!(name: 'a dummy_model') }
+    let(:widget) { Widget.create!(name: 'a widget') }
 
     let(:params) do
       {
-        id: dummy_model.to_param,
-        dummy_model: { name: 'dummy_model renamed' }
+        id: widget.to_param,
+        widget: { name: 'widget renamed' }
       }
     end
 
+    subject { put :update, params: params }
+
     it 'updates the resource' do
-      expect { subject }.to change { dummy_model.reload.name }.from('a dummy_model').to('dummy_model renamed')
+      expect { subject }.to change { widget.reload.name }.from('a widget').to('widget renamed')
+    end
+
+    context 'failure' do
+      let(:params) do
+        {
+          id: widget.to_param,
+          widget: { name: '' }, # a blank name will trigger a validation error
+        }
+      end
+
+      it 'sets a flash error' do
+        subject
+        expect(flash[:error]).to eq assigns(:widget).errors.full_messages.join(', ')
+      end
     end
   end
 
   describe '#destroy' do
-    subject do
-      spree_delete :destroy, params
-    end
+    let!(:widget) { Widget.create!(name: 'a widget') }
+    let(:params) { { id: widget.id } }
 
-    let!(:dummy_model) { Spree::DummyModel.create!(name: 'a dummy_model') }
-    let(:params) { { id: dummy_model.id } }
+    subject {
+      delete :destroy, params: params
+    }
 
     it 'destroys the resource' do
-      expect { subject }.to change { Spree::DummyModel.count }.from(1).to(0)
+      expect { subject }.to change { Widget.count }.from(1).to(0)
     end
   end
 
   describe '#update_positions' do
+    let(:widget_1) { Widget.create!(name: 'widget 1', position: 1) }
+    let(:widget_2) { Widget.create!(name: 'widget 2', position: 2) }
+
     subject do
-      spree_post :update_positions, id: dummy_model_1.to_param,
-                                    positions: { dummy_model_1.id => '2', dummy_model_2.id => '1' }, format: 'js'
+      post :update_positions, params: { id: widget_1.to_param,
+        positions: { widget_1.id => '2', widget_2.id => '1' }, format: 'js' }
     end
 
-    let(:dummy_model_1) { Spree::DummyModel.create!(name: 'dummy_model 1', position: 1) }
-    let(:dummy_model_2) { Spree::DummyModel.create!(name: 'dummy_model 2', position: 2) }
-
-    it 'updates the position of dummy_model 1' do
-      expect { subject }.to change { dummy_model_1.reload.position }.from(1).to(2)
+    it 'updates the position of widget 1' do
+      expect { subject }.to change { widget_1.reload.position }.from(1).to(2)
     end
 
-    it 'updates the position of dummy_model 2' do
-      expect { subject }.to change { dummy_model_2.reload.position }.from(2).to(1)
-    end
-
-    it 'touches updated_at' do
-      Timecop.scale(3600) do
-        expect { subject }.to change { dummy_model_1.reload.updated_at }
-      end
-    end
-  end
-end
-
-module Spree
-  module Submodule
-    class Post < Spree::Base
-    end
-  end
-  module Admin
-    module Submodule
-      class PostsController < Spree::Admin::ResourceController
-        prepend_view_path('spec/test_views')
-
-        def model_class
-          Spree::Submodule::Post
-        end
-      end
+    it 'updates the position of widget 2' do
+      expect { subject }.to change { widget_2.reload.position }.from(2).to(1)
     end
   end
 end
