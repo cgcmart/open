@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Zones', type: :feature do
@@ -6,11 +8,11 @@ describe 'Zones', type: :feature do
   before do
     Spree::Zone.delete_all
     visit spree.admin_path
-    click_link 'Configuration'
+    click_link "Zones"
   end
 
   context 'show' do
-    it 'displays existing zones' do
+    it 'should display existing zones' do
       create(:zone, name: 'eastern', description: 'zone is eastern')
       create(:zone, name: 'western', description: 'cool san fran')
       click_link 'Zones'
@@ -26,7 +28,7 @@ describe 'Zones', type: :feature do
   end
 
   context 'create' do
-    it 'allows an admin to create a new zone' do
+    it 'should allow an admin to create a new zone' do
       click_link 'Zones'
       click_link 'admin_new_zone_link'
       expect(page).to have_content('New Zone')
