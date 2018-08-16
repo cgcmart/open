@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Log entries', type: :feature do
@@ -14,14 +16,13 @@ describe 'Log entries', type: :feature do
       )
 
       payment.log_entries.create(
-        source: payment.source,
         details: response.to_yaml
       )
     end
 
     it 'shows a successful attempt' do
       visit spree.admin_order_payments_path(payment.order)
-      find("#payment_#{payment.id} a").click
+      click_on payment.number
       click_link 'Logs'
       within('#listing_log_entries') do
         expect(page).to have_content('Transaction successful')
@@ -45,7 +46,7 @@ describe 'Log entries', type: :feature do
 
     it 'shows a failed attempt' do
       visit spree.admin_order_payments_path(payment.order)
-      find("#payment_#{payment.id} a").click
+      click_on payment.number
       click_link 'Logs'
       within('#listing_log_entries') do
         expect(page).to have_content('Transaction failed')
