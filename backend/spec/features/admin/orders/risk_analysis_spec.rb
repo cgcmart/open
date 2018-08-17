@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Order Risk Analysis', type: :feature do
@@ -19,8 +21,7 @@ describe 'Order Risk Analysis', type: :feature do
     before do
       allow_any_instance_of(Spree::Admin::BaseController).to receive_messages try_spree_current_user: create(:user)
 
-      order.payments.first.update_column(:avs_response, 'X')
-      order.considered_risky!
+      order.payments.first.update_column(:avs_response, 'N')
       visit_order
     end
 
