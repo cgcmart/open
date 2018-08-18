@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Tiered Calculator Promotions' do
@@ -10,26 +12,24 @@ describe 'Tiered Calculator Promotions' do
   end
 
   it 'adding a tiered percent calculator', js: true do
-    select2 'Create whole-order adjustment', from: 'Add action of type'
+    select 'Create whole-order adjustment', from: 'Add action of type'
     within('#action_fields') { click_button 'Add' }
 
-    select2 'Tiered Percent', from: 'Calculator'
+    select 'Tiered Percent', from: 'Calculator', from: I18n.t('spree.admin.promotions.actions.calculator_label')
     within('#actions_container') { click_button 'Update' }
 
     within('#actions_container .settings') do
       expect(page.body).to have_content('Base Percent')
       expect(page.body).to have_content('Tiers')
 
-      click_button 'Add'
+      page.find('a.button').click
     end
 
     fill_in 'Base Percent', with: 5
 
     within('.tier') do
-      find('.js-base-input').set(100)
-      page.execute_script("$('.js-base-input').change();")
-      find('.js-value-input').set(10)
-      page.execute_script("$('.js-value-input').change();")
+      find('input: last-child').set(100)
+      find('input: first-child').set(10)
     end
     within('#actions_container') { click_button 'Update' }
 
@@ -39,18 +39,18 @@ describe 'Tiered Calculator Promotions' do
     first_action_calculator = first_action.calculator
     expect(first_action_calculator.class).to eq Spree::Calculator::TieredPercent
     expect(first_action_calculator.preferred_base_percent).to eq 5
-    expect(first_action_calculator.preferred_tiers).to eq Hash[100.0 => 10.0]
+    expect(first_action_calculator.preferred_tiers).to eq(BigDecimal(100) => BigDecimal(10))
   end
 
   context 'with an existing tiered flat rate calculator' do
     let(:promotion) { create :promotion, :with_order_adjustment }
 
-    before do
+    background do
       action = promotion.actions.first
 
       action.calculator = Spree::Calculator::TieredFlatRate.new
       action.calculator.preferred_base_amount = 5
-      action.calculator.preferred_tiers = Hash[100 => 10, 200 => 15, 300 => 20]
+      action.calculator.preferred_tiers = { 100 => 10, 200 => 15, 300 => 20 }
       action.calculator.save!
 
       visit spree.edit_admin_promotion_path(promotion)
@@ -58,13 +58,18 @@ describe 'Tiered Calculator Promotions' do
 
     it 'deleting a tier', js: true do
       within('.tier:nth-child(2)') do
-        click_icon :delete
+        find('.remove').click
       end
 
       within('#actions_container') { click_button 'Update' }
 
+      expect(page).to have_text('has been successfully updated!')
+
       calculator = promotion.actions.first.calculator
-      expect(calculator.preferred_tiers).to eq Hash[100.0 => 10.0, 300.0 => 20.0]
+      expect(calculator.preferred_tiers).to eq({
+        BigDecimal(100) => 10,
+        BigDecimal(300) => 20
+      })
     end
   end
 end
