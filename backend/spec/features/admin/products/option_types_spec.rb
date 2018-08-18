@@ -1,15 +1,17 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
-describe 'Option Types', type: :feature, js: true do
+describe 'Option Types', type: :feature do
   stub_authorization!
 
-  before do
+  before(:each) do
     visit spree.admin_path
-    click_link 'Products'
+    click_nav 'Products'
   end
 
   context 'listing option types' do
-    it 'lists existing option types' do
+    it 'should list existing option types' do
       create(:option_type, name: 'tshirt-color', presentation: 'Color')
       create(:option_type, name: 'tshirt-size', presentation: 'Size')
       click_link 'Option Types'
@@ -23,7 +25,7 @@ describe 'Option Types', type: :feature, js: true do
   end
 
   context 'creating a new option type' do
-    it 'allows an admin to create a new option type' do
+    it 'should allow an admin to create a new option type', js: true do
       click_link 'Option Types'
       click_link 'new_option_type_link'
       expect(page).to have_content('New Option Type')
@@ -41,11 +43,11 @@ describe 'Option Types', type: :feature, js: true do
   end
 
   context 'editing an existing option type' do
-    it 'allows an admin to update an existing option type' do
+    it 'should allow an admin to update an existing option type' do
       create(:option_type, name: 'tshirt-color', presentation: 'Color')
       create(:option_type, name: 'tshirt-size', presentation: 'Size')
       click_link 'Option Types'
-      within('table#listing_option_types') { click_icon :edit }
+      within('table#listing_option_types') { find('tr', text: 'Size').click_link 'Edit' }
       fill_in 'option_type_name', with: 'foo-size 99'
       click_button 'Update'
       expect(page).to have_content('successfully updated!')
@@ -53,37 +55,60 @@ describe 'Option Types', type: :feature, js: true do
     end
   end
 
-  # Regression test for #3204
+  # Regression test for https://github.com/spree/spree/issues/2277
+  it 'can remove an option value from an option type', js: true do
+    option_value = create(:option_value)
+    click_link 'Option Types'
+    within('table#listing_option_types') { click_icon :edit }
+    expect(page).to have_title("#{option_value.option_type.name} - Option Types - Products")
+    expect(page).to have_css("tbody#option_values tr", count: 1)
+    within("tbody#option_values") do
+      find('.spree_remove_fields').click
+    end
+    # Assert that the field is hidden automatically
+    expect(page).to have_no_css("tbody#option_values tr")
+
+    # Ensure the DELETE request finishes
+    expect(page).to have_no_css("#progress")
+
+    # Then assert that on a page refresh that it's still not visible
+    visit page.current_url
+    # What *is* visible is a new option value field, with blank values
+    # Sometimes the page doesn't load before the all check is done
+    # lazily finding the element gives the page 10 seconds
+    expect(page).to have_css("tbody#option_values")
+    all("tbody#option_values tr input", count: 2).each do |input|
+      expect(input.value).to be_blank
+    end
+  end
+
+  # Regression test for https://github.com/spree/spree/issues/3204
   it 'can remove a non-persisted option value from an option type' do
     create(:option_type)
     click_link 'Option Types'
     within('table#listing_option_types') { click_icon :edit }
 
-    wait_for_ajax
-    page.find('tbody#option_values', visible: true)
-
-    expect(all('tbody#option_values tr').select(&:visible?).count).to eq(1)
+    expect(page).to have_css("tbody#option_values tr", count: 1)
 
     # Add a new option type
     click_link 'Add Option Value'
-    expect(all('tbody#option_values tr').select(&:visible?).count).to eq(2)
+    expect(page).to have_css('tbody#option_values tr', count: 2)
 
     # Remove default option type
     within('tbody#option_values') do
-      click_icon :delete
+      within_row(1) do
+        find('.fa-trash').click
+      end
     end
-    # Check that there was no HTTP request
-    expect(all('div#progress[style]').count).to eq(0)
     # Assert that the field is hidden automatically
-    expect(all('tbody#option_values tr').select(&:visible?).count).to eq(1)
+    expect(page).to have_css('tbody#option_values tr', count: 1)
 
     # Remove added option type
     within('tbody#option_values') do
-      click_icon :delete
+      find('.fa-trash').click
     end
-    # Check that there was no HTTP request
-    expect(all('div#progress[style]').count).to eq(0)
+
     # Assert that the field is hidden automatically
-    expect(all('tbody#option_values tr').select(&:visible?).count).to eq(0)
+    expect(page).to have_css('tbody#option_values tr', count: 0)
   end
 end
