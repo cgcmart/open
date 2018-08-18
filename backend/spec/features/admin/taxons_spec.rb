@@ -1,12 +1,19 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Taxonomies and taxons', type: :feature do
   stub_authorization!
 
-  let(:taxonomy) { create(:taxonomy, name: 'Hello') }
-
   it 'admin should be able to edit taxon' do
-    visit spree.edit_admin_taxonomy_taxon_path(taxonomy, taxonomy.root.id)
+    visit spree.new_admin_taxonomy_path
+
+    fill_in 'Name', with: 'Hello'
+    click_button 'Create'
+
+    @taxonomy = Spree::Taxonomy.last
+
+    visit spree.edit_admin_taxonomy_taxon_path(@taxonomy, @taxonomy.root.id)
 
     fill_in 'taxon_name', with: 'Shirt'
     fill_in 'taxon_description', with: 'Discover our new rails shirts'
@@ -16,38 +23,21 @@ describe 'Taxonomies and taxons', type: :feature do
     expect(page).to have_content('Taxon "Shirt" has been successfully updated!')
   end
 
-  it 'taxon without name should not be updated' do
-    visit spree.edit_admin_taxonomy_taxon_path(taxonomy, taxonomy.root.id)
+  it 'can view and add to taxon tree', js: true do
+    taxonomy = create :taxonomy
 
-    fill_in 'taxon_name', with: ''
-    fill_in 'taxon_description', with: 'Discover our new rails shirts'
+    visit spree.edit_admin_taxonomy_path(taxonomy)
+    expect(page).to have_content('Brand')
 
-    fill_in 'permalink_part', with: 'shirt-rails'
-    click_button 'Update'
-    expect(page).to have_content("Name can't be blank")
-  end
+    click_on('Add taxon')
+    expect(page).to have_content('New node')
 
-  it 'admin should be able to remove a product from a taxon', js: true do
-    taxon_1 = create(:taxon, name: 'Clothing')
-    product = create(:product)
-    product.taxons << taxon_1
+    # Little tricky to select the right taxon. Since the text is technically
+    # inside the top-level li.
+    within '#taxonomy_tree li li', text: 'New node' do
+      click_icon :edit
+    end
 
-    visit spree.admin_taxons_path
-    select_clothing_from_select2
-
-    find('.product').hover
-    find('.product .dropdown-toggle').click
-    click_link 'Delete From Taxon'
-    wait_for_ajax
-
-    visit current_path
-    select_clothing_from_select2
-
-    expect(page).to have_content('No results')
-  end
-
-  def select_clothing_from_select2
-    targetted_select2_search 'Clothing', from: '#s2id_taxon_id'
-    wait_for_ajax
+    expect(page).to have_current_path %r{/admin/taxonomies/\d+/taxons/\d+/edit}
   end
 end
