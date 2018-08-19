@@ -35,7 +35,7 @@ module Spree
           respond_with(@order, default_template: :show, status: 201)
         else
           @order = Spree::Order.create!(user: current_api_user, store: current_store)
-          if @order.contents.update_cart order_params
+          if Cart::Update.call(order: @order, params: order_params).success?
             respond_with(@order, default_template: :show, status: 201)
           else
             invalid_resource!(@order)
@@ -63,7 +63,7 @@ module Spree
       def update
         authorize! :update, @order, order_token
 
-        if @order.contents.update_cart(order_params)
+        if Cart::Update.call(order: @order, params: order_params).success?
           user_id = params[:order][:user_id]
           if can?(:admin, @order) && user_id
             @order.associate_user!(Spree.user_class.find(user_id))
