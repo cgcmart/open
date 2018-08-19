@@ -5,7 +5,7 @@ require 'spec_helper'
 describe 'Product Details', type: :feature do
   stub_authorization!
 
-  context 'editing a product' do
+  context 'editing a product', js: true do
     it 'should list the product details' do
       create(:product, name: 'Bún thịt nướng', sku: 'A100',
                        description: 'lorem ipsum', available_on: '2013-08-14 01:02:03')
@@ -47,6 +47,13 @@ describe 'Product Details', type: :feature do
       fill_in 'product_slug', with: 'x'
       click_button 'Update'
       expect(page).to have_content("successfully updated!")
+    end
+
+    it 'handles tag changes' do
+      targetted_select2_search 'example-tag', from: '#s2id_product_tag_list'
+      click_button 'Update'
+      expect(page).to have_content('successfully updated!')
+      expect(find('#s2id_product_tag_list')).to have_content('example-tag')
     end
 
     it 'has a link to preview a product' do
