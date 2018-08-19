@@ -42,9 +42,10 @@ module Spree
         authorize! :create, Shipment
         quantity = params[:quantity].to_i
         @shipment = @order.shipments.create(stock_location_id: params.fetch(:stock_location_id))
-        @order.contents.add(variant, quantity, { shipment: @shipment })
-
-        @shipment.save!
+        @line_item = Spree::Cart::AddItem.call(order: @order,
+          variant: variant,
+          quantity: quantity,
+          options: { shipment: @shipment }).value
 
         respond_with(@shipment.reload, default_template: :show)
       end
@@ -79,7 +80,10 @@ module Spree
       def add
         quantity = params[:quantity].to_i
 
-        @shipment.order.contents.add(variant, quantity, { shipment: @shipment })
+        Spree::Cart::AddItem.call(order: @shipment.order,
+          variant: variant,
+          quantity: quantity,
+          options: { shipment: @shipment })
         respond_with(@shipment, default_template: :show)
       end
 
@@ -90,7 +94,7 @@ module Spree
           @shipment.errors.add(:base, :cannot_remove_items_shipment_state, state: @shipment.state)
           invalid_resource!(@shipment)
         else
-          @shipment.order.contents.remove(variant, quantity, { shipment: @shipment })
+          Spree::Cart::RemoveItem.call(order: @shipment.order, variant: variant, quantity: quantity, options: { shipment: @shipment })
           @shipment.reload if @shipment.persisted?
           respond_with(@shipment, default_template: :show)
         end
