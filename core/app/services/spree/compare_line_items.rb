@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This class should be refactored
 module Spree
   class CompareLineItems
