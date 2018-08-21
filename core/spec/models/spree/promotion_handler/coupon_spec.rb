@@ -138,7 +138,7 @@ module Spree
               general_promo = create(:promotion, apply_automatically: true, name: "General Promo")
               Promotion::Actions::CreateItemAdjustments.create(promotion: general_promo, calculator: calculator)
 
-              order.contents.add create(:variant)
+              Spree::Cart::AddItem.call(order: order, variant: create(:variant))
             end
 
             # regression spec for https://github.com/spree/spree/issues/4515
@@ -161,9 +161,8 @@ module Spree
               general_promo = create(:promotion, apply_automatically: true, name: "General Promo")
               Promotion::Actions::CreateItemAdjustments.create!(promotion: general_promo, calculator: calculator)
 
-              order.contents.add create(:variant, price: 500)
-              order.contents.add create(:variant, price: 10)
-
+              Spree::Cart::AddItem.call(order: order, variant: create(:variant, price: 500))
+              Spree::Cart::AddItem.call(order: order, variant: create(:variant, price: 10))
               Spree::PromotionHandler::Cart.new(order).activate
             end
 
@@ -294,7 +293,7 @@ module Spree
 
               3.times do |_i|
                 taxable = create(:product, tax_category: tax_category, price: 9.0)
-                order.contents.add(taxable.master, 1)
+                Spree::Cart::AddItem.call(order: @order, variant: taxable.master)
               end
             end
 
@@ -316,7 +315,7 @@ module Spree
 
               3.times do |_i|
                 taxable = create(:product, tax_category: tax_category, price: 11.0)
-                order.contents.add(taxable.master, 2)
+                Spree::Cart::AddItem.call(order: @order, variant: taxable.master, quantity: 2)
               end
             end
 
@@ -343,7 +342,7 @@ module Spree
 
               3.times do |_i|
                 taxable = create(:product, tax_category: tax_category, price: 10.0)
-                order.contents.add(taxable.master, 2)
+                Spree::Cart::AddItem.call(order: @order, variant: taxable.master, quantity: 2)
               end
             end
 
