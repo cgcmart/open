@@ -4,7 +4,6 @@ module Spree
   module UserMethods
     extend ActiveSupport::Concern
 
-    include Spree::UserApiAuthentication
     include Spree::UserReporting
     include Spree::UserAddressBook
     include Spree::UserPaymentSource
