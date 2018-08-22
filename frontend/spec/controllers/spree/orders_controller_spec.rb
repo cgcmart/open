@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe Spree::OrdersController, type: :controller do
+  let!(:store) { create(:store) }
   let(:user) { create(:user) }
 
   context 'Order model mock' do
@@ -14,19 +17,24 @@ describe Spree::OrdersController, type: :controller do
     end
 
     context '#populate' do
-      it 'creates a new order when none specified' do
-        spree_post :populate, variant_id: variant.id
+      it 'should create a new order when none specified' do
+        post :populate, params: { variant_id: variant.id }
+        expect(response).to be_redirect
         expect(cookies.signed[:guest_token]).not_to be_blank
-        expect(Spree::Order.find_by(guest_token: cookies.signed[:guest_token])).to be_persisted
+        order_by_token = Spree::Order.find_by(guest_token: cookies.signed[:guest_token])
+        assigned_order = assigns[:order]
+
+        expect(assigned_order).to eq order_by_token
+        expect(assigned_order).to be_persisted
       end
 
       context 'with Variant' do
         it 'handles population' do
           expect do
-            spree_post :populate, variant_id: variant.id, quantity: 5
+            post :populate, params: { variant_id: variant.id, quantity: 5 }
           end.to change { user.orders.count }.by(1)
           order = user.orders.last
-          expect(response).to redirect_to spree.cart_path(variant_id: variant.id)
+          expect(response).to redirect_to spree.cart_path
           expect(order.line_items.size).to eq(1)
           line_item = order.line_items.first
           expect(line_item.variant_id).to eq(variant.id)
@@ -34,7 +42,7 @@ describe Spree::OrdersController, type: :controller do
         end
 
         it 'shows an error when population fails' do
-          request.env['HTTP_REFERER'] = '/dummy_redirect'
+          request.env['HTTP_REFERER'] = spree.root_path
           allow_any_instance_of(Spree::LineItem).to(
             receive(:valid?).and_return(false)
           )
@@ -43,24 +51,51 @@ describe Spree::OrdersController, type: :controller do
               and_return(['Order population failed'])
           )
 
-          spree_post :populate, variant_id: variant.id, quantity: 5
+          post :populate, params: { variant_id: variant.id, quantity: 5 }
 
-          expect(response).to redirect_to('/dummy_redirect')
+          expect(response).to redirect_to(spree.root_path)
           expect(flash[:error]).to eq('Order population failed')
         end
 
         it 'shows an error when quantity is invalid' do
-          request.env['HTTP_REFERER'] = '/dummy_redirect'
-
-          spree_post(
+          request.env['HTTP_REFERER'] = spree.root_path
+          post(
             :populate,
-            variant_id: variant.id, quantity: -1
+            params: { variant_id: variant.id, quantity: -1 }
           )
 
-          expect(response).to redirect_to('/dummy_redirect')
+          expect(response).to redirect_to(spree.root_path)
           expect(flash[:error]).to eq(
-            Spree.t(:please_enter_reasonable_quantity)
+            t('spree.please_enter_reasonable_quantity')
           )
+        end
+
+        context "when quantity is empty string" do
+          it "should populate order with 1 of given variant" do
+            expect do
+              post :populate, params: { variant_id: variant.id, quantity: '' }
+            end.to change { Spree::Order.count }.by(1)
+            order = Spree::Order.last
+            expect(response).to redirect_to spree.cart_path
+            expect(order.line_items.size).to eq(1)
+            line_item = order.line_items.first
+            expect(line_item.variant_id).to eq(variant.id)
+            expect(line_item.quantity).to eq(1)
+          end
+        end
+
+        context "when quantity is nil" do
+          it "should populate order with 1 of given variant" do
+            expect do
+              post :populate, params: { variant_id: variant.id, quantity: nil }
+            end.to change { Spree::Order.count }.by(1)
+            order = Spree::Order.last
+            expect(response).to redirect_to spree.cart_path
+            expect(order.line_items.size).to eq(1)
+            line_item = order.line_items.first
+            expect(line_item.variant_id).to eq(variant.id)
+            expect(line_item.quantity).to eq(1)
+          end
         end
       end
     end
@@ -68,39 +103,93 @@ describe Spree::OrdersController, type: :controller do
     context '#update' do
       context 'with authorization' do
         before do
-          allow(controller).to receive :check_authorization
+          allow(controller).to receive :authorize!
           allow(controller).to receive_messages current_order: order
         end
 
-        it 'renders the edit view (on failure)' do
+        it 'should render the edit view (on failure)' do
           # email validation is only after address state
           order.update_column(:state, 'delivery')
-          spree_put :update, { order: { email: '' } }, order_id: order.id
+          put :update, params: { order: { email: '' } }
           expect(response).to render_template :edit
         end
 
-        it 'redirects to cart path (on success)' do
+        it 'should redirect to cart path (on success)' do
           allow(order).to receive(:update_attributes).and_return true
-          spree_put :update, {}, order_id: 1
+          put :update
           expect(response).to redirect_to(spree.cart_path)
+        end
+
+        it "should advance the order if :checkout button is pressed" do
+          allow(order).to receive(:update_attributes).and_return true
+          expect(order).to receive(:next)
+          put :update, params: { checkout: true }
+          expect(response).to redirect_to checkout_state_path('address')
+        end
+
+        context 'trying to apply a coupon code' do
+          let(:order) { create(:order_with_line_items, state: 'cart') }
+          let(:coupon_code) { "coupon_code" }
+
+          context "when coupon code is empty" do
+            let(:coupon_code) { "" }
+
+            it 'does not try to apply coupon code' do
+              expect(Spree::PromotionHandler::Coupon).not_to receive :new
+
+              put :update, params: { state: order.state, order: { coupon_code: coupon_code } }
+
+              expect(response).to redirect_to(spree.cart_path)
+            end
+          end
+
+          context "when coupon code is applied" do
+            let(:promotion_handler) { instance_double('Spree::PromotionHandler::Coupon', error: nil, success: 'Coupon Applied!') }
+
+            it "continues checkout flow normally" do
+              expect(Spree::PromotionHandler::Coupon)
+                .to receive_message_chain(:new, :apply)
+                .and_return(promotion_handler)
+
+              put :update, params: { state: order.state, order: { coupon_code: coupon_code } }
+
+              expect(response).to redirect_to(spree.cart_path)
+              expect(flash.now[:success]).to eq('Coupon Applied!')
+            end
+
+            context "when coupon code is not applied" do
+              let(:promotion_handler) { instance_double('Spree::PromotionHandler::Coupon', error: 'Some error', success: false) }
+
+              it "render cart with coupon error" do
+                expect(Spree::PromotionHandler::Coupon)
+                  .to receive_message_chain(:new, :apply)
+                  .and_return(promotion_handler)
+
+                put :update, params: { state: order.state, order: { coupon_code: coupon_code } }
+
+                expect(response).to render_template :edit
+                expect(flash.now[:error]).to eq('Some error')
+              end
+            end
+          end
         end
       end
     end
 
     context '#empty' do
       before do
-        allow(controller).to receive :check_authorization
+        allow(controller).to receive :authorize!
       end
 
-      it 'destroys line items in the current order' do
+      it 'should destroy line items in the current order' do
         allow(controller).to receive(:current_order).and_return(order)
         expect(order).to receive(:empty!)
-        spree_put :empty
+        put :empty
         expect(response).to redirect_to(spree.cart_path)
       end
     end
 
-    # Regression test for #2750
+    # Regression test for https://github.com/spree/spree/issues/2750
     context '#update' do
       before do
         allow(user).to receive :last_incomplete_spree_order
@@ -108,26 +197,26 @@ describe Spree::OrdersController, type: :controller do
       end
 
       it 'cannot update a blank order' do
-        spree_put :update, order: { email: 'foo' }
-        expect(flash[:error]).to eq(Spree.t(:order_not_found))
+        put :update, params: { order: { email: 'foo' } }
+        expect(flash[:error]).to eq(I18n.t('spree.order_not_found'))
         expect(response).to redirect_to(spree.root_path)
       end
     end
   end
 
   context 'line items quantity is 0' do
-    let(:order) { Spree::Order.create }
+    let(:order) { Spree::Order.create(store: store) }
     let(:variant) { create(:variant) }
     let!(:line_item) { Spree::Cart::AddItem.call(order: order, variant: variant).value }
 
     before do
-      allow(controller).to receive(:check_authorization)
+      allow(controller).to receive :authorize!
       allow(controller).to receive_messages(current_order: order)
     end
 
     it 'removes line items on update' do
       expect(order.line_items.count).to eq 1
-      spree_put :update, order: { line_items_attributes: { '0' => { id: line_item.id, quantity: 0 } } }
+      put :update, params: { order: { line_items_attributes: { '0' => { id: line_item.id, quantity: 0 } } } }
       expect(order.reload.line_items.count).to eq 0
     end
   end
