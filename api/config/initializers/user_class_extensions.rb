@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 # Ensure that Spree.user_class includes the UserApiMethods concern
 
 Spree::Core::Engine.config.to_prepare do
