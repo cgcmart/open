@@ -1,4 +1,6 @@
-class ResizeApiKeyField < ActiveRecord::Migration[4.2]
+# frozen_string_literal: true
+
+class ResizeApiKeyField < ActiveRecord::Migration[5.2]
   def change
     unless defined?(User)
       change_column :spree_users, :api_key, :string, limit: 48
