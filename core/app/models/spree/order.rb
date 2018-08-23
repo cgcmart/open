@@ -435,6 +435,30 @@ module Spree
       recalculate
     end
 
+    def has_step?(step)
+      checkout_steps.include?(step)
+    end
+
+    def state_changed(name)
+      state = "#{name}_state"
+      if persisted?
+        old_state = send("#{state}_was")
+        new_state = send(state)
+        unless old_state == new_state
+          log_state_changes(state_name: name, old_state: old_state, new_state: new_state)
+        end
+      end
+    end
+
+    def log_state_changes(state_name:, old_state:, new_state:)
+      state_changes.create(
+        previous_state: old_state,
+        next_state:     new_state,
+        name:           state_name,
+        user_id:        user_id
+      )
+    end
+
     def coupon_code=(code)
       @coupon_code = begin
                        code.strip.downcase
