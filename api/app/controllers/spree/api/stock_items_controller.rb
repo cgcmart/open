@@ -35,6 +35,11 @@ module Spree
         @stock_item = Spree::StockItem.accessible_by(current_ability, :update).find(params[:id])
         @stock_location = @stock_item.stock_location
 
+        if params[:stock_item].key?(:backorderable)
+          @stock_item.backorderable = params[:stock_item][:backorderable]
+          @stock_item.save
+        end
+
         adjustment = count_on_hand_adjustment
         params[:stock_item].delete(:count_on_hand)
         adjustment -= @stock_item.count_on_hand if params[:stock_item][:force]
