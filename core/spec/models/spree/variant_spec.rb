@@ -58,8 +58,29 @@ RSpec.describe Spree::Variant, type: :model do
         it { expect(product.master).not_to be_in_stock }
       end
     end
-  
-    describe '.for_currency_and_available_price_amount' do
+
+    describe '.eligible' do
+      context 'when only master variants' do
+        let!(:product_1) { create(:product) }
+        let!(:product_2) { create(:product) }
+
+        it 'returns all of them' do
+          expect(Spree::Variant.eligible).to include(product_1.master)
+          expect(Spree::Variant.eligible).to include(product_2.master)
+        end
+      end
+
+      context 'when product has more than 1 variant' do
+        let!(:product) { create(:product) }
+        let!(:variant) { create(:variant, product: product) }
+
+        it 'filters master variant out' do
+          expect(Spree::Variant.eligible).to include(variant)
+          expect(Spree::Variant.eligible).not_to include(product.master)
+        end
+      end
+
+      describe '.for_currency_and_available_price_amount' do
       let(:currency) { 'EUR' }
 
       context 'when price with currency present' do
