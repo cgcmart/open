@@ -35,7 +35,7 @@ module Spree
         get spree.api_variants_path, params: { per_page: 1 }
         expect(json_response['count']).to eq(1)
         expect(json_response['current_page']).to eq(1)
-        expect(json_response['pages']).to eq(3)
+        expect(json_response['pages']).to eq(2)
       end
 
       it 'can query the results through a paramter' do
@@ -172,9 +172,9 @@ module Spree
           create(:variant)
           get spree.api_variants_path, params: { page: 2, per_page: 1 }
           expect(json_response["variants"].first).to have_attributes(show_attributes)
-          expect(json_response["total_count"]).to eq(3)
+          expect(json_response["total_count"]).to eq(2)
           expect(json_response["current_page"]).to eq(2)
-          expect(json_response["pages"]).to eq(3)
+          expect(json_response["pages"]).to eq(2)
         end
       end
 
