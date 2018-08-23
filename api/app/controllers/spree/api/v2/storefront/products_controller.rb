@@ -1,0 +1,87 @@
+# frozen_string_literal: true
+
+module Spree
+  module Api
+    module V2
+      module Storefront
+        class ProductsController < ::Spree::Api::V2::BaseController
+          def index
+            render_serialized_payload serialize_collection(collection), 200
+          end
+
+          def show
+            render_serialized_payload serialize_resource(resource), 200
+          end
+
+          private
+
+          def serialize_collection(collection)
+            dependencies[:collection_serializer].new(
+              sorted_collection(collection),
+              include: collection_includes
+            ).serializable_hash
+          end
+
+          def serialize_resource(resource)
+            dependencies[:resource_serializer].new(
+              resource,
+              include: resource_includes
+            ).serializable_hash
+          end
+
+          def sorted_collection(collection)
+            dependencies[:collection_sorter].new(collection, params, current_currency).call
+          end
+
+          def collection
+            dependencies[:collection_finder].new(scope, params, current_currency).call
+          end
+
+          def resource
+            scope.find_by(slug: params[:id]) || scope.find(params[:id])
+          end
+
+          def dependencies
+            {
+              collection_sorter:     Spree::Products::Sort,
+              collection_finder:     Spree::Products::Find,
+              collection_serializer: Spree::V2::Storefront::ProductSerializer,
+              resource_serializer:   Spree::V2::Storefront::ProductSerializer
+            }
+          end
+
+          def scope
+            Spree::Product.includes(scope_includes)
+          end
+
+          def resource_includes
+            request_includes || default_resource_includes
+          end
+
+          def default_resource_includes
+            %i[
+              variants
+              variants.images
+              default_variant
+              default_variant.images
+              option_types
+              option_types.option_values
+              product_properties
+            ]
+          end
+
+          def scope_includes
+            {
+              classifications:    :taxon,
+              product_properties: :property,
+              option_types:       :option_values,
+              variants:           %i[default_price option_values]
+            }
+          end
+
+          alias_method :collection_includes, :resource_includes
+        end
+      end
+    end
+  end
+end
