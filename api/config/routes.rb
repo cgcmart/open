@@ -140,7 +140,7 @@ Spree::Core::Engine.routes.draw do
     get '/taxons/products', to: 'taxons#products', as: :taxon_products
   end
 
-  namespace :v1 do
+  namespace :v2 do
     if Rails.env.development? || ENV['EXPOSE_SWAGGER']
       get 'storefront.yml', to: 'swagger#storefront', as: 'swagger_storefront', format: 'yml'
     end
