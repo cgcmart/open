@@ -5,6 +5,7 @@ require 'spree/api/responders'
 module Spree
   module Api
     class BaseController < ActionController::Base
+      protect_from_forgery unless: -> { request.format.json? || request.format.xml? }
       self.responder = Spree::Api::Responders::AppResponder
       respond_to :json
 
