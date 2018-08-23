@@ -129,13 +129,13 @@ module Spree
       end
 
       def log_state_changes
-          if @order.previous_changes[:state]
-            @order.log_state_changes(
-              state_name: 'order',
-              old_state: @order.previous_changes[:state].first,
-              new_state: @order.previous_changes[:state].last
-            )
-          end
+        if @order.previous_changes[:state]
+          @order.log_state_changes(
+            state_name: 'order',
+            old_state: @order.previous_changes[:state].first,
+            new_state: @order.previous_changes[:state].last
+          )
+        end
       end
 
       def order_id
