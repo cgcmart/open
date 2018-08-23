@@ -1,10 +1,19 @@
+# frozen_string_literal: true
+
 module Spree
   module Api
     module V2
       class BaseController < ActionController::API
         include CanCan::ControllerAdditions
+        rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
 
         private
+
+        def render_serialized_payload(payload, status)
+          render json: payload, status: status
+        rescue ArgumentError => exception
+          render json: { error: exception.message }, status: 400
+        end
 
         def spree_current_store
           @spree_current_store ||= Spree::Store.current(request.env['SERVER_NAME'])
@@ -32,14 +41,24 @@ module Spree
         end
 
         def find_spree_current_order
-          Spree::Order::FindCurrent.new.execute(user: spree_current_user,
-                                                store: spree_current_store,
-                                                guest_token: order_token,
-                                                currency: params[:currency] || current_currency)
+          Spree::Order::FindCurrent.new.execute(
+            store: spree_current_store,
+            user: spree_current_user,
+            token: order_token,
+            currency: current_currency
+          )
+        end
+
+        def request_includes
+          params[:include].split(',').map(&:intern) if params[:include].present?
         end
 
         def current_currency
           spree_current_store.default_currency || Spree::Config[:currency]
+        end
+
+        def record_not_found(exception)
+          render json: { error: exception.message }, status: 404
         end
       end
     end
