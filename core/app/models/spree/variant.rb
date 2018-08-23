@@ -90,6 +90,19 @@ module Spree
       joins(:stock_items).where(arel_conditions.inject(:or))
     end
 
+    def self.eligible
+      where(is_master: false).or(where(
+          <<-SQL
+            #{Variant.quoted_table_name}.id IN (
+              SELECT MIN(#{Variant.quoted_table_name}.id) FROM #{Variant.quoted_table_name}
+              GROUP BY #{Variant.quoted_table_name}.product_id
+              HAVING COUNT(*) = 1
+            )
+          SQL
+        )
+      )
+    end
+
     self.whitelisted_ransackable_associations = %w[option_values product prices default_price]
     self.whitelisted_ransackable_attributes = %w[weight sku]
 
