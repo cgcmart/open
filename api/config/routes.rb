@@ -146,8 +146,15 @@ Spree::Core::Engine.routes.draw do
     end
 
     namespace :storefront do
-      resource :cart, controller: :cart, only: [:show, :create] do
-        post 'add_item'
+      resource :cart, controller: :cart, only: %i[show create] do
+          post   :add_item
+          post   :empty
+          delete 'remove_line_item/:line_item_id', to: 'cart#remove_line_item', as: :cart_remove_line_item
+          patch  :set_quantity
+        end
+
+        resources :products, only: %i[index show]
+        resources :taxons, only: %i[index show]
       end
     end
   end
