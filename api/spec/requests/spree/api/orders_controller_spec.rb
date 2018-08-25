@@ -380,12 +380,12 @@ module Spree
     end
 
     it "can view an order if the token is known" do
-      get spree.api_order_path(order), params: { order_token: order.guest_token }
+      get spree.api_order_path(order), params: { order_token: order.token }
       expect(response.status).to eq(200)
     end
 
     it "can view an order if the token is passed in header" do
-      get spree.api_order_path(order), headers: { "X-Spree-Order-Token" => order.guest_token }
+      get spree.api_order_path(order), headers: { "X-Spree-Order-Token" => order.token }
       expect(response.status).to eq(200)
     end
 
