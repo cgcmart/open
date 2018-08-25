@@ -1,8 +1,9 @@
+# frozen_string_literal: true
+
 require 'active_record'
 
 namespace :db do
-  desc %q{Loads a specified fixture file:
-use rake db:load_file[/absolute/path/to/sample/filename.rb]}
+  desc %q{Loads a specified fixture file: use rake db:load_file[/absolute/path/to/sample/filename.rb]}
 
   task :load_file, [:file, :dir] => :environment do |_t, args|
     file = Pathname.new(args.file)
@@ -46,7 +47,7 @@ use rake db:load_file[/absolute/path/to/sample/filename.rb]}
       # Dump the schema
       Rake::Task['db:schema:dump'].invoke
     else
-      say 'Task cancelled.'
+      puts 'Task cancelled.'
       exit
     end
   end
@@ -62,11 +63,11 @@ use rake db:load_file[/absolute/path/to/sample/filename.rb]}
         Rake::Task['db:create'].invoke
         Rake::Task['db:remigrate'].invoke
       else
-        say 'Task cancelled, exiting.'
+        puts 'Task cancelled, exiting.'
         exit
       end
     else
-      say 'NOTE: Bootstrap in production mode will not drop database before migration'
+      puts 'NOTE: Bootstrap in production mode will not drop database before migration'
       Rake::Task['db:migrate'].invoke
     end
 
@@ -82,7 +83,7 @@ use rake db:load_file[/absolute/path/to/sample/filename.rb]}
       load_sample = agree('WARNING: In Production and products exist in database, load sample data anyways? [y/n]:')
     else
       load_sample = true if ENV['AUTO_ACCEPT']
-      load_sample = agree('Load Sample Data? [y/n]: ') unless load_sample
+      load_sample ||= prompt_for_agree('Load Sample Data? [y/n]: ')
     end
 
     if load_sample
@@ -92,70 +93,6 @@ use rake db:load_file[/absolute/path/to/sample/filename.rb]}
     end
 
     puts "Bootstrap Complete.\n\n"
-  end
-
-  desc 'Fix orphan line items after upgrading to Spree 3.1: only needed if you have line items attached to deleted records with Slug (product) and SKU (variant) duplicates of non-deleted records.'
-  task fix_orphan_line_items: :environment do |_t, _args|
-    def get_input
-      STDOUT.flush
-      input = STDIN.gets.chomp
-      case input.upcase
-      when 'Y'
-        return true
-
-      when 'N'
-        puts 'aborting .....'
-        return false
-      else
-        return true
-      end
-    end
-
-    puts 'WARNING: This task will re-associate any line_items associated with deleted variants to non-deleted variants with matching SKUs. Because other attributes and product associations may switch during the re-association, this may have unintended side-effects. If this task finishes successfully, line items for old order should no longer be orphaned from their varaints. You should run this task after you have already run the db migratoin AddDiscontinuedToProductsAndVariants. If the db migration did not warn you that it was leaving deleted records in place because of duplicate SKUs, then you do not need to run this rake task.'
-    puts 'Are you sure you want to continue? (Y/n):'
-
-    if get_input
-      puts 'looping through all your deleted variants ...'
-
-      # first verify that I can really fix all of your line items
-
-      no_live_variants_found = []
-      variants_to_fix = []
-
-      Spree::Variant.deleted.each do |variant|
-        # check if this variant has any line items at all
-        next if variant.line_items.none?
-
-        variants_to_fix << variant
-        dup_variant = Spree::Variant.find_by(sku: variant.sku)
-        if dup_variant
-          # this variant is OK
-        else
-          no_live_variants_found << variant
-        end
-      end
-
-      if variants_to_fix.none?
-        abort('ABORT: You have no deleted variants that are associated to line items. You do not need to run this raks task.')
-      end
-
-      if no_live_variants_found.any?
-        puts "ABORT: Unfortunately, I found some deleted variants in your database that do not have matching non-deleted variants to replace them with. This script can only be used to cleanup deleted variants that have SKUs that match non-deleted variants. To continue, you must either (1) un-delete these variants (hint: mark them 'discontinued' instead) or (2) create new variants with a matching SKU for each variant in the list below."
-        no_live_variants_found.each do |deleted_variant|
-          puts "variant id #{deleted_variant.id} (sku is '#{deleted_variant.sku}') ... no match found"
-        end
-        abort
-      end
-
-      puts 'Ready to fix...'
-      variants_to_fix.each do |variant|
-        dup_variant = Spree::Variant.find_by(sku: variant.sku)
-        puts "Changing all line items for #{variant.sku} variant id #{variant.id} (deleted) to variant id #{dup_variant.id} (not deleted) ..."
-        Spree::LineItem.unscoped.where(variant_id: variant.id).update_all(variant_id: dup_variant.id)
-      end
-
-      puts 'DONE !   Your database should no longer have line items that are associated with deleted variants.'
-    end
   end
 
   desc 'Migrates taxon icons to spree assets after upgrading to Spree 3.4: only needed if you used taxons icons.'
