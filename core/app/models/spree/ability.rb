@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Implementation class for Cancan gem.  Instead of overriding this class, consider adding new permissions
 # using the special +register_ability+ method which allows extensions to add their own abilities.
 #
@@ -9,6 +11,8 @@ module Spree
 
     class_attribute :abilities
     self.abilities = Set.new
+
+    attr_reader :user
 
     # Allows us to go beyond the standard cancan initialize method which makes it difficult for engines to
     # modify the default +Ability+ of an application.  The +ability+ argument must be a class that includes
@@ -22,7 +26,17 @@ module Spree
       abilities.delete(ability)
     end
 
-    def initialize(user)
+    def initialize(current_user)
+      @user = current_user || Spree.user_class.new
+
+      alias_actions
+      activate_permission_sets
+      register_extension_abilities
+    end
+
+    private
+
+    def alias_actions
       clear_aliased_actions
 
       # override cancan default aliasing (we don't want to differentiate between read and index)
@@ -32,51 +46,19 @@ module Spree
       alias_action :new_action, to: :create
       alias_action :show, to: :read
       alias_action :index, :read, to: :display
-      alias_action :create, :update, :destroy, to: :modify
-
-      user ||= Spree.user_class.new
-
-      if user.respond_to?(:has_spree_role?) && user.has_spree_role?('admin')
-        can :manage, :all
-      else
-        can :display, Country
-        can :display, OptionType
-        can :display, OptionValue
-        can :create, Order
-        can :read, Order do |order, token|
-          order.user == user || order.guest_token && token == order.guest_token
-        end
-        can :update, Order do |order, token|
-          !order.completed? && (order.user == user || order.guest_token && token == order.guest_token)
-        end
-        can :display, CreditCard, user_id: user.id
-        can :display, Product
-        can :display, ProductProperty
-        can :display, Property
-        can :create, Spree.user_class
-        can [:read, :update, :destroy], Spree.user_class, id: user.id
-        can :display, State
-        can :display, Taxon
-        can :display, Taxonomy
-        can :display, Variant
-        can :display, Zone
-      end
-
-      # Include any abilities registered by extensions, etc.
-      Ability.abilities.merge(abilities_to_register).each do |clazz|
-        merge clazz.new(user)
-      end
-
-      # Protect admin role
-      cannot [:update, :destroy], Role, name: ['admin']
     end
 
-    private
+    # Before, this was the only way to extend this ability. Permission sets have been added since.
+    # It is recommended to use them instead for extension purposes if possible.
+    def register_extension_abilities
+      Ability.abilities.each do |clazz|
+        ability = clazz.send(:new, user)
+        merge(ability)
+      end
+    end
 
-    # you can override this method to register your abilities
-    # this method has to return array of classes
-    def abilities_to_register
-      []
+    def activate_permission_sets
+      Spree::Config.roles.activate_permissions! self, user
     end
   end
 end
