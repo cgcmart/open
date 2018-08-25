@@ -595,9 +595,40 @@ RSpec.describe Spree::Variant, type: :model do
       end
     end
 
-    context 'when stock_items are backorderable' do
+    describe '#purchasable?' do
+      context 'when stock_items are backorderable' do
+        before do
+          allow_any_instance_of(Spree::StockItem).to receive_messages(backorderable: true)
+        end
+
+        context 'when stock_items out of stock' do
+          before do
+            allow_any_instance_of(Spree::StockItem).to receive_messages(count_on_hand: 0)
+          end
+
+          it 'in_stock? returns false' do
+            expect(variant.in_stock?).to be false
+          end
+
+          it 'can_supply? return true' do
+            expect(variant.can_supply?).to be true
+          end
+        end        
+      end
+
+      context 'when stock_items are not backorderable' do
       before do
-        allow_any_instance_of(Spree::StockItem).to receive_messages(backorderable: true)
+        allow_any_instance_of(Spree::StockItem).to receive_messages(backorderable: false)
+      end
+
+      context 'when stock_items in stock' do
+        before do
+          variant.stock_items.first.update_column(:count_on_hand, 10)
+        end
+
+        it 'returns true if stock_items in stock' do
+          expect(variant.purchasable?).to be true
+        end
       end
 
       context 'when stock_items out of stock' do
@@ -605,12 +636,8 @@ RSpec.describe Spree::Variant, type: :model do
           allow_any_instance_of(Spree::StockItem).to receive_messages(count_on_hand: 0)
         end
 
-        it 'in_stock? returns false' do
-          expect(variant.in_stock?).to be false
-        end
-
-        it 'can_supply? return true' do
-          expect(variant.can_supply?).to be true
+        it 'return false if stock_items out of stock' do
+          expect(variant.purchasable?).to be false
         end
       end
     end
