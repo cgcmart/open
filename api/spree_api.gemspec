@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'spree_core', s.version
   s.add_dependency 'jbuilder'
   s.add_dependency 'kaminari-activerecord', '~> 1.1'
-  s.add_dependency 'versioncake', '~> 3.4.0'
-  s.add_dependency 'fast_jsonapi', '~> 1.1.0'
+  s.add_dependency 'fast_jsonapi', '~> 1.3.0'
   s.add_dependency 'doorkeeper'
+  s.add_dependency 'responders'
 end
