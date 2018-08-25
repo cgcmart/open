@@ -92,7 +92,7 @@ module Spree
 
     # Needs to happen before save_permalink is called
     before_validation :associate_store
-    before_validation :set_currency
+    before_validation :ensure_currency_presence
     before_validation :generate_order_number, on: :create
     before_validation :assign_billing_to_shipping_address, if: :use_billing?
     attr_accessor :use_billing
@@ -102,7 +102,7 @@ module Spree
 
     validates :email, presence: true, if: :require_email
     validates :email, 'spree/email' => true, allow_blank: true
-    validates :guest_token, presence: { allow_nil: true }
+    validates :token, presence: { allow_nil: true }
     validates :number, presence: true, uniqueness: { allow_blank: true }
     validates :store_id, presence: true
 
@@ -555,7 +555,7 @@ module Spree
     end
 
     def token
-      guest_token
+      self.token = value
     end
 
     def tax_total
@@ -823,14 +823,14 @@ module Spree
       use_billing.in?([true, 'true', '1'])
     end
 
-    def set_currency
-      self.currency = Spree::Config[:currency] if self[:currency].nil?
+    def ensure_currency_presence
+      self.currency ||= store.default_currency || Spree::Config[:currency]
     end
 
     def create_token
-      self.guest_token ||= loop do
+      self.token ||= loop do
         random_token = SecureRandom.urlsafe_base64(nil, false)
-        break random_token unless self.class.exists?(guest_token: random_token)
+        break random_token unless self.class.exists?(token: random_token)
       end
     end
   end
