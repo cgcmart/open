@@ -26,12 +26,12 @@ RSpec.describe Spree::Api::BaseController, type: :controller do
 
     context 'with a correct order token' do
       it 'succeeds' do
-        get :index, params: { order_token: order.guest_token, order_id: order.number }
+        get :index, params: { order_token: order.token, order_id: order.number }
         expect(response.status).to eq(200)
       end
 
       it 'succeeds with an order_number parameter' do
-        get :index, params: { order_token: order.guest_token, order_number: order.number }
+        get :index, params: { order_token: order.token, order_number: order.number }
         expect(response.status).to eq(200)
       end
     end
@@ -99,7 +99,7 @@ RSpec.describe Spree::Api::BaseController, type: :controller do
 
     context 'without an existing lock' do
       it 'succeeds' do
-        get :index, params: { order_token: order.guest_token, order_id: order.number }
+        get :index, params: { order_token: order.token, order_id: order.number }
         expect(response.status).to eq(200)
       end
     end
@@ -110,7 +110,7 @@ RSpec.describe Spree::Api::BaseController, type: :controller do
       end
 
       it 'returns a 409 conflict' do
-        get :index, params: { order_token: order.guest_token, order_id: order.number }
+        get :index, params: { order_token: order.token, order_id: order.number }
         expect(response.status).to eq(409)
       end
     end
