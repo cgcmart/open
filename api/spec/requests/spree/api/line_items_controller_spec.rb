@@ -31,7 +31,7 @@ module Spree
 
     context 'authenticating with a token' do
       it 'can add a new line item to an existing order' do
-        post spree.api_order_line_items_path(order), params: { line_item: { variant_id: product.master.to_param, quantity: 1 }, order_token: order.guest_token }
+        post spree.api_order_line_items_path(order), params: { line_item: { variant_id: product.master.to_param, quantity: 1 }, order_token: order.token }
         expect(response.status).to eq(201)
         expect(json_response).to have_attributes(attributes)
         expect(json_response['variant']['name']).not_to be_blank
@@ -40,7 +40,7 @@ module Spree
       it 'can add a new line item to an existing order with token in header' do
         post spree.api_order_line_items_path(order),
           params: { line_item: { variant_id: product.master.to_param, quantity: 1 } },
-          headers: { 'X-Spree-Order-Token' => order.guest_token }
+          headers: { 'X-Spree-Order-Token' => order.token }
         expect(response.status).to eq(201)
         expect(json_response).to have_attributes(attributes)
         expect(json_response['variant']['name']).not_to be_blank
