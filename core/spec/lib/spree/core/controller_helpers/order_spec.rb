@@ -1,72 +1,71 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 class FakesController < ApplicationController
   include Spree::Core::ControllerHelpers::Order
 end
 
-describe Spree::Core::ControllerHelpers::Order, type: :controller do
+RSpec.describe Spree::Core::ControllerHelpers::Order, type: :controller do
   controller(FakesController) {}
 
   let(:user) { create(:user) }
-  let(:order) { create(:order, user: user) }
+  let(:order) { create(:order, user: user, store: store) }
   let(:store) { create(:store) }
 
+  before do
+    allow(controller).to receive_messages(current_store: store)
+    allow(controller).to receive_messages(current_pricing_options: Spree::Config.pricing_options_class.new(currency: Spree::Config.currency))
+    allow(controller).to receive_messages(try_spree_current_user: user)
+  end
+
   describe '#simple_current_order' do
-    before { allow(controller).to receive_messages(try_spree_current_user: user) }
     it 'returns an empty order' do
       expect(controller.simple_current_order.item_count).to eq 0
     end
     it 'returns Spree::Order instance' do
-      allow(controller).to receive_messages(cookies: double(signed: { guest_token: order.guest_token }))
+      allow(controller).to receive_messages(cookies: double(signed: { token: order.token }))
       expect(controller.simple_current_order).to eq order
+    end
+  end
+  it 'assigns the current_store id' do
+      expect(controller.simple_current_order.store_id).to eq store.id
     end
   end
 
   describe '#current_order' do
-    before do
-      allow(controller).to receive_messages(current_store: store)
-      allow(controller).to receive_messages(try_spree_current_user: user)
-    end
     context 'create_order_if_necessary option is false' do
       let!(:order) { create :order, user: user, store: store }
-
       it 'returns current order' do
         expect(controller.current_order).to eq order
       end
     end
     context 'create_order_if_necessary option is true' do
+      subject { controller.current_order(create_order_if_necessary: true) }
+
       it 'creates new order' do
-        expect do
-          controller.current_order(create_order_if_necessary: true)
-        end.to change(Spree::Order, :count).to(1)
+        expect {
+          subject
+        }.to change(Spree::Order, :count).from(0).to(1)
       end
 
       it 'assigns the current_store id' do
-        controller.current_order(create_order_if_necessary: true)
+        subject
         expect(Spree::Order.last.store_id).to eq store.id
       end
-    end
 
-    context 'gets using the guest_token' do
-      let!(:order) { create :order, user: user }
-      let!(:guest_order) { create :order, user: nil, email: nil, guest_token: 'token' }
-
-      before do
-        expect(controller).to receive(:current_order_params).and_return(
-          currency: Spree::Config[:currency], guest_token: 'token', store_id: guest_order.store_id, user_id: user.id
-        )
-      end
-
-      specify 'without the guest token being bound to any user yet' do
-        expect(controller.current_order).to eq guest_order
+      it 'records last_ip_address' do
+        expect {
+          subject
+        }.to change {
+          Spree::Order.last.try!(:last_ip_address)
+        }.from(nil).to("0.0.0.0")
       end
     end
   end
 
   describe '#associate_user' do
-    before do
-      allow(controller).to receive_messages(current_order: order, try_spree_current_user: user)
-    end
+    before { allow(controller).to receive_messages(current_order: order) }
     context "user's email is blank" do
       let(:user) { create(:user, email: '') }
 
@@ -84,16 +83,26 @@ describe Spree::Core::ControllerHelpers::Order, type: :controller do
   end
 
   describe '#set_current_order' do
-    let(:incomplete_order) { create(:order, user: user) }
-
-    before { allow(controller).to receive_messages(try_spree_current_user: user) }
+    let(:incomplete_order) { create(:order, store: incomplete_order_store, user: user) }
 
     context 'when current order not equal to users incomplete orders' do
-      before { allow(controller).to receive_messages(current_order: order, last_incomplete_order: incomplete_order, cookies: double(signed: { guest_token: 'guest_token' })) }
+      before { allow(controller).to receive_messages(current_order: order, last_incomplete_order: incomplete_order, cookies: double(signed: { token: 'token' })) }
 
-      it 'calls Spree::Order#merge! method' do
-        expect(order).to receive(:merge!).with(incomplete_order, user)
-        controller.set_current_order
+      context "an order from another store" do
+        let(:incomplete_order_store) { create(:store) }
+
+        it 'doesnt call Spree::Order#merge! method' do
+          expect(order).to_not receive(:merge!)
+          controller.set_current_order
+        end
+      end
+      context "an order from the same store" do
+        let(:incomplete_order_store) { store }
+
+        it 'calls Spree::Order#merge! method' do
+          expect(order).to receive(:merge!).with(incomplete_order, user)
+          controller.set_current_order
+        end
       end
     end
   end
