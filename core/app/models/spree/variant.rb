@@ -262,6 +262,12 @@ module Spree
       Spree::Stock::Quantifier.new(self).total_on_hand
     end
 
+    alias is_backorderable? backorderable?
+
+    def purchasable?
+      in_stock? || backorderable?
+    end
+
     # Shortcut method to determine if inventory tracking is enabled for this variant
     # This considers both variant tracking flag and site-wide inventory tracking settings
     def should_track_inventory?
