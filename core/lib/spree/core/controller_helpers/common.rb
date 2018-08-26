@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require 'carmen'
+
 module Spree
   module Core
     module ControllerHelpers
@@ -22,7 +26,7 @@ module Spree
             title_string = @title.present? ? @title : accurate_title
             if title_string.present?
               if Spree::Config[:always_put_site_name_in_title]
-                [title_string, default_title].join(" #{Spree::Config[:title_site_name_separator]} ")
+                [title_string, default_title].join(' - ')
               else
                 title_string
               end
@@ -42,13 +46,25 @@ module Spree
 
           private
 
-          def set_user_language
-            locale = session[:locale]
-            locale = config_locale if respond_to?(:config_locale, true) && locale.blank?
-            locale = Rails.application.config.i18n.default_locale if locale.blank?
-            locale = I18n.default_locale unless I18n.available_locales.map(&:to_s).include?(locale.to_s)
-            I18n.locale = locale
+          def set_user_language_locale_key
+          :locale
+        end
+
+        def set_user_language
+          available_locales = Spree.i18n_available_locales
+          locale = [
+            params[:locale],
+            session[set_user_language_locale_key],
+            (config_locale if respond_to?(:config_locale, true)),
+            I18n.default_locale
+          ].detect do |candidate|
+            candidate &&
+              available_locales.include?(candidate.to_sym)
           end
+          session[:locale] = locale
+          I18n.locale = locale
+          Carmen.i18n_backend.locale = locale
+        end
 
           # Returns which layout to render.
           #
