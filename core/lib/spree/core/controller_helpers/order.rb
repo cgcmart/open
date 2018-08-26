@@ -1,12 +1,15 @@
+# frozen_string_literal: true
+
+require 'spree/core/controller_helpers/pricing'
+
 module Spree
   module Core
     module ControllerHelpers
       module Order
         extend ActiveSupport::Concern
+        include ControllerHelpers::Pricing
 
         included do
-          before_action :set_current_order
-
           helper_method :current_order
           helper_method :simple_current_order
         end
@@ -21,28 +24,30 @@ module Spree
             @simple_current_order.last_ip_address = ip_address
             return @simple_current_order
           else
-            @simple_current_order = Spree::Order.new
+            @simple_current_order = Spree::Order.new(current_order_params)
           end
         end
 
-        # The current incomplete order from the guest_token for use in cart and during checkout
+        # The current incomplete order from the token for use in cart and during checkout
         def current_order(options = {})
           options[:create_order_if_necessary] ||= false
 
-          if @current_order
-            @current_order.last_ip_address = ip_address
-            return @current_order
-          end
+          return @current_order if @current_order
 
-          @current_order = find_order_by_token_or_user(options, true)
+          @current_order = find_order_by_token_or_user(options)
 
           if options[:create_order_if_necessary] && (@current_order.nil? || @current_order.completed?)
-            @current_order = Spree::Order.create!(current_order_params)
-            @current_order.associate_user! try_spree_current_user if try_spree_current_user
-            @current_order.last_ip_address = ip_address
+            @current_order = Spree::Order.new(new_order_params)
+            @current_order.user ||= try_spree_current_user
+            # See issue https://github.com/spree/spree/issues/3346 for reasons why this line is here
+            @current_order.created_by ||= try_spree_current_user
+            @current_order.save!
           end
 
-          @current_order
+          if @current_order
+            @current_order.record_ip_address(ip_address)
+            return @current_order
+          end
         end
 
         def associate_user
@@ -54,7 +59,7 @@ module Spree
 
         def set_current_order
           if try_spree_current_user && current_order
-            try_spree_current_user.orders.incomplete.where('id != ?', current_order.id).each do |order|
+            try_spree_current_user.orders.by_store(current_store).incomplete.where('id != ?', current_order.id).each do |order|
               current_order.merge!(order, try_spree_current_user)
             end
           end
@@ -71,20 +76,18 @@ module Spree
         end
 
         def current_order_params
-          { currency: current_currency, guest_token: cookies.signed[:guest_token], store_id: current_store.id, user_id: try_spree_current_user.try(:id) }
+          { currency: current_pricing_options_currency, token: cookies.signed[:token], store_id: current_store.id, user_id: try_spree_current_user.try(:id) }
         end
 
-        def find_order_by_token_or_user(options = {}, with_adjustments = false)
+        def new_order_params
+          current_order_params.merge(last_ip_address: ip_address)
+        end
+
+        def find_order_by_token_or_user(options = {})
           options[:lock] ||= false
 
-          # Find any incomplete orders for the guest_token
-          incomplete_orders = Spree::Order.incomplete.includes(line_items: [variant: [:images, :option_values, :product]])
-          guest_token_order_params = current_order_params.except(:user_id)
-          order = if with_adjustments
-                    incomplete_orders.includes(:adjustments).lock(options[:lock]).find_by(guest_token_order_params)
-                  else
-                    incomplete_orders.lock(options[:lock]).find_by(guest_token_order_params)
-                  end
+          # Find any incomplete orders for the token
+          order = incomplete_orders.lock(options[:lock]).find_by(current_order_params)
 
           # Find any incomplete orders for the current user
           order = last_incomplete_order if order.nil? && try_spree_current_user
