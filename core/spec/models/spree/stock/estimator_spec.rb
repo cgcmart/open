@@ -1,27 +1,45 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Spree
   module Stock
-    describe Estimator, type: :model do
+    RSpec.describe Estimator, type: :model do
+      let(:shipping_rate)    { 4.00 }      
+      let!(:shipping_method) { create(:shipping_method, cost: shipping_rate, currency: currency) }
+      let(:package)          { build(:stock_package, contents: inventory_units.map { |i| ContentItem.new(i) }).tap do |p|
+        p.shipment = p.to_shipment
+      end
+      }
+      let(:order)            { build(:order_with_line_items, shipping_method: shipping_method) }
+      let(:inventory_units)  { order.inventory_units }
+
       subject { Estimator.new(order) }
 
-      let!(:shipping_method) { create(:shipping_method) }
-      let(:package) { build(:stock_package, contents: inventory_units.map { |_i| ContentItem.new(inventory_unit) }) }
-      let(:order) { build(:order_with_line_items) }
-      let(:inventory_units) { order.inventory_units }
-
       context '#shipping rates' do
-        before do
+        before(:each) do
           shipping_method.zones.first.members.create(zoneable: order.ship_address.country)
-          allow_any_instance_of(ShippingMethod).to receive_message_chain(:calculator, :available?).and_return(true)
-          allow_any_instance_of(ShippingMethod).to receive_message_chain(:calculator, :compute).and_return(4.00)
-          allow_any_instance_of(ShippingMethod).to receive_message_chain(:calculator, :preferences).and_return(currency: currency)
-          allow_any_instance_of(ShippingMethod).to receive_message_chain(:calculator, :marked_for_destruction?)
-
-          allow(package).to receive_messages(shipping_methods: [shipping_method])
         end
 
         let(:currency) { 'USD' }
+
+         context 'without a shipment' do
+          before { package.shipment = nil }
+          it 'raises an error' do
+            expect {
+              subject.shipping_rates(package)
+            }.to raise_error(Spree::Stock::Estimator::ShipmentRequired)
+          end
+        end
+
+        context 'without an order' do
+          before { package.shipment.order = nil }
+          it 'raises an error' do
+            expect {
+              subject.shipping_rates(package)
+            }.to raise_error(Spree::Stock::Estimator::OrderRequired)
+          end
+        end
 
         shared_examples_for 'shipping rate matches' do
           it 'returns shipping rates' do
@@ -38,29 +56,22 @@ module Spree
         end
 
         context "when the order's ship address is in the same zone" do
-          it_behaves_like 'shipping rate matches'
+          it_should_behave_like 'shipping rate matches'
         end
 
         context "when the order's ship address is in a different zone" do
           before { shipping_method.zones.each { |z| z.members.delete_all } }
-          it_behaves_like "shipping rate doesn't match"
-        end
-
-        context 'when the calculator is not available for that order' do
-          before { allow_any_instance_of(ShippingMethod).to receive_message_chain(:calculator, :available?).and_return(false) }
-          it_behaves_like "shipping rate doesn't match"
+          it_should_behave_like "shipping rate doesn't match"
         end
 
         context 'when the currency is nil' do
           let(:currency) { nil }
-
-          it_behaves_like 'shipping rate matches'
+          it_should_behave_like 'shipping rate matches'
         end
 
         context 'when the currency is an empty string' do
           let(:currency) { '' }
-
-          it_behaves_like 'shipping rate matches'
+          it_should_behaveslike 'shipping rate matches'
         end
 
         context "when the current matches the order's currency" do
@@ -69,135 +80,158 @@ module Spree
 
         context "if the currency is different than the order's currency" do
           let(:currency) { 'GBP' }
-
-          it_behaves_like "shipping rate doesn't match"
+          it_should_behave_like "shipping rate doesn't match"
         end
 
         it 'sorts shipping rates by cost' do
-          shipping_methods = Array.new(3) { create(:shipping_method) }
-          allow(shipping_methods[0]).to receive_message_chain(:calculator, :compute).and_return(5.00)
-          allow(shipping_methods[1]).to receive_message_chain(:calculator, :compute).and_return(3.00)
-          allow(shipping_methods[2]).to receive_message_chain(:calculator, :compute).and_return(4.00)
+          ShippingMethod.all.each(&:really_destroy!)
+          create(:shipping_method, cost: 5)
+          create(:shipping_method, cost: 3)
+          create(:shipping_method, cost: 4)
 
-          allow(subject).to receive(:shipping_methods).and_return(shipping_methods)
-
-          expect(subject.shipping_rates(package).map(&:cost)).to eq %w[3.00 4.00 5.00].map(&BigDecimal.method(:new))
+          expect(subject.shipping_rates(package).map(&:cost)).to eq [3.00 4.00 5.00]
         end
 
         context 'general shipping methods' do
-          let(:shipping_methods) { Array.new(2) { create(:shipping_method) } }
+          before { Spree::ShippingMethod.all.each(&:really_destroy!) }
 
-          it 'selects the most affordable shipping rate' do
-            allow(shipping_methods[0]).to receive_message_chain(:calculator, :compute).and_return(5.00)
-            allow(shipping_methods[1]).to receive_message_chain(:calculator, :compute).and_return(3.00)
+          context 'with two shipping methods of different cost' do
+            let!(:shipping_methods) do
+              [
+                create(:shipping_method, cost: 5),
+                create(:shipping_method, cost: 3)
+              ]
+            end
 
-            allow(subject).to receive(:shipping_methods).and_return(shipping_methods)
-
-            expect(subject.shipping_rates(package).sort_by(&:cost).map(&:selected)).to eq [true, false]
+            it 'selects the most affordable shipping rate' do
+              expect(subject.shipping_rates(package).sort_by(&:cost).map(&:selected)).to eq [true, false]
+            end
           end
 
-          it "selects the most affordable shipping rate and doesn't raise exception over nil cost" do
-            allow(shipping_methods[0]).to receive_message_chain(:calculator, :compute).and_return(1.00)
-            allow(shipping_methods[1]).to receive_message_chain(:calculator, :compute).and_return(nil)
+          context 'with one of the shipping methods having nil cost' do
+            let!(:shipping_methods) do
+              [
+                create(:shipping_method, cost: 1),
+                create(:shipping_method, cost: nil)
+              ]
+            end
 
-            allow(subject).to receive(:shipping_methods).and_return(shipping_methods)
+            it "selects the most affordable shipping rate and doesn't raise exception over nil cost" do
+              allow(shipping_methods[1]).to receive_message_chain(:calculator, :compute).and_return(nil)
+              allow(subject).to receive(:shipping_methods).and_return(shipping_methods)
 
-            subject.shipping_rates(package)
+               expect(subject.shipping_rates(package).map(&:shipping_method)).to eq([shipping_methods[0]])
+            end
           end
         end
 
         context 'involves backend only shipping methods' do
-          let(:backend_method) { create(:shipping_method, display_on: 'back_end') }
-          let(:generic_method) { create(:shipping_method) }
-
-          before do
-            allow(backend_method).to receive_message_chain(:calculator, :compute).and_return(0.00)
-            allow(generic_method).to receive_message_chain(:calculator, :compute).and_return(5.00)
-            allow(package).to receive(:shipping_methods).and_return([backend_method, generic_method])
-          end
+          before{ Spree::ShippingMethod.all.each(&:really_destroy!) }
+          let!(:backend_method) { create(:shipping_method, available_to_users: false, cost: 0.00) }
+          let!(:generic_method) { create(:shipping_method, cost: 5.00) }
 
           it 'does not return backend rates at all' do
             expect(subject.shipping_rates(package).map(&:shipping_method_id)).to eq([generic_method.id])
           end
 
-          # regression for #3287
+          # regression for https://github.com/spree/spree/issues/3287
           it "doesn't select backend rates even if they're more affordable" do
             expect(subject.shipping_rates(package).map(&:selected)).to eq [true]
           end
         end
 
+        context "excludes shipping methods from other stores" do
+          before{ Spree::ShippingMethod.all.each(&:really_destroy!) }
+
+          let!(:other_method) do
+            create(
+              :shipping_method,
+              cost: 0.00,
+              stores: [build(:store, name: "Other")]
+            )
+          end
+
+          let!(:main_method) do
+            create(
+              :shipping_method,
+              cost: 5.00,
+              stores: [order.store]
+            )
+          end
+
+          it "does not return the other rate at all" do
+            expect(subject.shipping_rates(package).map(&:shipping_method_id)).to eq([main_method.id])
+          end
+
+          it "doesn't select the other rate even if it's more affordable" do
+            expect(subject.shipping_rates(package).map(&:selected)).to eq [true]
+          end
+        end
+
         context 'includes tax adjustments if applicable' do
-          let!(:tax_rate) { create(:tax_rate, zone: order.tax_zone) }
+          let(:zone) { create(:zone, countries: [order.tax_address.country]) }
+
+          let!(:tax_rate) { create(:tax_rate, zone: zone) }
 
           before do
-            Spree::ShippingMethod.all.each do |sm|
-              sm.tax_category_id = tax_rate.tax_category_id
-              sm.save
-            end
-            package.shipping_methods.map(&:reload)
+            shipping_method.update!(tax_category: tax_rate.tax_categories.first)
           end
 
           it 'links the shipping rate and the tax rate' do
             shipping_rates = subject.shipping_rates(package)
-            expect(shipping_rates.first.tax_rate).to eq(tax_rate)
+            expect(shipping_rates.first.taxes.first.tax_rate).to eq(tax_rate)
           end
         end
 
-        context 'VAT price calculation' do
-          let(:tax_category) { create :tax_category }
-          let!(:shipping_method) { create(:shipping_method, tax_category: tax_category) }
+        it 'uses the configured shipping rate selector' do
+          shipping_rate = build(:shipping_rate)
+          allow(Spree::ShippingRate).to receive(:new).and_return(shipping_rate)
 
-          let(:default_zone) { create(:zone_with_country, default_tax: true) }
-          let!(:default_vat) do
-            create :tax_rate,
-                   included_in_price: true,
-                   zone: default_zone,
-                   amount: 0.2,
-                   tax_category: shipping_method.tax_category
-          end
+          selector_class = Class.new do
+            def initialize(_); end;
 
-          context 'when the order does not have a tax zone' do
-            before { allow(order).to receive(:tax_zone).and_return nil }
-            it_behaves_like 'shipping rate matches'
-          end
-
-          context "when the order's tax zone is the default zone" do
-            before { allow(order).to receive(:tax_zone).and_return(default_zone) }
-            it_behaves_like 'shipping rate matches'
-          end
-
-          context "when the order's tax zone is a non-VAT zone" do
-            let!(:zone_without_vat) { create(:zone_with_country) }
-
-            before { allow(order).to receive(:tax_zone).and_return(zone_without_vat) }
-
-            it 'deducts the default VAT from the cost' do
-              shipping_rates = subject.shipping_rates(package)
-              # deduct default vat: 4.00 / 1.2 = 3.33 (rounded)
-              expect(shipping_rates.first.cost).to eq(3.33)
+            def find_default
+              Spree::ShippingRate.new
             end
           end
+          Spree::Config.shipping_rate_selector_class = selector_class
 
-          context "when the order's tax zone is a zone with VAT outside the default zone" do
-            let(:other_vat_zone) { create(:zone_with_country) }
-            let!(:other_vat) do
-              create :tax_rate,
-                     included_in_price: true,
-                     zone: other_vat_zone,
-                     amount: 0.3,
-                     tax_category: shipping_method.tax_category
+          subject.shipping_rates(package)
+
+          expect(shipping_rate.selected).to eq(true)
+
+          Spree::Config.shipping_rate_selector_class = nil
+        end
+
+        it 'uses the configured shipping rate sorter' do
+          class Spree::Stock::TestSorter; end;
+          Spree::Config.shipping_rate_sorter_class = Spree::Stock::TestSorter
+
+          sorter = double(:sorter, sort: nil)
+          allow(Spree::Stock::TestSorter).to receive(:new).and_return(sorter)
+
+          subject.shipping_rates(package)
+
+          expect(sorter).to have_received(:sort)
+
+          Spree::Config.shipping_rate_sorter_class = nil
+        end
+
+        it 'uses the configured shipping rate taxer' do
+          class Spree::Tax::TestTaxCalculator
+            def initialize(_order)
             end
 
-            before { allow(order).to receive(:tax_zone).and_return(other_vat_zone) }
-
-            it 'deducts the default vat and applies the foreign vat to calculate the price' do
-              shipping_rates = subject.shipping_rates(package)
-              #
-              # deduct default vat: 4.00 / 1.2 = 3.33 (rounded)
-              # apply foreign vat: 3.33 * 1.3 = 4.33 (rounded)
-              expect(shipping_rates.first.cost).to eq(4.33)
+            def calculate(_shipping_rate)
+              [
+                Spree::Tax::ItemTax.new(label: "TAX", amount: 5)
+              ]
             end
           end
+          Spree::Config.shipping_rate_tax_calculator_class = Spree::Tax::TestTaxCalculator
+
+          expect(Spree::Tax::TestTaxCalculator).to receive(:new).and_call_original
+          subject.shipping_rates(package)
         end
       end
     end
