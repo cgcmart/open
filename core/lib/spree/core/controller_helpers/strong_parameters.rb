@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Core
     module ControllerHelpers
@@ -6,13 +8,25 @@ module Spree
           Spree::PermittedAttributes
         end
 
-        delegate *Spree::PermittedAttributes::ATTRIBUTES,
+        delegate(*Spree::PermittedAttributes::ATTRIBUTES,
                  to: :permitted_attributes,
-                 prefix: :permitted
+                 prefix: :permitted)
+
+        def permitted_credit_card_update_attributes
+          permitted_attributes.credit_card_update_attributes + [
+            address_attributes: permitted_address_attributes
+          ]
+        end
 
         def permitted_payment_attributes
           permitted_attributes.payment_attributes + [
             source_attributes: permitted_source_attributes
+          ]
+        end
+
+        def permitted_source_attributes
+          permitted_attributes.source_attributes + [
+            address_attributes: permitted_address_attributes
           ]
         end
 
@@ -33,7 +47,15 @@ module Spree
 
         def permitted_product_attributes
           permitted_attributes.product_attributes + [
+            :store_id,
             product_properties_attributes: permitted_product_properties_attributes
+          ]
+        end
+
+        def permitted_user_attributes
+          permitted_attributes.user_attributes + [
+            bill_address_attributes: permitted_address_attributes,
+            ship_address_attributes: permitted_address_attributes
           ]
         end
       end
