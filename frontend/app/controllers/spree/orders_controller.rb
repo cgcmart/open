@@ -6,7 +6,7 @@ module Spree
 
     respond_to :html
 
-    before_action :store_guest_token
+    before_action :check_authorization
     before_action :assign_order_with_lock, only: :update
     around_action :lock_order, only: :update
     before_action :apply_coupon_code, only: :update
@@ -14,11 +14,11 @@ module Spree
 
     def show
       @order = Spree::Order.find_by!(number: params[:id])
-      authorize! :read, @order, cookies.signed[:guest_token]
+      authorize! :read, @order, cookies.signed[:token]
     end
 
     def update
-      authorize! :update, @order, cookies.signed[:guest_token]
+      authorize! :update, @order, cookies.signed[:token]
       if Cart::Update.call(order: @order, params: order_params).success?
         respond_with(@order) do |format|
           format.html do
@@ -37,15 +37,15 @@ module Spree
 
     # Shows the current incomplete order from the session
     def edit
-      @order = current_order || Order.incomplete.find_or_initialize_by(guest_token: cookies.signed[:guest_token])
-      authorize! :read, @order, cookies.signed[:guest_token]
+      @order = current_order || Order.incomplete.find_or_initialize_by(token: cookies.signed[:token])
+      authorize! :read, @order, cookies.signed[:token]
       associate_user
     end
 
     # Adds a new item to the order (creating a new order if none already exists)
     def populate
       order    = current_order(create_order_if_necessary: true)
-      authorize! :update, @order, cookies.signed[:guest_token]
+      authorize! :update, @order, cookies.signed[:token]
       variant  = Spree::Variant.find(params[:variant_id])
       quantity = params[:quantity].present? ? params[:quantity].to_i : 1
 
@@ -80,7 +80,7 @@ module Spree
 
     def empty
       if @order = current_order
-        authorize! :update, @order, cookies.signed[:guest_token]
+        authorize! :update, @order, cookies.signed[:token]
         @order.empty!
       end
 
@@ -97,8 +97,17 @@ module Spree
 
     private
 
-    def store_guest_token
-      cookies.permanent.signed[:guest_token] = params[:token] if params[:token]
+    def check_authorization
+      order = Spree::Order.find_by(number: params[:id]) if params[:id].present?
+      order = current_order unless order
+
+      if order && action_name.to_sym == :show
+        authorize! :show, order, cookies.signed[:token]
+      elsif order
+        authorize! :edit, order, cookies.signed[:token]
+      else
+        authorize! :create, Spree::Order
+      end
     end
 
     def order_params
