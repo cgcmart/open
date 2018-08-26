@@ -1,16 +1,25 @@
+# frozen_string_literal: true
+
+require 'cancan'
+
 module Spree
   module Core
     module ControllerHelpers
       module Auth
         extend ActiveSupport::Concern
-        include Spree::Core::TokenGenerator
 
         included do
-          before_action :set_guest_token
+          before_action :set_token
           helper_method :try_spree_current_user
 
-          rescue_from CanCan::AccessDenied do |_exception|
-            redirect_unauthorized_access
+          class_attribute :unauthorized_redirect
+          self.unauthorized_redirect = -> do
+            flash[:error] = I18n.t('spree.authorization_failure')
+            redirect_to "/unauthorized"
+          end
+
+          rescue_from CanCan::AccessDenied do
+            instance_exec(&unauthorized_redirect)
           end
         end
 
@@ -20,14 +29,18 @@ module Spree
         end
 
         def redirect_back_or_default(default)
-          redirect_to(session['spree_user_return_to'] || request.env['HTTP_REFERER'] || default)
+          redirect_to(session['spree_user_return_to'] || default)
           session['spree_user_return_to'] = nil
         end
 
-        def set_guest_token
-          if cookies.signed[:guest_token].blank?
-            cookies.permanent.signed[:guest_token] = { value: generate_guest_token, httponly: true }
+        def set_token
+          unless cookies.signed[:guest_token].present?
+            cookies.permanent.signed[:token] ||= {
+              value: SecureRandom.urlsafe_base64(nil, false),
+              httponly: true
+            }
           end
+          cookies.permanent.signed[:guest_token] ||= cookies.permanent.signed[:token]            
         end
 
         def store_location
@@ -35,7 +48,9 @@ module Spree
           authentication_routes = [:spree_signup_path, :spree_login_path, :spree_logout_path]
           disallowed_urls = []
           authentication_routes.each do |route|
-            disallowed_urls << send(route) if respond_to?(route)
+            if respond_to?(route)
+              disallowed_urls << send(route)
+            end
           end
 
           disallowed_urls.map! { |url| url[/\/\w+$/] }
@@ -49,30 +64,11 @@ module Spree
         def try_spree_current_user
           # This one will be defined by apps looking to hook into Spree
           # As per authentication_helpers.rb
-          if respond_to?(:spree_current_user)
+          if respond_to?(:spree_current_user, true)
             spree_current_user
           # This one will be defined by Devise
-          elsif respond_to?(:current_spree_user)
+          elsif respond_to?(:current_spree_user, true)
             current_spree_user
-          end
-        end
-
-        # Redirect as appropriate when an access request fails.  The default action is to redirect to the login screen.
-        # Override this method in your controllers if you want to have special behavior in case the user is not authorized
-        # to access the requested action.  For example, a popup window might simply close itself.
-        def redirect_unauthorized_access
-          if try_spree_current_user
-            flash[:error] = Spree.t(:authorization_failure)
-            redirect_to spree.forbidden_path
-          else
-            store_location
-            if respond_to?(:spree_login_path)
-              redirect_to spree_login_path
-            elsif spree.respond_to?(:root_path)
-              redirect_to spree.root_path
-            else
-              redirect_to main_app.respond_to?(:root_path) ? main_app.root_path : '/'
-            end
           end
         end
       end
