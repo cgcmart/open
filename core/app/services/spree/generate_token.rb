@@ -1,9 +1,11 @@
+# frozen_string_literal: true
+
 module Spree
   class GenerateToken
     def call(model_class = Spree::Order)
       loop do
         token = "#{random_token}#{unique_ending}"
-        break token unless model_class.exists?(guest_token: token)
+        break token unless model_class.exists?(token: token)
       end
     end
 
