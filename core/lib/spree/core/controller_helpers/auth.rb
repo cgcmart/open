@@ -34,12 +34,10 @@ module Spree
         end
 
         def set_token
-          unless cookies.signed[:guest_token].present?
-            cookies.permanent.signed[:token] ||= {
-              value: SecureRandom.urlsafe_base64(nil, false),
-              httponly: true
-            }
-          end
+          cookies.permanent.signed[:token] ||= {
+            value: SecureRandom.urlsafe_base64(nil, false),
+            httponly: true
+          }
           cookies.permanent.signed[:guest_token] ||= cookies.permanent.signed[:token]            
         end
 
