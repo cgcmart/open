@@ -1,72 +1,65 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Spree
   describe OrdersController, type: :controller do
+    ORDER_TOKEN = 'ORDER_TOKEN'
+
+    let!(:store) { create(:store) }
     let(:user) { create(:user) }
     let(:guest_user) { create(:user) }
     let(:order) { Spree::Order.create }
+    let(:variant) { create(:variant) }
+
+    it 'should understand order routes with token' do
+      expect(spree.token_order_path('R123456', 'ABCDEF')).to eq('/orders/R123456/token/ABCDEF')
+    end
 
     context 'when an order exists in the cookies.signed' do
       let(:token) { 'some_token' }
-      let(:specified_order) { create(:order) }
-      let!(:variant) { create(:variant) }
 
       before do
-        cookies.signed[:guest_token] = token
+        cookies.signed[:token] = token
         allow(controller).to receive_messages current_order: order
         allow(controller).to receive_messages spree_current_user: user
       end
 
       context '#populate' do
-        it 'checks if user is authorized for :edit' do
-          expect(controller).to receive(:authorize!).with(:edit, order, token)
-          spree_post :populate, variant_id: variant.id
-        end
-        it 'checks against the specified order' do
-          expect(controller).to receive(:authorize!).with(:edit, specified_order, token)
-          spree_post :populate, id: specified_order.number, variant_id: variant.id
+        it 'should check if user is authorized for :update' do
+          expect(controller).to receive(:authorize!).with(:update, order, token)
+          post :populate, params: { variant_id: variant.id }
         end
       end
 
       context '#edit' do
-        it 'checks if user is authorized for :edit' do
-          expect(controller).to receive(:authorize!).with(:edit, order, token)
-          spree_get :edit
-        end
-        it 'checks against the specified order' do
-          expect(controller).to receive(:authorize!).with(:edit, specified_order, token)
-          spree_get :edit, id: specified_order.number
+        it 'should check if user is authorized for :edit' do
+          expect(controller).to receive(:authorize!).with(:read, order, token)
+          get :edit, params: { token: token }
         end
       end
 
       context '#update' do
-        it 'checks if user is authorized for :edit' do
+        it 'should check if user is authorized for :edit' do
           allow(order).to receive :update_attributes
           expect(controller).to receive(:authorize!).with(:edit, order, token)
-          spree_post :update, order: { email: 'foo@bar.com' }
-        end
-        it 'checks against the specified order' do
-          allow(order).to receive :update_attributes
-          expect(controller).to receive(:authorize!).with(:edit, specified_order, token)
-          spree_post :update, order: { email: 'foo@bar.com' }, id: specified_order.number
+          post :update, params: { order: { email: 'foo@bar.com' }, token: token }
         end
       end
 
       context '#empty' do
-        it 'checks if user is authorized for :edit' do
-          expect(controller).to receive(:authorize!).with(:edit, order, token)
-          spree_post :empty
-        end
-        it 'checks against the specified order' do
-          expect(controller).to receive(:authorize!).with(:edit, specified_order, token)
-          spree_post :empty, id: specified_order.number
+        it 'should check if user is authorized for :update' do
+          expect(controller).to receive(:authorize!).with(:update, order, token)
+          post :empty, params: { token: token }
         end
       end
 
       context '#show' do
-        it 'checks against the specified order' do
-          expect(controller).to receive(:authorize!).with(:show, specified_order, token)
-          spree_get :show, id: specified_order.number
+        let(:specified_order) { create(:order) }
+
+        it 'should check against the specified order' do
+          expect(controller).to receive(:authorize!).with(:read, specified_order, token)
+          get :show, params: { id: specified_order.number, token: token }
         end
       end
     end
@@ -75,20 +68,24 @@ module Spree
       let(:order) { create(:order, number: 'R123') }
 
       context '#show' do
-        context 'when guest_token correct' do
-          before { cookies.signed[:guest_token] = order.guest_token }
-
-          it 'displays the page' do
-            expect(controller).to receive(:authorize!).with(:show, order, order.guest_token)
-            spree_get :show, id: 'R123'
-            expect(response.code).to eq('200')
-          end
+        context 'when token parameter present' do
+          it 'always ooverride existing token when passing a new one' do
+          cookies.signed[:token] = order.token
+          get :show, params: { id: 'R123', token: order.token }
+          expect(cookies.signed[:token]).to eq(order.token)
         end
 
-        context 'when guest_token not present' do
-          it 'raises ActiveRecord::RecordNotFound' do
-            expect { spree_get :show, id: 'R123' }.to raise_error(ActiveRecord::RecordNotFound)
-          end
+        it 'should store as token in session' do
+          get :show, params: { id: 'R123', token: order.token }
+          expect(cookies.signed[:token]).to eq(order.token)
+        end
+      end
+
+      context 'when token not present' do
+        it 'should respond with 404' do
+          expect {
+            get :show, params: { id: 'R123' }
+          }.to raise_error(ActiveRecord::RecordNotFound)
         end
       end
     end
