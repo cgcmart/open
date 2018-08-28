@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
-# This command will automatically be run when you run "rails" with Rails 3 gems installed from the root of your application.
+# frozen_string_literal: true
 
-ENGINE_ROOT = File.expand_path('../..', __FILE__)
-ENGINE_PATH = File.expand_path('../../lib/spree/api/engine', __FILE__)
+# This command will automatically be run when you run "rails" with Rails 5 gems installed from the root of your application.
+
+ENGINE_ROOT = File.expand_path('..', __dir__)
+ENGINE_PATH = File.expand_path('../lib/spree/api/engine', __dir__)
 
 require 'rails/all'
 require 'rails/engine/commands'
-
