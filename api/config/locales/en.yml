@@ -22,3 +22,6 @@ en:
       shipment:
         cannot_ready: "Cannot ready shipment."
       invalid_taxonomy_id: "Invalid taxonomy id."
+      v2:
+        cart:
+          wrong_quantity: "Quantity has to be greater than 0"
