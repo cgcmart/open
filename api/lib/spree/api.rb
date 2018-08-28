@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require 'spree/core'
 
-require 'rabl'
+require 'responders'
 
 module Spree
   module Api
