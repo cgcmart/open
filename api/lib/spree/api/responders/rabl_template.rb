@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Api
     module Responders
@@ -8,20 +10,11 @@ module Spree
           else
             super
           end
-        rescue ActionView::MissingTemplate => e
-          api_behavior
         end
 
         def template
           options[:default_template]
-        end
-
-        def api_behavior
-          if controller.params[:action] == 'destroy'
-            # Render a blank template
-            super
-          end
-        end
+        end        
       end
     end
   end
