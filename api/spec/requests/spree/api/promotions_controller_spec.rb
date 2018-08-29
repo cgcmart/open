@@ -1,19 +1,21 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Spree
-  describe Api::V1::PromotionsController, type: :controller do
-    render_views
-
+  describe Spree::Api::PromotionsController, type: :request do
     shared_examples 'a JSON response' do
-      it 'is ok' do
-        expect(subject).to be_ok
+      it 'should be ok' do
+        subject
+        expect(response).to be_ok
       end
 
       it 'returns JSON' do
-        payload = HashWithIndifferentAccess.new(JSON.parse(subject.body))
+        subject
+        payload = HashWithIndifferentAccess.new(JSON.parse(response.body))
         expect(payload).not_to be_nil
         Spree::Api::ApiHelpers.promotion_attributes.each do |attribute|
-          expect(payload.key?(attribute)).to be true
+          expect(payload).to be_has_key(attribute)
         end
       end
     end
@@ -22,10 +24,10 @@ module Spree
       stub_authentication!
     end
 
-    let(:promotion) { create :promotion, :with_order_adjustment, code: '10off' }
+    let(:promotion) { create :promotion, code: '10off' }
 
     describe 'GET #show' do
-      subject { api_get :show, id: id }
+      subject { get spree.api_promotion_path(id) }
 
       context 'when admin' do
         sign_in_as_admin!
@@ -37,7 +39,7 @@ module Spree
         end
 
         context 'when finding by code' do
-          let(:id) { promotion.code }
+          let(:id) { promotion.codes.first.value }
 
           it_behaves_like 'a JSON response'
         end
@@ -45,8 +47,9 @@ module Spree
         context 'when id does not exist' do
           let(:id) { 'argh' }
 
-          it 'is 404' do
-            expect(subject.status).to eq(404)
+          it 'should be 404' do
+            subject
+            expect(reponse.status).to eq(404)
           end
         end
       end
@@ -54,7 +57,7 @@ module Spree
       context 'when non admin' do
         let(:id) { promotion.id }
 
-        it 'is unauthorized' do
+        it 'should be unauthorized' do
           subject
           assert_unauthorized!
         end
