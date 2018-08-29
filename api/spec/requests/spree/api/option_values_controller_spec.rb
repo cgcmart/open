@@ -1,10 +1,10 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 module Spree
-  describe Api::V1::OptionValuesController, type: :controller do
-    render_views
-
-    let(:attributes) { [:id, :name, :presentation, :option_type_name, :option_type_id, :option_type_presentation] }
+  describe Api::OptionValuesController, type: :request do
+    let(:attributes) { [:id, :name, :presentation, :option_type_name, :option_type_name] }
     let!(:option_value) { create(:option_value) }
     let!(:option_type) { option_value.option_type }
 
@@ -25,7 +25,7 @@ module Spree
       end
 
       it 'can retrieve a list of all option values' do
-        api_get :index
+        get spree.api_option_values_path
         expect(json_response.count).to eq(2)
         expect(json_response.first).to have_attributes(attributes)
       end
@@ -35,14 +35,14 @@ module Spree
       let(:resource_scoping) { { option_type_id: option_type.id } }
 
       it 'can list all option values' do
-        api_get :index
+        get spree.api_option_values_path
         expect(json_response.count).to eq(1)
         expect(json_response.first).to have_attributes(attributes)
       end
 
       it 'can search for an option type' do
         create(:option_value, name: 'buzz')
-        api_get :index, q: { name_cont: option_value.name }
+        get spree.api_option_values_path, params: { q: { name_cont: option_value.name } }
         expect(json_response.count).to eq(1)
         expect(json_response.first).to have_attributes(attributes)
       end
@@ -50,35 +50,39 @@ module Spree
       it 'can retrieve a list of option types' do
         option_value_1 = create(:option_value, option_type: option_type)
         create(:option_value, option_type: option_type) # option_value_2
-        api_get :index, ids: [option_value.id, option_value_1.id]
+        get spree.api_option_values_path, params: { ids: [option_value.id, option_value_1.id] }
         expect(json_response.count).to eq(2)
       end
 
       it 'can list a single option value' do
-        api_get :show, id: option_value.id
+        get spree.api_option_value_path(option_value.id)
         expect(json_response).to have_attributes(attributes)
       end
 
       it 'cannot create a new option value' do
-        api_post :create, option_value: {
-          name: 'Option Value',
-          presentation: 'Option Value'
+        post spree.api_option_type_option_values_path(option_type), params: {
+          option_value: {
+            name: 'Option Value',
+            presentation: 'Option Value'
+          }
         }
         assert_unauthorized!
       end
 
       it 'cannot alter an option value' do
         original_name = option_type.name
-        api_put :update, id: option_type.id,
-                         option_value: {
-                           name: 'Option Value'
-                         }
+        put spree.api_option_value_path(option_value.id), params: {
+          id: option_type.id,
+          option_value: {
+            name: 'Option Value'
+          }
+        }
         assert_not_found!
         expect(option_type.reload.name).to eq(original_name)
       end
 
       it 'cannot delete an option value' do
-        api_delete :destroy, id: option_type.id
+        delete spree.api_option_value_path(option_value)
         assert_not_found!
         expect { option_type.reload }.not_to raise_error
       end
@@ -86,44 +90,42 @@ module Spree
       context 'as an admin' do
         sign_in_as_admin!
 
-        it 'can learn how to create a new option value' do
-          api_get :new
-          expect(json_response['attributes']).to eq(attributes.map(&:to_s))
-          expect(json_response['required_attributes']).not_to be_empty
-        end
-
         it 'can create an option value' do
-          api_post :create, option_value: {
-            name: 'Option Value',
-            presentation: 'Option Value'
+          post spree.api_option_type_option_values_path(option_type), params: {
+            option_value: {
+              name: 'Option Value',
+              presentation: 'Option Value'
+            }
           }
           expect(json_response).to have_attributes(attributes)
           expect(response.status).to eq(201)
         end
 
         it 'cannot create an option type with invalid attributes' do
-          api_post :create, option_value: {}
+          post spree.api_option_type_option_values_path(option_type), params: { option_value: { name: '' } }
           expect(response.status).to eq(422)
         end
 
         it 'can update an option value' do
-          api_put :update, id: option_value.id, option_value: { name: 'Option Value' }
+          aput spree.api_option_value_path(option_value.id), params: { option_value: { name: 'Option Value' } }
           expect(response.status).to eq(200)
+
+          option_value.reload
           expect(option_value.reload.name).to eq('Option Value')
         end
 
         it 'permits the correct attributes' do
-          expect(controller).to receive(:permitted_option_value_attributes)
-          api_put :update, id: option_value.id, option_value: { name: '' }
+          expect_any_instance_of(Spree::Api::OptionValuesController).to receive(:permitted_option_value_attributes)
+          put spree.api_option_value_path(option_value), params: { option_value: { name: '' } }
         end
 
         it 'cannot update an option value with invalid attributes' do
-          api_put :update, id: option_value.id, option_value: { name: '' }
+          put spree.api_option_value_path(option_value), params: { option_value: { name: '' } }
           expect(response.status).to eq(422)
         end
 
         it 'can delete an option value' do
-          api_delete :destroy, id: option_value.id
+          delete spree.api_option_value_path(option_value)
           expect(response.status).to eq(204)
         end
       end
