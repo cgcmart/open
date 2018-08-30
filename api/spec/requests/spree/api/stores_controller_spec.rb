@@ -1,9 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require "spec_helper"
 
 module Spree
-  describe Api::V1::StoresController, type: :controller do
-    render_views
-
+  describe Api::StoresController, type: :request do
     let!(:store) do
       create(:store, name: 'My Spree Store', url: 'spreestore.example.com')
     end
@@ -23,8 +23,8 @@ module Spree
       end
 
       it 'I can list the available stores' do
-        api_get :index
-        expect(json_response['stores']).to eq(
+         get spree.api_stores_path
+        expect(json_response['stores']).to match_array(
           [
             {
               'id' => store.id,
@@ -36,7 +36,8 @@ module Spree
               'mail_from_address' => 'spree@example.org',
               'default_currency' => 'USD',
               'code' => store.code,
-              'default' => true
+              'default' => true,
+              'available_locales' => ['en']
             },
             {
               'id' => non_default_store.id,
@@ -48,14 +49,15 @@ module Spree
               'mail_from_address' => 'spree@example.org',
               'default_currency' => 'USD',
               'code' => non_default_store.code,
-              'default' => false
+              'default' => false,
+              'available_locales' => ['en']
             }
           ]
         )
       end
 
       it 'I can get the store details' do
-        api_get :show, id: store.id
+        get spree.api_store_path(store)
         expect(json_response).to eq(
           'id' => store.id,
           'name' => 'My Spree Store',
@@ -66,7 +68,8 @@ module Spree
           'mail_from_address' => 'spree@example.org',
           'default_currency' => 'USD',
           'code' => store.code,
-          'default' => true
+          'default' => true,
+          'available_locales' => ['en']
         )
       end
 
@@ -77,7 +80,7 @@ module Spree
           url: 'spree123.example.com',
           mail_from_address: 'me@example.com'
         }
-        api_post :create, store: store_hash
+        post spree.api_stores_path, params: { store: store_hash }
         expect(response.status).to eq(201)
       end
 
@@ -86,7 +89,7 @@ module Spree
           url: 'spree123.example.com',
           mail_from_address: 'me@example.com'
         }
-        api_put :update, id: store.id, store: store_hash
+        put spree.api_store_path(store), params: { store: store_hash }
         expect(response.status).to eq(200)
         expect(store.reload.url).to eql 'spree123.example.com'
         expect(store.reload.mail_from_address).to eql 'me@example.com'
@@ -94,7 +97,7 @@ module Spree
 
       context 'deleting a store' do
         it "will fail if it's the default Store" do
-          api_delete :destroy, id: store.id
+          delete spree.api_store_path(store)
           expect(response.status).to eq(422)
           expect(json_response['errors']['base']).to eql(
             ['Cannot destroy the default Store.']
@@ -102,7 +105,7 @@ module Spree
         end
 
         it 'will destroy the store' do
-          api_delete :destroy, id: non_default_store.id
+          delete spree.api_store_path(non_default_store)
           expect(response.status).to eq(204)
         end
       end
@@ -110,22 +113,22 @@ module Spree
 
     context 'as an user' do
       it 'I cannot list all the stores' do
-        api_get :index
+        get spree.api_stores_path
         expect(response.status).to eq(401)
       end
 
       it 'I cannot get the store details' do
-        api_get :show, id: store.id
+        get spree.api_store_path(store)
         expect(response.status).to eq(401)
       end
 
       it 'I cannot create a new store' do
-        api_post :create, store: {}
+        post spree.api_stores_path, params: { store: {} }
         expect(response.status).to eq(401)
       end
 
       it 'I cannot update an existing store' do
-        api_put :update, id: store.id, store: {}
+        put spree.api_store_path(store), params: { store: {} }
         expect(response.status).to eq(401)
       end
     end
