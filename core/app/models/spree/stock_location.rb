@@ -1,13 +1,20 @@
+# frozen_string_literal: true
+
 module Spree
   class StockLocation < Spree::Base
+    class InvalidMovementError < StandardError; end
+
     has_many :shipments
     has_many :stock_items, dependent: :delete_all, inverse_of: :stock_location
     has_many :stock_movements, through: :stock_items
+    has_many :user_stock_locations, dependent: :delete_all
+    has_many :users, through: :user_stock_locations
 
-    belongs_to :state, class_name: 'Spree::State', optional: true
+    belongs_to :state, class_name: 'Spree::State'
     belongs_to :country, class_name: 'Spree::Country'
 
-    validates :name, presence: true
+    validates_presence_of :name
+    validates_uniqueness_of :code, allow_blank: true, case_sensitive: false
 
     scope :active, -> { where(active: true) }
     scope :order_default, -> { order(default: :desc, name: :asc) }
@@ -40,10 +47,6 @@ module Spree
       stock_items.where(variant_id: variant_id).order(:id).first
     end
 
-    def stocks?(variant)
-      stock_items.exists?(variant: variant)
-    end
-
     # Attempts to look up StockItem for the variant, and creates one if not found.
     # This method accepts an instance of the variant.
     # Other methods in this model attempt to pass a variant,
@@ -53,7 +56,12 @@ module Spree
     #
     # @return [StockItem] Corresponding StockItem for the StockLocation's variant.
     def stock_item_or_create(variant)
-      stock_item(variant) || stock_items.create(variant_id: variant.id)
+      vid = if variant.is_a?(Variant)
+        variant.id
+      else
+        variant
+      end
+      stock_item(vid) || stock_items.create(variant_id: vid)
     end
 
     def count_on_hand(variant)
@@ -81,23 +89,16 @@ module Spree
     end
 
     def move(variant, quantity, originator = nil)
+      if quantity < 1 && !stock_item(variant)
+        raise InvalidMovementError.new(I18n.t('spree.negative_movement_absent_item'))
+      end
       stock_item_or_create(variant).stock_movements.create!(quantity: quantity,
                                                             originator: originator)
     end
 
     def fill_status(variant, quantity)
       if item = stock_item(variant)
-
-        if item.count_on_hand >= quantity
-          on_hand = quantity
-          backordered = 0
-        else
-          on_hand = item.count_on_hand
-          on_hand = 0 if on_hand < 0
-          backordered = item.backorderable? ? (quantity - on_hand) : 0
-        end
-
-        [on_hand, backordered]
+        item.fill_status(quantity)
       else
         [0, 0]
       end
@@ -106,14 +107,15 @@ module Spree
     private
 
     def create_stock_items
-      Variant.includes(:product).find_each do |variant|
-        propagate_variant(variant)
-      end
+      Spree::Variant.find_each { |variant| propagate_variant(variant) }
     end
 
     def ensure_one_default
       if default
-        StockLocation.where(default: true).where.not(id: id).update_all(default: false)
+        Spree::StockLocation.where(default: true).where.not(id: id).each do |stock_location|
+          stock_location.default = false
+          stock_location.save!
+        end
       end
     end
   end
