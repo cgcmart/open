@@ -6,7 +6,7 @@ require 'spree/testing_support/factories/product_factory'
 
 FactoryBot.define do
   factory :stock_location, class: 'Spree::StockLocation' do
-    name 'NY Warehouse'
+    name { FFaker::Name.unique.name }
     address1 '1600 Pennsylvania Ave NW'
     city 'Washington'
     zipcode '20500'
