@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 require 'active_support/all'
+
 module ControllerHacks
   extend ActiveSupport::Concern
 
