@@ -1,7 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe StockLocation, type: :model do
+  RSpec.describe StockLocation, type: :model do
     subject { create(:stock_location_with_items, backorderable_default: true) }
 
     let(:stock_item) { subject.stock_items.order(:id).first }
@@ -9,6 +11,11 @@ module Spree
 
     it 'creates stock_items for all variants' do
       expect(subject.stock_items.count).to eq Variant.count
+    end
+
+    it 'validates uniqueness' do
+      StockLocation.create(name: 'Test')
+      expect(StockLocation.new(name: 'Test')).not_to be_valid
     end
 
     context 'handling stock items' do
@@ -36,9 +43,9 @@ module Spree
           let(:stock_item) { subject.propagate_variant(variant) }
 
           it 'creates a new stock item' do
-            expect do
+            expect {
               subject.propagate_variant(variant)
-            end.to change(StockItem, :count).by(1)
+            }.to change{ StockItem, :count }.by(1)
           end
 
           context 'passes backorderable default config' do
@@ -89,19 +96,24 @@ module Spree
     end
 
     it 'returns nil when stock_item is not found for variant' do
-      stock_item = subject.stock_item(100)
+      stock_item = subject.stock_item(0)
       expect(stock_item).to be_nil
     end
 
     describe '#stock_item_or_create' do
       before do
         variant = create(:variant)
-        variant.stock_items.destroy_all
+        variant.stock_items.each(&:really_destroy!)
         variant.save
       end
 
       it 'creates a stock_item if not found for a variant' do
         stock_item = subject.stock_item_or_create(variant)
+        expect(stock_item.variant).to eq variant
+      end
+
+      it 'creates a stock_item if not found for a variant_id' do
+        stock_item = subject.stock_item_or_create(variant.id)
         expect(stock_item.variant).to eq variant
       end
     end
@@ -127,9 +139,9 @@ module Spree
     end
 
     it 'creates a stock_movement' do
-      expect do
+      expect {
         subject.move variant, 5
-      end.to change { subject.stock_movements.where(stock_item_id: stock_item).count }.by(1)
+      }.to change { subject.stock_movements.where(stock_item_id: stock_item).count }.by(1)
     end
 
     it 'can be deactivated' do
@@ -166,10 +178,7 @@ module Spree
       end
 
       it 'zero on_hand with all backordered' do
-        zero_stock_item = mock_model(StockItem,
-                                     count_on_hand: 0,
-                                     backorderable?: true)
-        expect(subject).to receive(:stock_item).with(variant).and_return(zero_stock_item)
+        stock_item.set_count_on_hand(0)
 
         on_hand, backordered = subject.fill_status(variant, 20)
         expect(on_hand).to eq 0
@@ -178,20 +187,19 @@ module Spree
 
       context 'when backordering is not allowed' do
         before do
-          @stock_item = mock_model(StockItem, backorderable?: false)
-          expect(subject).to receive(:stock_item).with(variant).and_return(@stock_item)
+          stock_item.update!(backorderable: false)
         end
 
         it 'all on_hand' do
-          allow(@stock_item).to receive_messages(count_on_hand: 10)
+          stock_item.set_count_on_hand(10)
 
-          on_hand, backordered = subject.fill_status(variant, 5)
-          expect(on_hand).to eq 5
+          on_hand, backordered = subject.fill_status(variant, 10)
+          expect(on_hand).to eq 10
           expect(backordered).to eq 0
         end
 
         it 'some on_hand' do
-          allow(@stock_item).to receive_messages(count_on_hand: 10)
+          stock_item.set_count_on_hand(10)
 
           on_hand, backordered = subject.fill_status(variant, 20)
           expect(on_hand).to eq 10
@@ -199,11 +207,11 @@ module Spree
         end
 
         it 'zero on_hand' do
-          allow(@stock_item).to receive_messages(count_on_hand: 0)
+          stock_item.set_count_on_hand(0)
 
           on_hand, backordered = subject.fill_status(variant, 20)
           expect(on_hand).to eq 0
-          expect(backordered).to eq 0
+          expect(backordered).to eq 20
         end
       end
 
@@ -214,7 +222,20 @@ module Spree
 
         it 'zero on_hand and backordered' do
           subject
-          variant.stock_items.destroy_all
+          variant.stock_items.each(&:really_destroy!)
+          on_hand, backordered = subject.fill_status(variant, 1)
+          expect(on_hand).to eq 0
+          expect(backordered).to eq 0
+        end
+      end
+
+      context 'with soft-deleted stock_items' do
+        subject { create(:stock_location) }
+        let(:variant) { create(:base_variant) }
+
+        it 'zero on_hand and backordered' do
+          subject
+          variant.stock_items.discard_all
           on_hand, backordered = subject.fill_status(variant, 1)
           expect(on_hand).to eq 0
           expect(backordered).to eq 0
@@ -230,19 +251,46 @@ module Spree
       end
 
       context 'both name and abbr is present' do
-        subject { StockLocation.create(name: 'testing', state: state, state_name: nil) }
-
         let(:state) { stub_model(Spree::State, name: 'virginia', abbr: 'va') }
+        subject { StockLocation.create(name: 'testing', state: state, state_name: nil) }
 
         specify { expect(subject.state_text).to eq('va') }
       end
 
       context 'only name is present' do
-        subject { StockLocation.create(name: 'testing', state: state, state_name: nil) }
-
         let(:state) { stub_model(Spree::State, name: 'virginia', abbr: nil) }
-
+        subject { StockLocation.create(name: 'testing', state: state, state_name: nil) }
         specify { expect(subject.state_text).to eq('virginia') }
+      end
+    end
+
+    describe '#move' do
+      let!(:variant) { create(:variant) }
+      def move
+        subject.move(variant, quantity)
+      end
+
+      context 'no stock item exists' do
+        before { subject.stock_items.each(&:really_destroy!) }
+        context 'positive movement' do
+          let(:quantity) { 1 }
+          it 'creates a stock item' do
+            expect { move }.to change { subject.stock_items.count }.by 1
+          end
+        end
+
+        # We should not be creating stock items that do not exist
+        # for the sake of a negative movement.
+        context 'negative movement' do
+          let(:quantity) { -1 }
+          it 'raises an error' do
+            expect {
+              expect {
+                move
+              }.to raise_error StockLocation::InvalidMovementError
+            }.not_to change { subject.stock_items.count }
+          end
+        end
       end
     end
   end
