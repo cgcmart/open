@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 # This spec is useful for when we just want to make sure a view is rendering correctly
@@ -11,22 +13,23 @@ describe Spree::CheckoutController, type: :controller do
     allow(controller).to receive_messages try_spree_current_user: user
   end
 
-  # Regression test for #3246
+  # Regression test for https://github.com/spree/spree/issues/3246
   context 'when using GBP' do
     before do
       Spree::Config[:currency] = 'GBP'
+      FactoryBot.create(:store, default_currency: 'GBP')
     end
 
     context 'when order is in delivery' do
       before do
         # Using a let block won't acknowledge the currency setting
         # Therefore we just do it like this...
-        order = OrderWalkthrough.up_to(:delivery)
+        order = Spree::TestingSupport::OrderWalkthrough.up_to(:address)
         allow(controller).to receive_messages current_order: order
       end
 
       it 'displays rate cost in correct currency' do
-        spree_get :edit
+        get :edit
         html = Nokogiri::HTML(response.body)
         expect(html.css('.rate-cost').text).to eq '£10.00'
       end
