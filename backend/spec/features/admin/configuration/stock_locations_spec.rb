@@ -4,6 +4,7 @@ require 'spec_helper'
 
 describe 'Stock Locations', type: :feature do
   stub_authorization!
+  let!(:stock_location) { create(:stock_location) }
 
   before(:each) do
     create(:country)
@@ -28,7 +29,7 @@ describe 'Stock Locations', type: :feature do
 
     visit current_path
 
-    expect(find('#listing_stock_locations')).to have_content('NY Warehouse')
+    expect(find('#listing_stock_locations')).to have_content('stock_location.name')
     accept_alert do
       click_icon :trash
     end
@@ -43,7 +44,7 @@ describe 'Stock Locations', type: :feature do
     create(:stock_location)
     visit current_path
 
-    expect(page).to have_content('NY Warehouse')
+    expect(page).to have_content('stock_location.name')
 
     click_icon :edit
     fill_in 'Name', with: 'London'
