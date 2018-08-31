@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Rabl Cache', type: :request, caching: true do
@@ -10,18 +12,18 @@ describe 'Rabl Cache', type: :request, caching: true do
   end
 
   it "doesn't create a cache key collision for models with different rabl templates" do
-    get '/api/v1/variants', params: { token: user.spree_api_key }
+    get '/api/variants', params: { token: user.spree_api_key }
     expect(response.status).to eq(200)
 
     # Make sure we get a non master variant
     variant_a = JSON.parse(response.body)['variants'].reject do |v|
-      v['is_master']
-    end.first
+      !v['is_master']
+    end
 
     expect(variant_a['is_master']).to be false
     expect(variant_a['stock_items']).not_to be_nil
 
-    get "/api/v1/products/#{Spree::Product.first.id}", params: { token: user.spree_api_key }
+    get "/api/products/#{Spree::Product.first.id}", params: { token: user.spree_api_key }
     expect(response.status).to eq(200)
     variant_b = JSON.parse(response.body)['variants'].last
     expect(variant_b['is_master']).to be false
