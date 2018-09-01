@@ -10,5 +10,8 @@ module Spree
     belongs_to :property, class_name: 'Spree::Property', inverse_of: :product_properties
 
     self.whitelisted_ransackable_attributes = ['value']
+
+    # virtual attributes for use with AJAX completion stuff
+    delegate :name, :presentation, to: :property, prefix: true, allow_nil: true
   end
 end
