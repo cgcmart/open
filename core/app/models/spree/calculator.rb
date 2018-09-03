@@ -1,11 +1,10 @@
+# frozen_string_literal: true
+
 module Spree
   class Calculator < Spree::Base
-    # Conditional check for backwards compatibilty since acts as paranoid was added late https://github.com/spree/spree/issues/5858
-    if ActiveRecord::Base.connected? && connection.data_source_exists?(:spree_calculators) && connection.column_exists?(:spree_calculators, :deleted_at)
-      acts_as_paranoid
-    end
+    acts_as_paranoid
 
-    belongs_to :calculable, polymorphic: true, optional: true
+    belongs_to :calculable, polymorphic: true
 
     # This method calls a compute_<computable> method. must be overriden in concrete calculator.
     #
@@ -24,7 +23,7 @@ module Spree
 
     # overwrite to provide description for your calculators
     def self.description
-      'Base Calculator'
+      model_name.human
     end
 
     # Returns all calculators applicable for kind of work
