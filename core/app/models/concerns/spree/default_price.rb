@@ -1,39 +1,22 @@
+# frozen_string_literal: true
+
 module Spree
   module DefaultPrice
     extend ActiveSupport::Concern
 
     included do
-      has_one :default_price,
-              -> { where currency: Spree::Config[:currency] },
-              class_name: 'Spree::Price',
-              dependent: :destroy
+      has_one :default_price, -> { with_deleted.currently_valid.with_default_attributes }, class_name: 'Spree::Price', inverse_of: :variant, dependent: :destroy, autosave: true
+    end
 
-      delegate :display_price, :display_amount, :price, :currency, :price=,
-               :price_including_vat_for, :currency=, to: :find_or_build_default_price
+    def find_or_build_default_price
+      default_price || build_default_price(Spree::Config.default_pricing_options.desired_attributes)
+    end
 
-      after_save :save_default_price
+    delegate :display_price, :display_amount, :price, to: :find_or_build_default_price
+    delegate :price=, to: :find_or_build_default_price
 
-      def default_price
-        Spree::Price.unscoped { super }
-      end
-
-      def has_default_price?
-        !default_price.nil?
-      end
-
-      def find_or_build_default_price
-        default_price || build_default_price
-      end
-
-      private
-
-      def default_price_changed?
-        default_price && (default_price.changed? || default_price.new_record?)
-      end
-
-      def save_default_price
-        default_price.save if default_price_changed?
-      end
+    def has_default_price?
+      !default_price.nil?
     end
   end
 end
