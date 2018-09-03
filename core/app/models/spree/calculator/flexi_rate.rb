@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_dependency 'spree/calculator'
 
 module Spree
@@ -6,10 +8,6 @@ module Spree
     preference :additional_item, :decimal, default: 0.0
     preference :max_items,       :integer, default: 0
     preference :currency,        :string,  default: -> { Spree::Config[:currency] }
-
-    def self.description
-      Spree.t(:flexible_rate)
-    end
 
     def self.available?(_object)
       true
