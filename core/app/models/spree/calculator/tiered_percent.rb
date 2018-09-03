@@ -1,14 +1,19 @@
+# frozen_string_literal: true
+
 require_dependency 'spree/calculator'
 
 module Spree
   class Calculator::TieredPercent < Calculator
     preference :base_percent, :decimal, default: 0
     preference :tiers, :hash, default: {}
+    preference :currency, :string, default: -> { Spree::Config[:currency] }
 
     before_validation do
       # Convert tier values to decimals. Strings don't do us much good.
       if preferred_tiers.is_a?(Hash)
-        self.preferred_tiers = Hash[*preferred_tiers.flatten.map(&:to_f)]
+        self.preferred_tiers = preferred_tiers.map do |k, v|
+          [cast_to_d(k.to_s), cast_to_d(v.to_s)]
+        end.to_h
       end
     end
 
@@ -18,16 +23,27 @@ module Spree
     }
     validate :preferred_tiers_content
 
-    def self.description
-      Spree.t(:tiered_percent)
-    end
-
     def compute(object)
-      base, percent = preferred_tiers.sort.reverse.detect { |b, _| object.amount >= b }
-      (object.amount * (percent || preferred_base_percent) / 100).round(2)
+      order = object.is_a?(Order) ? object : object.order
+
+      _base, percent = preferred_tiers.sort.reverse.detect do |b, _|
+        order.item_total >= b
+      end
+
+      if preferred_currency.casecmp(order.currency).zero?
+        (object.amount * (percent || preferred_base_percent) / 100).round(2)
+      else
+        0
+      end
     end
 
     private
+
+    def cast_to_d(value)
+      value.to_s.to_d
+    rescue ArgumentError
+      BigDecimal(0)
+    end
 
     def preferred_tiers_content
       if preferred_tiers.is_a? Hash
