@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+require_dependency 'spree/calculator'
 require_dependency 'spree/shipping_calculator'
 
 module Spree
@@ -8,27 +11,23 @@ module Spree
       preference :max_items,       :integer, default: 0
       preference :currency,        :string,  default: -> { Spree::Config[:currency] }
 
-      def self.description
-        Spree.t(:shipping_flexible_rate)
-      end
-
       def compute_package(package)
-        quantity = package.contents.sum(&:quantity)
-
-        compute_from_quantity(quantity)
+        compute_from_quantity(package.contents.sum(&:quantity))
       end
 
-      delegate :compute_from_quantity, to: :flexi_rate_calculator
+      def compute_from_quantity(quantity)
+        sum = 0
+        max = preferred_max_items.to_i
+        quantity.times do |i|
+          # check max value to avoid divide by 0 errors
+          if (max == 0 && i == 0) || (max > 0) && (i % max == 0)
+            sum += preferred_first_item.to_f
+          else
+            sum += preferred_additional_item.to_f
+          end
+        end
 
-      private
-
-      def flexi_rate_calculator
-        ::Spree::Calculator::FlexiRate.new(
-          preferred_additional_item: preferred_additional_item,
-          preferred_first_item:      preferred_first_item,
-          preferred_max_items:       preferred_max_items,
-          preferred_currency:        preferred_currency
-        )
+        sum
       end
     end
   end
