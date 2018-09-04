@@ -1,15 +1,34 @@
+# frozen_string_literal: true
+
 module Spree
   class Payment < Spree::Base
     module Processing
-      extend ActiveSupport::Concern
-      included do
-        class_attribute :gateway_options_class
-        self.gateway_options_class = Spree::Payment::GatewayOptions
-      end
-
+      # "process!" means:
+      #   - Do nothing when:
+      #     - There is no payment method
+      #     - The payment method does not require a source
+      #     - The payment is in the "processing" state
+      #     - 'auto_capture?' is false and the payment is already authorized.
+      #   - Raise an exception when:
+      #     - The source is missing or invalid
+      #     - The payment is in a state that cannot transition to 'processing'
+      #       (failed/void/invalid states). Note: 'completed' can transition to
+      #       'processing' and thus calling #process! on a completed Payment
+      #       will attempt to re-authorize/re-purchase the payment.
+      #   - Otherwise:
+      #     - If 'auto_capture?' is true:
+      #       - Call #purchase on the payment gateway. (i.e. authorize+capture)
+      #         even if the payment is already completed.
+      #     - Else:
+      #       - Call #authorize on the payment gateway even if the payment is
+      #         already completed.
       def process!
-        if payment_method && payment_method.auto_capture?
+        return if payment_method.nil?
+
+        if payment_method.auto_capture?
           purchase!
+        elsif pending?
+          # do nothing. already authorized.
         else
           authorize!
         end
@@ -56,25 +75,45 @@ module Spree
             # Standard ActiveMerchant void usage
             response = payment_method.void(response_code, gateway_options)
           end
-          record_response(response)
-
-          if response.success?
-            self.response_code = response.authorization
-            void
-          else
-            gateway_error(response)
-          end
+          handle_void_response(response)
         end
       end
 
       def cancel!
-        response = payment_method.cancel(response_code)
-        handle_response(response, :void, :failure)
+        Spree::Config.payment_canceller.cancel(self)
       end
 
       def gateway_options
         order.reload
-        gateway_options_class.new(self).to_hash
+        options = {
+          email: order.email,
+          customer: order.email,
+          customer_id: order.user_id,
+          ip: order.last_ip_address,
+          # Need to pass in a unique identifier here to make some
+          # payment gateways happy.
+          #
+          # For more information, please see Spree::Payment#set_unique_identifier
+          order_id: gateway_order_id,
+          # The originator is passed to options used by the payment method.
+          # One example of a place that it is used is in:
+          # app/models/spree/payment_method/store_credit.rb
+          originator: self
+        }
+
+        options[:shipping] = order.ship_total * 100
+        options[:tax] = order.additional_tax_total * 100
+        options[:subtotal] = order.item_total * 100
+        options[:discount] = order.promo_total * 100
+        options[:currency] = currency
+
+        bill_address = source.try(:address)
+        bill_address ||= order.bill_address
+
+        options[:billing_address] = bill_address.try!(:active_merchant_hash)
+        options[:shipping_address] = order.ship_address.try!(:active_merchant_hash)
+
+        options
       end
 
       private
@@ -86,29 +125,30 @@ module Spree
 
       def process_purchase
         started_processing!
-        result = gateway_action(source, :purchase, :complete)
+        gateway_action(source, :purchase, :complete)
         # This won't be called if gateway_action raises a GatewayError
         capture_events.create!(amount: amount)
       end
 
-      def handle_payment_preconditions
+      def handle_payment_preconditions(&_block)
         unless block_given?
-          raise ArgumentError, 'handle_payment_preconditions must be called with a block'
+          raise ArgumentError.new('handle_payment_preconditions must be called with a block')
         end
 
-        if payment_method && payment_method.source_required?
-          if source
-            unless processing?
-              if payment_method.supports?(source) || token_based?
-                yield
-              else
-                invalidate!
-                raise Core::GatewayError, Spree.t(:payment_method_not_supported)
-              end
+        return if payment_method.nil?
+        return if !payment_method.source_required?
+
+        if source
+          if !processing?
+            if payment_method.supports?(source)
+              yield
+            else
+              invalidate!
+              raise Core::GatewayError.new(I18n.t('spree.payment_method_not_supported'))
             end
-          else
-            raise Core::GatewayError, Spree.t(:payment_processing_failed)
           end
+        else
+          raise Core::GatewayError, Spree.t(:payment_processing_failed)
         end
       end
 
@@ -141,33 +181,44 @@ module Spree
         end
       end
 
+      def handle_void_response(response)
+        record_response(response)
+
+        if response.success?
+          self.response_code = response.authorization
+          void
+        else
+          gateway_error(response)
+        end
+      end
+
       def record_response(response)
         log_entries.create!(details: response.to_yaml)
       end
 
       def protect_from_connection_error
-
         yield
       rescue ActiveMerchant::ConnectionError => e
         gateway_error(e)
-
       end
 
       def gateway_error(error)
-        text = if error.is_a? ActiveMerchant::Billing::Response
-                 error.params['message'] || error.params['response_reason_text'] || error.message
-               elsif error.is_a? ActiveMerchant::ConnectionError
-                 Spree.t(:unable_to_connect_to_gateway)
-               else
-                 error.to_s
-               end
-        logger.error(Spree.t(:gateway_error))
+        if error.is_a? ActiveMerchant::Billing::Response
+          text = error.params['message'] || error.params['response_reason_text'] || error.message
+        elsif error.is_a? ActiveMerchant::ConnectionError
+          text = I18n.t('spree.unable_to_connect_to_gateway')
+        else
+          text = error.to_s
+        end
+
+        logger.error(I18n.t('spree.gateway_error'))
         logger.error("  #{error.to_yaml}")
-        raise Core::GatewayError, text
+        raise Core::GatewayError.new(text)
       end
 
-      def token_based?
-        source.gateway_customer_profile_id.present? || source.gateway_payment_profile_id.present?
+      # The unique identifier to be passed in to the payment gateway
+      def gateway_order_id
+        "#{order.number}-#{number}"
       end
     end
   end
