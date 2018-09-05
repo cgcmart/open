@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   class Product < Spree::Base
     cattr_accessor :search_scopes do
@@ -9,41 +11,26 @@ module Spree
       search_scopes << name.to_sym
     end
 
-    def self.simple_scopes
-      [
-        :ascend_by_updated_at,
-        :descend_by_updated_at,
-        :ascend_by_name,
-        :descend_by_name
-      ]
-    end
-
-    def self.add_simple_scopes(scopes)
-      scopes.each do |name|
-        # We should not define price scopes here, as they require something slightly different
-        next if name.to_s.include?('master_price')
-        parts = name.to_s.match(/(.*)_by_(.*)/)
-        scope(name.to_s, -> { order(Arel.sql("#{Product.quoted_table_name}.#{parts[2]} #{parts[1] == 'ascend' ? 'ASC' : 'DESC'}")) })
-      end
-    end
-
     def self.property_conditions(property)
       properties = Property.table_name
-      conditions = case property
-                   when String   then { "#{properties}.name" => property }
-                   when Property then { "#{properties}.id" => property.id }
-                   else { "#{properties}.id" => property.to_i }
+      case property
+      when String   then { "#{properties}.name" => property }
+      when Property then { "#{properties}.id" => property.id }
+      else { "#{properties}.id" => property.to_i }
       end
     end
 
-    add_simple_scopes simple_scopes
+    cope :ascend_by_updated_at, -> { order(updated_at: :asc) }
+    scope :descend_by_updated_at, -> { order(updated_at: :desc) }
+    scope :ascend_by_name, -> { order(name: :asc) }
+    scope :descend_by_name, -> { order(name: :desc) }
 
     add_search_scope :ascend_by_master_price do
-      joins(master: :default_price).order("#{price_table_name}.amount ASC")
+      joins(master: :default_price).order(Spree::Price.arel_table[:amount].asc)
     end
 
     add_search_scope :descend_by_master_price do
-      joins(master: :default_price).order("#{price_table_name}.amount DESC")
+      joins(master: :default_price).order(Spree::Price.arel_table[:amount].desc)
     end
 
     add_search_scope :price_between do |low, high|
@@ -78,7 +65,7 @@ module Spree
     add_search_scope :in_taxon do |taxon|
       includes(:classifications).
         where('spree_products_taxons.taxon_id' => taxon.self_and_descendants.pluck(:id)).
-        order('spree_products_taxons.position ASC')
+        order(Spree::Classification.arel_table[:position].asc)
     end
 
     # This scope selects products in all taxons AND all its descendants
@@ -99,27 +86,27 @@ module Spree
     # note that it can test for properties with NULL values, but not for absent values
     add_search_scope :with_property_value do |property, value|
       joins(:properties).
-        where("#{ProductProperty.table_name}.value = ?", value).
+        where("#{Spree::ProductProperty.table_name}.value = ?", value).
         where(property_conditions(property))
     end
 
     add_search_scope :with_option do |option|
-      option_types = OptionType.table_name
+      option_types = Spree::OptionType.table_name
       conditions = case option
                    when String     then { "#{option_types}.name" => option }
                    when OptionType then { "#{option_types}.id" => option.id }
-                   else { "#{option_types}.id" => option.to_i }
+        else { "#{option_types}.id" => option.to_i }
       end
 
       joins(:option_types).where(conditions)
     end
 
     add_search_scope :with_option_value do |option, value|
-      option_values = OptionValue.table_name
+      option_values = Spree::OptionValue.table_name
       option_type_id = case option
-                       when String then OptionType.find_by(name: option) || option.to_i
-                       when OptionType then option.id
-                       else option.to_i
+                       when String then Spree::OptionType.find_by(name: option) || option.to_i
+                       when Spree::OptionType then option.id
+        else option.to_i
       end
 
       conditions = "#{option_values}.name = ? AND #{option_values}.option_type_id = ?", value, option_type_id
@@ -132,7 +119,7 @@ module Spree
     add_search_scope :with do |value|
       includes(variants_including_master: :option_values).
         includes(:product_properties).
-        where("#{OptionValue.table_name}.name = ? OR #{ProductProperty.table_name}.value = ?", value, value)
+        where("#{Spree::OptionValue.table_name}.name = ? OR #{Spree::ProductProperty.table_name}.value = ?", value, value)
     end
 
     # Finds all products that have a name containing the given words.
@@ -169,45 +156,42 @@ module Spree
         order(%Q{
            COALESCE((
              SELECT
-               COUNT(#{LineItem.quoted_table_name}.id)
+               COUNT(#{Spree::LineItem.quoted_table_name}.id)
              FROM
-               #{LineItem.quoted_table_name}
+               #{Spree::LineItem.quoted_table_name}
              JOIN
-               #{Variant.quoted_table_name} AS popular_variants
+               #{Spree::Variant.quoted_table_name} AS popular_variants
              ON
-               popular_variants.id = #{LineItem.quoted_table_name}.variant_id
+               popular_variants.id = #{Spree::LineItem.quoted_table_name}.variant_id
              WHERE
-               popular_variants.product_id = #{Product.quoted_table_name}.id
+               popular_variants.product_id = #{Spree::Product.quoted_table_name}.id
            ), 0) DESC
         })
     end
 
     add_search_scope :not_deleted do
-      where("#{Product.quoted_table_name}.deleted_at IS NULL or #{Product.quoted_table_name}.deleted_at >= ?", Time.zone.now)
+      where("#{Spree::Product.quoted_table_name}.deleted_at IS NULL or #{Product.quoted_table_name}.deleted_at >= ?", Time.current)
     end
 
-    def self.not_discontinued(only_not_discontinued = true)
-      if only_not_discontinued != '0' && only_not_discontinued
-        where("#{Product.quoted_table_name}.discontinue_on IS NULL or #{Product.quoted_table_name}.discontinue_on >= ?", Time.zone.now)
-      else
-        all
-      end
+    scope :with_master_price, -> do
+      joins(:master).where(Spree::Price.where(Spree::Variant.arel_table[:id].eq(Spree::Price.arel_table[:variant_id])).arel.exists)
     end
-    search_scopes << :not_discontinued
+
     # Can't use add_search_scope for this as it needs a default argument
-    def self.available(available_on = nil, _currency = nil)
-      available_on ||= Time.current
-      not_discontinued.joins(master: :prices).where("#{Product.quoted_table_name}.available_on <= ?", available_on)
+    def self.available(available_on = nil)
+      with_master_price.where("#{Spree::Product.quoted_table_name}.available_on <= ?", available_on || Time.current)
     end
     search_scopes << :available
 
-    def self.active(currency = nil)
-      available(nil, currency)
-    end
-    search_scopes << :active
-
     add_search_scope :taxons_name_eq do |name|
-      group('spree_products.id').joins(:taxons).where(Taxon.arel_table[:name].eq(name))
+      group('spree_products.id').joins(:taxons).where(Spree::Taxon.arel_table[:name].eq(name))
+    end
+
+    def self.with_variant_sku_cont(sku)
+      sku_match = "%#{sku}%"
+      variant_table = Spree::Variant.arel_table
+      subquery = Spree::Variant.where(variant_table[:sku].matches(sku_match).and(variant_table[:product_id].eq(arel_table[:id])))
+      where(subquery.arel.exists)
     end
 
     def self.distinct_by_product_ids(sort_order = nil)
@@ -228,44 +212,46 @@ module Spree
       #
       # Don't allow sort_column, a variable coming from params,
       # to be anything but a column in the database
-      if ApplicationRecord.connection.adapter_name == 'PostgreSQL' && !column_names.include?(sort_column)
+      if ActiveRecord::Base.connection.adapter_name == 'PostgreSQL' && !column_names.include?(sort_column)
         all
       else
         distinct
       end
     end
 
-    private
+    class << self
+      private
 
-    def self.price_table_name
-      Price.quoted_table_name
-    end
+      def price_table_name
+        Spree::Price.quoted_table_name
+      end
 
-    # specifically avoid having an order for taxon search (conflicts with main order)
-    def self.prepare_taxon_conditions(taxons)
-      ids = taxons.map { |taxon| taxon.self_and_descendants.pluck(:id) }.flatten.uniq
-      joins(:classifications).where(Classification.table_name => { taxon_id: ids })
-    end
+      # specifically avoid having an order for taxon search (conflicts with main order)
+      def prepare_taxon_conditions(taxons)
+        ids = taxons.map { |taxon| taxon.self_and_descendants.pluck(:id) }.flatten.uniq
+        joins(:taxons).where("#{Spree::Taxon.table_name}.id" => ids)
+      end
 
-    # Produce an array of keywords for use in scopes.
-    # Always return array with at least an empty string to avoid SQL errors
-    def self.prepare_words(words)
-      return [''] if words.blank?
-      a = words.split(/[,\s]/).map(&:strip)
-      a.any? ? a : ['']
-    end
+      # Produce an array of keywords for use in scopes.
+      # Always return array with at least an empty string to avoid SQL errors
+      def prepare_words(words)
+        return [''] if words.blank?
+        a = words.split(/[,\s]/).map(&:strip)
+        a.any? ? a : ['']
+      end
 
-    def self.get_taxons(*ids_or_records_or_names)
-      taxons = Taxon.table_name
-      ids_or_records_or_names.flatten.map do |t|
-        case t
-        when Integer then Taxon.find_by(id: t)
-        when ApplicationRecord then t
-        when String
-          Taxon.find_by(name: t) ||
-            Taxon.where("#{taxons}.permalink LIKE ? OR #{taxons}.permalink = ?", "%/#{t}/", "#{t}/").first
-        end
-      end.compact.flatten.uniq
+      def get_taxons(*ids_or_records_or_names)
+        taxons = Spree::Taxon.table_name
+        ids_or_records_or_names.flatten.map { |t|
+          case t
+          when Integer then Taxon.find_by(id: t)
+          when ActiveRecord then t
+          when String
+            Spree::Taxon.find_by(name: t) ||
+              Spree::Taxon.where("#{taxons}.permalink LIKE ? OR #{taxons}.permalink = ?", "%/#{t}/", "#{t}/").first
+          end
+        }.compact.flatten.uniq
+      end
     end
-    end
+  end
 end
