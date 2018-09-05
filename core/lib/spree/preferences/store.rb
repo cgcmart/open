@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Use singleton class Spree::Preferences::Store.instance to access
 #
 # StoreInstance has a persistence flag that is on by default,
@@ -16,18 +18,15 @@ DB_EXCEPTIONS = if defined? PG
 
 module Spree::Preferences
   class StoreInstance
-    attr_accessor :persistence
-
     def initialize
       @cache = Rails.cache
-      @persistence = true
     end
 
     def set(key, value)
       @cache.write(key, value)
       persist(key, value)
     end
-    alias []= set
+    alias :[]=, :set
 
     def exist?(key)
       @cache.exist?(key) ||
@@ -47,13 +46,13 @@ module Spree::Preferences
         # has been cleared from the cache
 
         # does it exist in the database?
-        val = if preference = Spree::Preference.find_by(key: key)
+        if preference = Spree::Preference.find_by(key: key)
           # it does exist
-                preference.value
-              else
+          val = preference.value
+        else
           # use the fallback value
-                yield
-              end
+          val = yield
+        end
 
         # Cache either the value from the db or the fallback value.
         # This avoids hitting the db with subsequent queries.
@@ -64,7 +63,7 @@ module Spree::Preferences
         yield
       end
     end
-    alias fetch get
+    alias_method :fetch, :get
 
     def delete(key)
       @cache.delete(key)
@@ -93,9 +92,8 @@ module Spree::Preferences
     end
 
     def should_persist?
-      @persistence && Spree::Preference.table_exists?
+      Spree::Preference.table_exists?
     rescue *DB_EXCEPTIONS # this is fix to make Deploy To Heroku button work
-      false
     end
   end
 
