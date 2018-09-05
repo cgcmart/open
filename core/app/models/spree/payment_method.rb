@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'discard'
+require 'spree/preferences/statically_configurable'
 
 module Spree
   class PaymentMethod < Spree::Base
