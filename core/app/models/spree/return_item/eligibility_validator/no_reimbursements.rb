@@ -1,16 +1,22 @@
-module Spree
-  class ReturnItem::EligibilityValidator::NoReimbursements < Spree::ReturnItem::EligibilityValidator::BaseValidator
-    def eligible_for_return?
-      if Spree::ReturnItem.where(inventory_unit: @return_item.inventory_unit).where.not(reimbursement_id: nil).any?
-        add_error(:inventory_unit_reimbursed, Spree.t('return_item_inventory_unit_reimbursed'))
-        false
-      else
-        true
-      end
-    end
+# frozen_string_literal: true
 
-    def requires_manual_intervention?
-      @errors.present?
+module Spree
+  class ReturnItem < Spree::Base
+    module EligibilityValidator
+      class NoReimbursements < Spree::ReturnItem::EligibilityValidator::BaseValidator
+        def eligible_for_return?
+          if @return_item.inventory_unit.return_items.reimbursed.valid.any?
+            add_error(:inventory_unit_reimbursed, I18n.t('spree.return_item_inventory_unit_reimbursed'))
+            false
+          else
+            true
+          end
+        end
+
+        def requires_manual_intervention?
+          @errors.present?
+        end
+      end
     end
   end
 end
