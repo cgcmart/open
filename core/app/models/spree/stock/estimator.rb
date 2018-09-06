@@ -1,70 +1,69 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     class Estimator
-      include VatPriceCalculation
+      class ShipmentRequired < StandardError; end
+      class OrderRequired < StandardError; end
 
-      attr_reader :order, :currency
+      # Estimate the shipping rates for a package.
+      #
+      # @param package [Spree::Stock::Package] the package to be shipped
+      # @param frontend_only [Boolean] restricts the shipping methods to only
+      #   those marked frontend if truthy
+      # @return [Array<Spree::ShippingRate>] the shipping rates sorted by
+      #   descending cost, with the least costly marked "selected"
+      def shipping_rates(package, frontend_only = true)
+        raise ShipmentRequired if package.shipment.nil?
+        raise OrderRequired if package.shipment.order.nil?
 
-      def initialize(order)
-        @order = order
-        @currency = order.currency
-      end
-
-      def shipping_rates(package, shipping_method_filter = ShippingMethod::DISPLAY_ON_FRONT_END)
-        rates = calculate_shipping_rates(package, shipping_method_filter)
+        rates = calculate_shipping_rates(package)
+        rates.select! { |rate| rate.shipping_method.available_to_users? } if frontend_only
         choose_default_shipping_rate(rates)
-        sort_shipping_rates(rates)
+        Spree::Config.shipping_rate_sorter_class.new(rates).sort
       end
 
       private
 
       def choose_default_shipping_rate(shipping_rates)
         unless shipping_rates.empty?
-          shipping_rates.min_by(&:cost).selected = true
+          default_shipping_rate = Spree::Config.shipping_rate_selector_class.new(shipping_rates).find_default
+          default_shipping_rate.selected = true
         end
       end
 
-      def sort_shipping_rates(shipping_rates)
-        shipping_rates.sort_by!(&:cost)
-      end
-
-      def calculate_shipping_rates(package, ui_filter)
-        shipping_methods(package, ui_filter).map do |shipping_method|
+      def calculate_shipping_rates(package)
+        tax_calculator_class = Spree::Config.shipping_rate_tax_calculator_class
+        tax_calculator = tax_calculator_class.new(package.shipment.order)
+        shipping_methods(package).map do |shipping_method|
           cost = shipping_method.calculator.compute(package)
-
-          next unless cost
-          shipping_method.shipping_rates.new(
-            cost: gross_amount(cost, taxation_options_for(shipping_method)),
-            tax_rate: first_tax_rate_for(shipping_method.tax_category)
-          )
+          if cost
+            rate = shipping_method.shipping_rates.new(
+              cost: cost,
+              shipment: package.shipment
+            )
+            tax_calculator.calculate(rate).each do |tax|
+              rate.taxes.new(
+                amount: tax.amount,
+                tax_rate: tax.tax_rate
+              )
+            end
+            rate
+          end
         end.compact
       end
 
-      # Override this if you need the prices for shipping methods to be handled just like the
-      # prices for products in terms of included tax manipulation.
-      #
-      def taxation_options_for(shipping_method)
-        {
-          tax_category: shipping_method.tax_category,
-          tax_zone: @order.tax_zone
-        }
-      end
-
-      def first_tax_rate_for(tax_category)
-        return unless @order.tax_zone && tax_category
-        Spree::TaxRate.for_tax_category(tax_category).
-          potential_rates_for_zone(@order.tax_zone).first
-      end
-
-      def shipping_methods(package, display_filter)
-        package.shipping_methods.select do |ship_method|
+      def shipping_methods(package)
+        package.shipping_methods
+          .available_to_store(package.shipment.order.store)
+          .available_for_address(package.shipment.order.ship_address)
+          .includes(:calculator)
+          .to_a
+          .select do |ship_method|
           calculator = ship_method.calculator
-
-          ship_method.available_to_display?(display_filter) &&
-            ship_method.include?(order.ship_address) &&
-            calculator.available?(package) &&
+          calculator.available?(package) &&
             (calculator.preferences[:currency].blank? ||
-             calculator.preferences[:currency] == currency)
+                calculator.preferences[:currency] == package.shipment.order.currency)
         end
       end
     end
