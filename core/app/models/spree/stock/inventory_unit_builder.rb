@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     class InventoryUnitBuilder
@@ -6,16 +8,14 @@ module Spree
       end
 
       def units
-        @order.line_items.map do |line_item|
-          # They go through multiple splits, avoid loading the
-          # association to order until needed.
-          InventoryUnit.new(
-            pending:    true,
-            line_item:  line_item,
-            variant:    line_item.variant,
-            quantity:   line_item.quantity,
-            order_id:   @order.id
-          )
+        @order.line_items.flat_map do |line_item|
+          Array.new(line_item.quantity) do
+            Spree::InventoryUnit.new(
+              pending: true,
+              variant: line_item.variant,
+              line_item: line_item
+            )
+          end
         end
       end
     end
