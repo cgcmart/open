@@ -1,15 +1,17 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     module Splitter
       class Base
-        attr_reader :packer, :next_splitter
+        attr_reader :stock_location, :next_splitter
 
-        def initialize(packer, next_splitter = nil)
-          @packer = packer
+        def initialize(stock_location, next_splitter = nil)
+          if stock_location.is_a?(Spree::StockLocation)
+            @stock_location = stock_location
+          end
           @next_splitter = next_splitter
         end
-
-        delegate :stock_location, to: :packer
 
         def split(packages)
           return_next(packages)
