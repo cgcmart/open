@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module PromotionHandler
     # Decides which promotion should be activated given the current order context
@@ -23,10 +25,8 @@ module Spree
 
       def activate
         promotions.each do |promotion|
-          if (line_item && promotion.eligible?(line_item)) || promotion.eligible?(order)
-            promotion.activate(line_item: line_item, order: order)
-          else
-            promotion.deactivate(line_item: line_item, order: order)
+          if (line_item && promotion.eligible?(line_item, promotion_code: promotion_code(promotion))) || promotion.eligible?(order, promotion_code: promotion_code(promotion))
+            promotion.activate(line_item: line_item, order: order, promotion_code: promotion_code(promotion))
           end
         end
       end
@@ -34,7 +34,22 @@ module Spree
       private
 
       def promotions
-        Promotion.find_by_sql("#{order.promotions.active.to_sql} UNION #{Promotion.active.where(code: nil, path: nil).to_sql}")
+        connected_order_promotions | sale_promotions
+      end
+
+      def connected_order_promotions
+        Spree::Promotion.active.includes(:promotion_rules).
+          joins(:order_promotions).
+          where(spree_orders_promotions: { order_id: order.id }).readonly(false).to_a
+      end
+
+      def sale_promotions
+        Spree::Promotion.where(apply_automatically: true).active.includes(:promotion_rules)
+      end
+
+      def promotion_code(promotion)
+        order_promotion = Spree::OrderPromotion.where(order: order, promotion: promotion).first
+        order_promotion.present? ? order_promotion.promotion_code : nil
       end
     end
   end
