@@ -1,9 +1,11 @@
-# A rule to limit a promotion based on products in the order.
-# Can require all or any of the products to be present.
-# Valid products either come from assigned product group or are assingned directly to the rule.
+# frozen_string_literal: true
+
 module Spree
-  class Promotion
+  class Promotion < Spree::Base
     module Rules
+      # A rule to limit a promotion based on products in the order.
+      # Can require all or any of the products to be present.
+      # Valid products either come from assigned product group or are assingned directly to the rule.
       class Product < PromotionRule
         has_many :product_promotion_rules, class_name: 'Spree::ProductPromotionRule',
                                            foreign_key: :promotion_rule_id,
@@ -11,6 +13,9 @@ module Spree
         has_many :products, through: :product_promotion_rules, class_name: 'Spree::Product'
 
         MATCH_POLICIES = %w(any all none)
+
+        validates_inclusion_of :preferred_match_policy, in: MATCH_POLICIES
+
         preference :match_policy, :string, default: MATCH_POLICIES.first
 
         # scope/association that is used to test eligibility
@@ -25,18 +30,21 @@ module Spree
         def eligible?(order, _options = {})
           return true if eligible_products.empty?
 
-          if preferred_match_policy == 'all'
+          case preferred_match_policy
+          when 'all'
             unless eligible_products.all? { |p| order.products.include?(p) }
               eligibility_errors.add(:base, eligibility_error_message(:missing_product))
             end
-          elsif preferred_match_policy == 'any'
+          when 'any'
             unless order.products.any? { |p| eligible_products.include?(p) }
               eligibility_errors.add(:base, eligibility_error_message(:no_applicable_products))
             end
-          else
+          when 'none'
             unless order.products.none? { |p| eligible_products.include?(p) }
               eligibility_errors.add(:base, eligibility_error_message(:has_excluded_product))
             end
+          else
+            raise "unexpected match policy: #{preferred_match_policy.inspect}"
           end
 
           eligibility_errors.empty?
@@ -57,8 +65,8 @@ module Spree
           product_ids.join(',')
         end
 
-        def product_ids_string=(s)
-          self.product_ids = s.to_s.split(',').map(&:strip)
+        def product_ids_string=(product_ids)
+          self.product_ids = product_ids.to_s.split(',').map(&:strip)
         end
       end
     end
