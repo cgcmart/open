@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     class Quantifier
@@ -5,7 +7,12 @@ module Spree
 
       def initialize(variant, stock_location = nil)
         @variant        = variant
-        @stock_location = stock_location
+        @stock_items = Spree::StockItem.where(variant_id: variant)
+        if stock_location
+          @stock_items.where!(stock_location: stock_location)
+        else
+          @stock_items.joins!(:stock_location).merge!(Spree::StockLocation.active)
+        end
       end
 
       def total_on_hand
@@ -20,20 +27,8 @@ module Spree
         stock_items.any?(&:backorderable)
       end
 
-      def can_supply?(required = 1)
-        variant.available? && (total_on_hand >= required || backorderable?)
-      end
-
-      def stock_items
-        @stock_items ||= scope_to_location(variant.stock_items)
-      end
-
-      private
-
-      def scope_to_location(collection)
-        return collection.with_active_stock_location unless stock_location.present?
-
-        collection.where(stock_location: stock_location)
+      def can_supply?(required)
+        total_on_hand >= required || backorderable?
       end
     end
   end
