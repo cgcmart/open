@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module PromotionHandler
     class Page
@@ -17,7 +19,7 @@ module Spree
       private
 
       def promotion
-        @promotion ||= Promotion.active.find_by(path: path)
+        @promotion ||= Spree::Promotion.active.find_by(path: path)
       end
     end
   end
