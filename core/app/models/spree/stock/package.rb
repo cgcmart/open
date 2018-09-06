@@ -1,18 +1,18 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     class Package
       attr_reader :stock_location, :contents
-      attr_accessor :shipping_rates
+      attr_accessor :shipment
 
       def initialize(stock_location, contents = [])
         @stock_location = stock_location
         @contents = contents
-        @shipping_rates = []
       end
 
       def add(inventory_unit, state = :on_hand)
-        # Remove find_item check as already taken care by prioritizer
-        contents << ContentItem.new(inventory_unit, state)
+        contents << ContentItem.new(inventory_unit, state) unless find_item(inventory_unit)
       end
 
       def add_multiple(inventory_units, state = :on_hand)
@@ -21,17 +21,13 @@ module Spree
 
       def remove(inventory_unit)
         item = find_item(inventory_unit)
-        remove_item(item) if item
-      end
-
-      def remove_item(item)
-        @contents -= [item]
+        @contents -= [item] if item
       end
 
       # Fix regression that removed package.order.
       # Find it dynamically through an inventory_unit.
       def order
-        contents.detect { |item| !!item.try(:inventory_unit).try(:order) }.try(:inventory_unit).try(:order)
+        contents.detect { |item| !!item.try(:line_item).try(:order) }.try(:line_item).try(:order)
       end
 
       def weight
@@ -55,11 +51,11 @@ module Spree
 
       def quantity(state = nil)
         matched_contents = state.nil? ? contents : contents.select { |c| c.state.to_s == state.to_s }
-        matched_contents.sum(&:quantity)
+        matched_contents.map(&:quantity).sum
       end
 
       def empty?
-        quantity.zero?
+        quantity == 0
       end
 
       def currency
@@ -67,18 +63,12 @@ module Spree
       end
 
       def shipping_categories
-        Spree::ShippingCategory.joins(products: :variants_including_master).
-          where(spree_variants: { id: variant_ids }).distinct
+        Spree::ShippingCategory.where(id: shipping_category_ids)
       end
 
       def shipping_methods
-        shipping_categories.includes(:shipping_methods).map(&:shipping_methods).reduce(:&).to_a
-      end
-
-      def inspect
-        contents.map do |content_item|
-          "#{content_item.variant.name} #{content_item.state}"
-        end.join(' / ')
+        Spree::ShippingMethod.
+          with_all_shipping_category_ids(shipping_category_ids).available_in_stock_location(stock_location)
       end
 
       def to_shipment
@@ -88,24 +78,18 @@ module Spree
         contents.each { |content_item| content_item.inventory_unit.state = content_item.state.to_s }
 
         Spree::Shipment.new(
+          order: order,
           stock_location: stock_location,
-          shipping_rates: shipping_rates,
           inventory_units: contents.map(&:inventory_unit)
         )
       end
 
-      def volume
-        contents.sum(&:volume)
-      end
-
-      def dimension
-        contents.sum(&:dimension)
-      end
-
       private
 
-      def variant_ids
-        contents.map { |item| item.inventory_unit.variant_id }.compact.uniq
+      # @return [Array<Fixnum>] the unique ids of all shipping categories of
+      #   variants in this package
+      def shipping_category_ids
+        contents.map { |item| item.variant.shipping_category_id }.compact.uniq
       end
     end
   end
