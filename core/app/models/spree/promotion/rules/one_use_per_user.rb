@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 module Spree
-  class Promotion
+  class Promotion < Spree::Base
     module Rules
       class OneUsePerUser < PromotionRule
         def applicable?(promotable)
