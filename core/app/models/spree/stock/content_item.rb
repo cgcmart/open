@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     class ContentItem
@@ -8,26 +10,16 @@ module Spree
         @state = state
       end
 
-      with_options allow_nil: true do
-        delegate :line_item,
-                 :quantity,
-                 :variant, to: :inventory_unit
-        delegate :price, to: :variant
-        delegate :dimension,
-                 :volume,
-                 :weight, to: :variant, prefix: true
-      end
-
-      def splittable_by_weight?
-        quantity > 1 && variant_weight.present?
+      def variant
+        inventory_unit.variant
       end
 
       def weight
         variant_weight * quantity
       end
 
-      def quantity=(value)
-        @inventory_unit.quantity = value
+      def line_item
+        inventory_unit.line_item
       end
 
       def on_hand?
@@ -38,16 +30,20 @@ module Spree
         state.to_s == 'backordered'
       end
 
+      def price
+        variant.price
+      end
+
       def amount
         price * quantity
       end
 
-      def volume
-        variant_volume * quantity
-      end
-
-      def dimension
-        variant_dimension * quantity
+      def quantity
+        # Since inventory units don't have a quantity,
+        # make this always 1 for now, leaving ourselves
+        # open to a different possibility in the future,
+        # but this massively simplifies things for now
+        1
       end
     end
   end
