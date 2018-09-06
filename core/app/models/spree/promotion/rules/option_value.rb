@@ -1,20 +1,9 @@
+# frozen_string_literal: true
+
 module Spree
-  class Promotion
+  class Promotion < Spree::Base
     module Rules
-      module OptionValueWithNumerificationSupport
-        def preferred_eligible_values
-          values = super || {}
-          Hash[values.keys.map(&:to_i).zip(
-            values.values.map do |v|
-              (v.is_a?(Array) ? v : v.split(',')).map(&:to_i)
-            end
-          )]
-        end
-      end
-
       class OptionValue < PromotionRule
-        prepend OptionValueWithNumerificationSupport
-
         MATCH_POLICIES = %w(any)
         preference :match_policy, :string, default: MATCH_POLICIES.first
         preference :eligible_values, :hash
