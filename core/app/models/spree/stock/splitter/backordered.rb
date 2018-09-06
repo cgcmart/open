@@ -1,17 +1,21 @@
+# frozen_string_literal: true
+
 module Spree
   module Stock
     module Splitter
       class Backordered < Spree::Stock::Splitter::Base
         def split(packages)
           split_packages = []
-
           packages.each do |package|
-            split_packages << build_package(package.on_hand) unless package.on_hand.empty?
+            if package.on_hand.count > 0
+              split_packages << build_package(package.on_hand)
+            end
 
-            split_packages << build_package(package.backordered) unless package.backordered.empty?
+            if package.backordered.count > 0
+              split_packages << build_package(package.backordered)
+            end
           end
-
-          return_next(split_packages)
+          return_next split_packages
         end
       end
     end
