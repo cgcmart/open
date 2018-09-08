@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 module Spree
   class Exchange
     class UnableToCreateShipments < StandardError; end
+    extend ActiveModel::Naming
 
     def initialize(order, reimbursement_objects)
       @order = order
@@ -14,23 +17,21 @@ module Spree
     end
 
     def display_amount
-      Spree::Money.new @reimbursement_objects.sum(&:total)
+      Spree::Money.new @reimbursement_objects.map(&:total).sum
     end
 
     def perform!
-      new_exchange_inventory_units = @reimbursement_objects.map(&:build_default_exchange_inventory_unit)
-      shipments = Spree::Stock::Coordinator.new(@order, new_exchange_inventory_units).shipments
-      shipments_units = shipments.flat_map(&:inventory_units)
-
-      if shipments_units.sum(&:quantity) != new_exchange_inventory_units.sum(&:quantity)
-        raise UnableToCreateShipments, 'Could not generate shipments for all items. Out of stock?'
+      begin
+        shipments = Spree::Config.stock.coordinator_class.new(@order, @reimbursement_objects.map(&:build_exchange_inventory_unit)).shipments
+      rescue Spree::Order::InsufficientStock
+        raise UnableToCreateShipments.new('Could not generate shipments for all items. Out of stock?')
       end
 
       @order.shipments += shipments
       @order.save!
 
       shipments.each do |shipment|
-        shipment.update!(@order)
+        shipment.update_state
         shipment.finalize!
       end
     end
@@ -41,10 +42,6 @@ module Spree
 
     def self.param_key
       'spree_exchange'
-    end
-
-    def self.model_name
-      Spree::Exchange
     end
   end
 end
