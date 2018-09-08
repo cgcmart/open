@@ -1,49 +1,86 @@
+# frozen_string_literal: true
+
 module Spree
+  # `Spree::Address` provides the foundational ActiveRecord model for recording and
+  # validating address information for `Spree::Order`, `Spree::Shipment`, Spree::UserAddress`.
+  #
   class Address < Spree::Base
-    require 'twitter_cldr'
-
-    NO_ZIPCODE_ISO_CODES ||= [
-      'AO', 'AG', 'AW', 'BS', 'BZ', 'BJ', 'BM', 'BO', 'BW', 'BF', 'BI', 'CM', 'CF', 'KM', 'CG',
-      'CD', 'CK', 'CUW', 'CI', 'DJ', 'DM', 'GQ', 'ER', 'FJ', 'TF', 'GAB', 'GM', 'GH', 'GD', 'GN',
-      'GY', 'HK', 'IE', 'KI', 'KP', 'LY', 'MO', 'MW', 'ML', 'MR', 'NR', 'AN', 'NU', 'KP', 'PA',
-      'QA', 'RW', 'KN', 'LC', 'ST', 'SC', 'SL', 'SB', 'SO', 'SR', 'SY', 'TZ', 'TL', 'TK', 'TG',
-      'TO', 'TV', 'UG', 'AE', 'VU', 'YE', 'ZW'
-    ].freeze
-
-    # we're not freezing this on purpose so developers can extend and manage
-    # those attributes depending of the logic of their applications
-    EXCLUDED_KEYS_FOR_COMPARISION = %w(id updated_at created_at)
+    extend ActiveModel::ForbiddenAttributesProtection
 
     belongs_to :country, class_name: 'Spree::Country'
-    belongs_to :state, class_name: 'Spree::State', optional: true
+    belongs_to :state, class_name: 'Spree::State'
 
-    has_many :shipments, inverse_of: :address
+    validates :firstname, :address1, :city, :country_id, presence: true
+    validates :zipcode, presence: true, if: :require_zipcode?
+    validates :phone, presence: true, if: :require_phone?
 
-    before_validation :clear_invalid_state_entities, if: -> { country.present? }, on: :update
-
-    with_options presence: true do
-      validates :firstname, :lastname, :address1, :city, :country
-      validates :zipcode, if: :require_zipcode?
-      validates :phone, if: :require_phone?
-    end
-
-    validate :state_validate, :postal_code_validate
+    validate :state_validate
+    validate :validate_state_matches_country
 
     alias_attribute :first_name, :firstname
     alias_attribute :last_name, :lastname
 
-    self.whitelisted_ransackable_attributes = %w[firstname lastname company]
+    DB_ONLY_ATTRS = %w(id updated_at created_at)
+    TAXATION_ATTRS = %w(state_id country_id zipcode)
+
+    self.whitelisted_ransackable_attributes = %w[firstname lastname]
+
+    scope :with_values, ->(attributes) do
+      where(value_attributes(attributes))
+    end
 
     def self.build_default
       new(country: Spree::Country.default)
     end
 
-    def self.default(user = nil, kind = 'bill')
-      if user && user_address = user.public_send(:"#{kind}_address")
-        user_address.clone
+    # @return [Address] an equal address already in the database or a newly created one
+    def self.factory(attributes)
+      full_attributes = value_attributes(column_defaults, new(attributes).attributes)
+      find_or_initialize_by(full_attributes)
+    end
+
+    # @return [Address] address from existing address plus new_attributes as diff
+    # @note, this may return existing_address if there are no changes to value equality
+    def self.immutable_merge(existing_address, new_attributes)
+      # Ensure new_attributes is a sanitized hash
+      new_attributes = sanitize_for_mass_assignment(new_attributes)
+
+      return factory(new_attributes) if existing_address.nil?
+
+      merged_attributes = value_attributes(existing_address.attributes, new_attributes)
+      new_address = factory(merged_attributes)
+      if existing_address == new_address
+        existing_address
       else
-        build_default
+        new_address
       end
+    end
+
+    # @return [Hash] hash of attributes contributing to value equality with optional merge
+    def self.value_attributes(base_attributes, merge_attributes = nil)
+      # dup because we may modify firstname/lastname.
+      base = base_attributes.dup
+
+      base.stringify_keys!
+
+      if merge_attributes
+        base.merge!(merge_attributes.stringify_keys)
+      end
+
+      # TODO: Deprecate these aliased attributes
+      base['firstname'] = base.delete('first_name') if base.key?('first_name')
+      base['lastname'] = base.delete('last_name') if base.key?('last_name')
+
+      base.except!(*DB_ONLY_ATTRS)
+    end
+
+    # @return [Hash] hash of attributes contributing to value equality
+    def value_attributes
+      self.class.value_attributes(attributes)
+    end
+
+    def taxation_attributes
+      self.class.value_attributes(attributes.slice(*TAXATION_ATTRS))
     end
 
     def full_name
@@ -54,32 +91,14 @@ module Spree
       state.try(:abbr) || state.try(:name) || state_name
     end
 
-    def same_as?(other)
-      return false if other.nil?
-      attributes.except(*EXCLUDED_KEYS_FOR_COMPARISION) == other.attributes.except(*EXCLUDED_KEYS_FOR_COMPARISION)
-    end
-
-    alias same_as same_as?
-
     def to_s
       "#{full_name}: #{address1}"
     end
 
-    def clone
-      self.class.new(attributes.except('id', 'updated_at', 'created_at'))
-    end
-
     def ==(other_address)
-      self_attrs = attributes
-      other_attrs = other_address.respond_to?(:attributes) ? other_address.attributes : {}
+      return false unless other_address && other_address.respond_to?(:value_attributes)
 
-      [self_attrs, other_attrs].each { |attrs| attrs.except!('id', 'created_at', 'updated_at') }
-
-      self_attrs == other_attrs
-    end
-
-    def empty?
-      attributes.except('id', 'created_at', 'updated_at', 'country_id').all? { |_, v| v.nil? }
+      value_attributes == other_address.value_attributes
     end
 
     # Generates an ActiveMerchant compatible address hash
@@ -97,42 +116,45 @@ module Spree
     end
 
     def require_phone?
-      Spree::Config[:address_requires_phone]
+      true
     end
 
     def require_zipcode?
-      country ? country.zipcode_required? : true
+      true
+    end
+
+    # This is set in order to preserve immutability of Addresses. Use #dup to create
+    # new records as required, but it probably won't be required as often as you think.
+    # Since addresses do not change, you won't accidentally alter historical data.
+    def readonly?
+      persisted?
+    end
+
+    # @param iso [String] 2 letter Country ISO
+    # @return [Country] setter that sets self.country to the Country with a matching 2 letter iso
+    # @raise [ActiveRecord::RecordNotFound] if country with the iso doesn't exist
+    def country_iso=(iso)
+      self.country = Spree::Country.find_by!(iso: iso)
+    end
+
+    def country_iso
+      country && country.iso
     end
 
     private
-
-    def clear_state
-      self.state = nil
-    end
-
-    def clear_state_name
-      self.state_name = nil
-    end
-
-    def clear_invalid_state_entities
-      if state.present? && (state.country != country)
-        clear_state
-      elsif state_name.present? && !country.states_required? && country.states.empty?
-        clear_state_name
-      end
-    end
 
     def state_validate
       # Skip state validation without country (also required)
       # or when disabled by preference
       return if country.blank? || !Spree::Config[:address_requires_state]
       return unless country.states_required
+
       # ensure associated state belongs to country
       if state.present?
         if state.country == country
-          clear_state_name # not required as we have a valid state and country combo
+          self.state_name = nil # not required as we have a valid state and country combo
         elsif state_name.present?
-          clear_state
+          self.state = nil
         else
           errors.add(:state, :invalid)
         end
@@ -141,11 +163,11 @@ module Spree
       # ensure state_name belongs to country without states, or that it matches a predefined state name/abbr
       if state_name.present?
         if country.states.present?
-          states = country.states.find_all_by_name_or_abbr(state_name)
+          states = country.states.with_name_or_abbr(state_name)
 
           if states.size == 1
             self.state = states.first
-            clear_state_name
+            self.state_name = nil
           else
             errors.add(:state, :invalid)
           end
@@ -156,12 +178,10 @@ module Spree
       errors.add :state, :blank if state.blank? && state_name.blank?
     end
 
-    def postal_code_validate
-      return if country.blank? || country.iso.blank? || !require_zipcode?
-      return unless TwitterCldr::Shared::PostalCodes.territories.include?(country.iso.downcase.to_sym)
-
-      postal_code = TwitterCldr::Shared::PostalCodes.for_territory(country.iso)
-      errors.add(:zipcode, :invalid) unless postal_code.valid?(zipcode.to_s.strip)
+    def validate_state_matches_country
+      if state && state.country != country
+        errors.add(:state, :does_not_match_country)
+      end
     end
   end
 end
