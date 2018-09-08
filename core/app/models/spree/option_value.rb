@@ -1,26 +1,30 @@
+# frozen_string_literal: true
+
 module Spree
   class OptionValue < Spree::Base
-    belongs_to :option_type, class_name: 'Spree::OptionType', touch: true, inverse_of: :option_values
+    belongs_to :option_type, class_name: 'Spree::OptionType', inverse_of: :option_values
     acts_as_list scope: :option_type
 
-    has_many :option_value_variants, class_name: 'Spree::OptionValueVariant'
-    has_many :variants, through: :option_value_variants, class_name: 'Spree::Variant'
+    has_many :option_value_variants, dependent: :destroy
+    has_many :variants, through: :option_value_variants
 
-    with_options presence: true do
-      validates :name, uniqueness: { scope: :option_type_id }
-      validates :presentation
-    end
+    validates :name, presence: true, uniqueness: { scope: :option_type_id, allow_blank: true }
+    validates :presentation, presence: true
 
+    after_save :touch, if: :saved_changes?
     after_touch :touch_all_variants
 
-    delegate :name, :presentation, to: :option_type, prefix: true, allow_nil: true
+    delegate :name, :presentation, to: :option_type, prefix: option_type
 
     self.whitelisted_ransackable_attributes = ['presentation']
 
-    private
-
     def touch_all_variants
-      variants.update_all(updated_at: Time.current)
+      variants.find_each(&:touch)
+    end
+
+    # @return [String] a string representation of all option value and its option type
+    def presentation_with_option_type
+      "#{option_type.presentation} - #{presentation}"
     end
   end
 end
