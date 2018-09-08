@@ -1,13 +1,26 @@
-class Spree::Base < ApplicationRecord
+# frozen_string_literal: true
+
+class Spree::Base < ActiveRecord::Base
   include Spree::Preferences::Preferable
   serialize :preferences, Hash
 
   include Spree::RansackableAttributes
 
-  after_initialize do
-    if has_attribute?(:preferences) && !preferences.nil?
+  self.belongs_to_required_by_default = false
+
+  def initialize_preference_defaults
+    if has_attribute?(:preferences)
       self.preferences = default_preferences.merge(preferences)
     end
+  end
+
+  # Only run preference initialization on models which requires it. Improves
+  # performance of record initialization slightly.
+  def self.preference(*args)
+    # after_initialize can be called multiple times with the same symbol, it
+    # will only be called once on initialization.
+    after_initialize :initialize_preference_defaults
+    super
   end
 
   if Kaminari.config.page_method_name != :page
@@ -18,11 +31,7 @@ class Spree::Base < ApplicationRecord
 
   self.abstract_class = true
 
-  def self.belongs_to_required_by_default
-    false
-  end
-
-  def self.spree_base_scopes
+  def self.display_includes
     where(nil)
   end
 end
