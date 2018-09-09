@@ -1,20 +1,18 @@
+# frozen_string_literal: true
+
 module Spree
   class Refund < Spree::Base
-    with_options inverse_of: :refunds do
-      belongs_to :payment
-      belongs_to :reimbursement, optional: true
-    end
+    belongs_to :payment, inverse_of: :refunds
     belongs_to :reason, class_name: 'Spree::RefundReason', foreign_key: :refund_reason_id
+    belongs_to :reimbursement, inverse_of: :refunds
 
     has_many :log_entries, as: :source
 
-    with_options presence: true do
-      validates :payment, :reason
-      # can't require this on create because the perform! in after_create needs to run first
-      validates :transaction_id, on: :update
-      validates :amount, numericality: { greater_than: 0, allow_nil: true }
-    end
-    validate :amount_is_less_than_or_equal_to_allowed_amount, on: :create, if: :amount
+    validates :payment, presence: true
+    validates :reason, presence: true
+    validates :transaction_id, presence: true, on: :update # can't require this on create because the before_create needs to run first
+    validates :amount, presence: true, numericality: { greater_than: 0 }
+    validate :amount_is_less_than_or_equal_to_allowed_amount, on: :create
 
     after_create :perform!
     after_create :create_log_entry
@@ -22,7 +20,7 @@ module Spree
     scope :non_reimbursement, -> { where(reimbursement_id: nil) }
 
     def money
-      Spree::Money.new(amount, currency: payment.currency)
+      Spree::Money.new(amount, { currency: currency })
     end
     alias display_amount money
 
@@ -43,7 +41,7 @@ module Spree
     def perform!
       return true if transaction_id.present?
 
-      credit_cents = Spree::Money.new(amount.to_f, currency: payment.currency).amount_in_cents
+      credit_cents = money.cents
 
       @response = process!(credit_cents)
 
@@ -55,21 +53,21 @@ module Spree
     # return an activemerchant response object if successful or else raise an error
     def process!(credit_cents)
       response = if payment.payment_method.payment_profiles_supported?
-                   payment.payment_method.credit(credit_cents, payment.source, payment.transaction_id, originator: self)
+                   payment.payment_method.credit(credit_cents, payment.source, payment.transaction_id, { originator: self })
                  else
-                   payment.payment_method.credit(credit_cents, payment.transaction_id, originator: self)
+                   payment.payment_method.credit(credit_cents, payment.transaction_id, { originator: self })
       end
 
-      unless response.success?
-        logger.error(Spree.t(:gateway_error) + "  #{response.to_yaml}")
+      if !response.success?
+        logger.error(I18n.t('spree.gateway_error') + "  #{response.to_yaml}")
         text = response.params['message'] || response.params['response_reason_text'] || response.message
-        raise Core::GatewayError, text
+        raise Core::GatewayError.new(text)
       end
 
       response
     rescue ActiveMerchant::ConnectionError => e
-      logger.error(Spree.t(:gateway_error) + "  #{e.inspect}")
-      raise Core::GatewayError, Spree.t(:unable_to_connect_to_gateway)
+      logger.error(I18n.t('spree.gateway_error') + "  #{e.inspect}")
+      raise Core::GatewayError.new(I18n.t('spree.unable_to_connect_to_gateway'))
     end
 
     def create_log_entry
@@ -77,7 +75,7 @@ module Spree
     end
 
     def amount_is_less_than_or_equal_to_allowed_amount
-      if amount > payment.credit_allowed
+      if payment && amount > payment.credit_allowed
         errors.add(:amount, :greater_than_allowed)
       end
     end
