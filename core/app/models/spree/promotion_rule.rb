@@ -1,10 +1,13 @@
-# Base class for all promotion rules
+# frozen_string_literal: true
+
 module Spree
+  # Base class for all promotion rules
   class PromotionRule < Spree::Base
     belongs_to :promotion, class_name: 'Spree::Promotion', inverse_of: :promotion_rules
 
     scope :of_type, ->(t) { where(type: t) }
 
+    validates :promotion, presence: true
     validate :unique_per_promotion, on: :create
 
     def self.for(promotable)
@@ -12,11 +15,11 @@ module Spree
     end
 
     def applicable?(_promotable)
-      raise 'applicable? should be implemented in a sub-class of Spree::PromotionRule'
+      raise  NotImplementedError, 'applicable? should be implemented in a sub-class of Spree::PromotionRule'
     end
 
     def eligible?(_promotable, _options = {})
-      raise 'eligible? should be implemented in a sub-class of Spree::PromotionRule'
+      raise  NotImplementedError, 'eligible? should be implemented in a sub-class of Spree::PromotionRule'
     end
 
     # This states if a promotion can be applied to the specified line item
@@ -29,6 +32,10 @@ module Spree
       @eligibility_errors ||= ActiveModel::Errors.new(self)
     end
 
+    def to_partial_path
+      "spree/admin/promotions/rules/#{model_name.element}"
+    end
+
     private
 
     def unique_per_promotion
@@ -38,7 +45,7 @@ module Spree
     end
 
     def eligibility_error_message(key, options = {})
-      Spree.t(key, Hash[scope: [:eligibility_errors, :messages]].merge(options))
+      I18n.t(key, { scope: [:spree, :eligibility_errors, :messages] }.merge(options))
     end
   end
 end
