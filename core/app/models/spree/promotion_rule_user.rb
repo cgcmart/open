@@ -1,9 +1,10 @@
+# frozen_string_literal: true
+
 module Spree
   class PromotionRuleUser < Spree::Base
-    belongs_to :promotion_rule, class_name: 'Spree::PromotionRule'
-    belongs_to :user, class_name: Spree.user_class.to_s
+    self.table_name = 'spree_promotion_rules_users'
 
-    validates :user, :promotion_rule, presence: true
-    validates :user_id, uniqueness: { scope: :promotion_rule_id }, allow_nil: true
+    belongs_to :promotion_rule, class_name: 'Spree::PromotionRule'
+    belongs_to :user, class_name: Spree::UserClassHandle.new
   end
 end
