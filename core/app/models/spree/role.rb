@@ -1,8 +1,14 @@
+# frozen_string_literal: true
+
 module Spree
   class Role < Spree::Base
     has_many :role_users, class_name: 'Spree::RoleUser', dependent: :destroy
-    has_many :users, through: :role_users, class_name: Spree.user_class.to_s
+    has_many :users, through: :role_users
 
-    validates :name, presence: true, uniqueness: { case_sensitive: false, allow_blank: true }
+    validates_uniqueness_of :name
+
+    def admin?
+      name == 'admin'
+    end
   end
 end
