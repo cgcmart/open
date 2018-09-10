@@ -1,35 +1,19 @@
+# frozen_string_literal: true
+
 module Spree
   class StoreCreditCategory < Spree::Base
-    validates :name, presence: true
+    class_attribute :non_expiring_credit_types
+    self.non_expiring_credit_types = [Spree::StoreCreditType::NON_EXPIRING]
 
-    before_destroy :validate_not_used
+    class_attribute :reimbursement_category_name
+    self.reimbursement_category_name = I18n.t('spree.store_credit_category.default')
 
-    GIFT_CARD_CATEGORY_NAME = 'Gift Card'.freeze
-    DEFAULT_NON_EXPIRING_TYPES = [GIFT_CARD_CATEGORY_NAME]
+    def self.reimbursement_category(_reimbursement)
+      Spree::StoreCreditCategory.find_by(name: reimbursement_category_name) || Spree::StoreCreditCategory.first
+    end
 
     def non_expiring?
-      non_expiring_category_types.include? name
-    end
-
-    def non_expiring_category_types
-      DEFAULT_NON_EXPIRING_TYPES | Spree::Config[:non_expiring_credit_types]
-    end
-
-    def store_credit_category_used?
-      Spree::StoreCredit.exists?(category_id: id)
-    end
-
-    def validate_not_used
-      if store_credit_category_used?
-        errors.add(:base, :cannot_destroy_if_used_in_store_credit)
-        throw(:abort)
-      end
-    end
-
-    class << self
-      def default_reimbursement_category(_options = {})
-        Spree::StoreCreditCategory.first
-      end
+      self.class.non_expiring_credit_types.include? name
     end
   end
 end
