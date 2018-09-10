@@ -1,43 +1,46 @@
+# frozen_string_literal: true
+
 module Spree
+  # Records the costs of different shipping methods for a shipment and which
+  # method has been selected to deliver the shipment.
+  #
   class ShippingRate < Spree::Base
-    belongs_to :shipment, class_name: 'Spree::Shipment'
-    belongs_to :tax_rate, class_name: 'Spree::TaxRate'
-    belongs_to :shipping_method, class_name: 'Spree::ShippingMethod', inverse_of: :shipping_rates
+    belongs_to :shipment, class_name: 'Spree::Shipment', touch: true
+    belongs_to :shipping_method, -> { with_deleted }, class_name: 'Spree::ShippingMethod', inverse_of: :shipping_rates
 
-    extend Spree::DisplayMoney
-
-    money_methods :base_price, :tax_amount
+    has_many :taxes,
+             class_name: "Spree::ShippingRateTax",
+             foreign_key: "shipping_rate_id",
+             inverse_of: :shipping_rate,
+             dependent: :destroy
 
     delegate :order, :currency, to: :shipment
-    delegate :name,             to: :shipping_method
-    delegate :code,             to: :shipping_method, prefix: true
+    delegate :name, :tax_category, :tax_category_id, to: :shipping_method
+    delegate :code, to: :shipping_method, prefix: true
+    alias_attribute :amount, :cost
+
+    alias_method :amount
+
+    extend DisplayMoney
+    money_methods :amount
 
     def display_price
-      price = display_base_price.to_s
+      price = display_amount.to_s
 
-      return price if tax_rate.nil? || tax_amount.zero?
+      return price if tax_rate.to_a.empty? || amount == 0
 
-      Spree.t(
-        tax_rate.included_in_price? ? :including_tax : :excluding_tax,
-        scope: 'shipping_rates.display_price',
-        price: price,
-        tax_amount: display_tax_amount,
-        tax_rate_name: tax_rate.name
-      )
+      tax_explanations = taxes.map(&:label).join(tax_label_separator)
+
+      I18n.t 'spree.shipping_rate.display_price.display_price_with_explanations',
+             price: price,
+             explanations: tax_explanations
     end
     alias display_cost display_price
-    alias_attribute :base_price, :cost
 
-    def tax_amount
-      @tax_amount ||= tax_rate.calculator.compute_shipping_rate(self)
-    end
+    private
 
-    def shipping_method
-      Spree::ShippingMethod.unscoped { super }
-    end
-
-    def tax_rate
-      Spree::TaxRate.unscoped { super }
+    def tax_label_separator
+      I18n.t 'spree.shipping_rate.display_price.tax_label_separator'
     end
   end
 end
