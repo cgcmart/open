@@ -1,23 +1,23 @@
+# frozen_string_literal: true
+
 module Spree
   class State < Spree::Base
     belongs_to :country, class_name: 'Spree::Country'
-    has_many :addresses, dependent: :restrict_with_error
-
-    has_many :zone_members,
-             -> { where(zoneable_type: 'Spree::State') },
-             class_name: 'Spree::ZoneMember',
-             dependent: :destroy,
-             foreign_key: :zoneable_id
-
-    has_many :zones, through: :zone_members, class_name: 'Spree::Zone'
+    has_many :addresses, dependent: :nullify
 
     validates :country, :name, presence: true
-    validates :name, :abbr, uniqueness: { case_sensitive: false, scope: :country_id }, allow_blank: true
 
-    self.whitelisted_ransackable_attributes = %w(abbr)
+    scope :with_name_or_abbr, ->(name_or_abbr) do
+      where(
+        arel_table[:name].matches(name_or_abbr).or(
+          arel_table[:abbr].matches(name_or_abbr)
+        )
+      )
+    end
 
-    def self.find_all_by_name_or_abbr(name_or_abbr)
-      where('name = ? OR abbr = ?', name_or_abbr, name_or_abbr)
+    class << self
+      alias_method :find_all_by_name_or_abbr, :with_name_or_abbr
+      deprecate find_all_by_name_or_abbr: :with_name_or_abbr, deprecator: Spree::Deprecation
     end
 
     # table of { country.id => [ state.id , state.name ] }, arrays sorted by name
