@@ -1,36 +1,68 @@
+# frozen_string_literal: true
+
 module Spree
+  # Records store specific configuration such as store name and URL.
+  #
+  # `Spree::Store` provides the foundational ActiveRecord model for recording information
+  # specific to your store such as its name, URL, and tax location. This model will
+  # provide the foundation upon which [support for multiple stores](https://github.com/solidusio/solidus/issues/112)
+  # hosted by a single Solidus implementation can be built.
+  #
   class Store < Spree::Base
+    has_many :store_payment_methods, inverse_of: :store
+    has_many :payment_methods, through: :store_payment_methods
+
+    has_many :store_shipping_methods, inverse_of: :store
+    has_many :shipping_methods, through: :store_shipping_methods
+
     has_many :orders, class_name: 'Spree::Order'
 
-    with_options presence: true do
-      validates :code, uniqueness: { case_sensitive: false, allow_blank: true }
-      validates :name, :url, :mail_from_address
-    end
+    validates :code, presence: true, uniqueness: { allow_blank: true }
+    validates :name, presence: true
+    validates :url, presence: true
+    validates :mail_from_address, presence: true
 
     before_save :ensure_default_exists_and_is_unique
     before_destroy :validate_not_default
 
-    scope :by_url, ->(url) { where('url like ?', "%#{url}%") }
+    def available_locales
+      locales = super()
+      if locales
+        super().split(",").map(&:to_sym)
+      else
+        Spree.i18n_available_locales
+      end
+    end
 
-    after_commit :clear_cache
+    def available_locales=(locales)
+      locales = locales.reject(&:blank?)
+      if locales.empty?
+        super(nil)
+      else
+        super(locales.map(&:to_s).join(","))
+      end
+    end
 
-    def self.current(domain = nil)
-      current_store = domain ? Store.by_url(domain).first : nil
+    def self.current(store_key)
+      current_store = Store.find_by(code: store_key) || Store.by_url(store_key).first if store_key
       current_store || Store.default
     end
 
     def self.default
-      Rails.cache.fetch('default_store') do
-        where(default: true).first_or_initialize
-      end
+      where(default: true).first || new
+    end
+
+    def default_cart_tax_location
+      @default_cart_tax_location ||=
+        Spree::Tax::TaxLocation.new(country: Spree::Country.find_by(iso: cart_tax_country_iso))
     end
 
     private
 
     def ensure_default_exists_and_is_unique
       if default
-        Store.where.not(id: id).update_all(default: false)
-      elsif Store.where(default: true).count.zero?
+        Spree::Store.where.not(id: id).update_all(default: false)
+      elsif Spree::Store.where(default: true).count == 0
         self.default = true
       end
     end
@@ -38,12 +70,7 @@ module Spree
     def validate_not_default
       if default
         errors.add(:base, :cannot_destroy_default_store)
-        throw(:abort)
       end
-    end
-
-    def clear_cache
-      Rails.cache.delete('default_store')
     end
   end
 end
