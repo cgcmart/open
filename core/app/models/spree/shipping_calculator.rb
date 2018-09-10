@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   class ShippingCalculator < Calculator
     def compute_shipment(_shipment)
@@ -15,7 +17,7 @@ module Spree
     private
 
     def total(content_items)
-      content_items.sum(&:amount)
+      content_items.map(&:amount).sum
     end
   end
 end
