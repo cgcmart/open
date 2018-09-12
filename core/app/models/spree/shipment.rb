@@ -89,7 +89,8 @@ module Spree
 
     extend DisplayMoney
     money_methods(
-      :cost, :amount, :item_cost 
+      :cost, :amount, :item_cost,
+      :total, :total_before_tax 
       )
     alias_attribute :amount, :cost
 
@@ -107,6 +108,26 @@ module Spree
 
     def currency
       order ? order.currency : Spree::Config[:currency]
+    end
+
+    def total
+      cost + adjustment_total
+    end
+
+    # @return [BigDecimal] the amount of this item, taking into consideration
+    #   all non-tax adjustments.
+    def total_before_tax
+      amount + adjustments.select { |a| !a.tax? && a.eligible? }.sum(&:amount)
+    end
+
+    # @return [BigDecimal] the amount of this shipment before VAT tax
+    # @note just like `cost`, this does not include any additional tax
+    def total_excluding_vat
+      total_before_tax - included_tax_total
+    end
+
+    def total_with_items
+      total + item_cost
     end
 
     def editable_by?(_user)
