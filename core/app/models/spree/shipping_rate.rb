@@ -19,7 +19,7 @@ module Spree
     delegate :code, to: :shipping_method, prefix: true
     alias_attribute :amount, :cost
 
-    alias_method :amount
+    alias_method :total_before_tax, :amount
 
     extend DisplayMoney
     money_methods :amount
