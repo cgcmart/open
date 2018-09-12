@@ -1,4 +1,4 @@
-<table>
+<table class="row header">
   <tr>
     <td>
       <p class="lede">
@@ -8,35 +8,19 @@
         <%= t('.instructions') %>
       </p>
       <p>
-        <%= t('.order_summary_canceled') %>
+        <%= t('.order_summary_canceled', number: @order.number) %>
       </p>
-      <table>
-        <% @order.line_items.each do |item| %>
-          <tr>
-            <td><%= item.variant.sku %></td>
-            <td>
-              <%= item.variant.product.name %>
-              <%= item.variant.options_text -%>
-            </td>
-            <td>(<%=item.quantity%>) @ <%= item.single_money %> = <%= item.display_amount %></td>
-          </tr>
-        <% end %>
-        <tr>
-          <td></td>
-          <td><%= t('.subtotal') %></td>
-          <td><%= @order.display_item_total %></td>
-        </tr>
-        <% @order.adjustments.eligible.each do |adjustment| %>
-          <tr>
-            <td></td>
-            <td><%= sanitize(adjustment.label) %></td>
-            <td><%= adjustment.display_amount %></td>
-          </tr>
-        <% end %>
-        <tr>
-          <td></td>
-          <td><%= t('.total') %></td>
-          <td><%= @order.display_total %></td>
+      <table class="container">
+        <td class="wrapper last">
+            <table class="twelve columns">
+              <%= render collection: @order.line_items, partial: 'spree/shared/mailer_line_item', as: :line_item %>
+              <%= render 'spree/order_mailer/subtotal', order: @order %>
+              <% @order.adjustments.eligible.each do |adjustment| %>
+                <%= render 'spree/order_mailer/adjustment', adjustment: adjustment %>
+              <% end %>
+              <%= render 'spree/order_mailer/total', order: @order %>
+            </table>
+          </td>
         </tr>
       </table>
     </td>
