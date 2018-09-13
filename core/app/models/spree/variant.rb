@@ -298,6 +298,10 @@ module Spree
       !!discontinue_on && discontinue_on <= Time.current
     end
 
+    def backordered?
+      total_on_hand <= 0 && stock_items.exists?(backorderable: true)
+    end
+
     def variant_properties
       product.variant_property_rules.map do |rule|
         rule.values if rule.applies_to_variant?(self)
