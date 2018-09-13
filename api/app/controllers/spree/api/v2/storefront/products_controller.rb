@@ -5,8 +5,10 @@ module Spree
     module V2
       module Storefront
         class ProductsController < ::Spree::Api::V2::BaseController
+          include Spree::Api::V2::CollectionOptionsHelpers
+
           def index
-            render_serialized_payload serialize_collection(collection), 200
+            render_serialized_payload serialize_collection(paginated_collection), 200
           end
 
           def show
@@ -17,8 +19,8 @@ module Spree
 
           def serialize_collection(collection)
             dependencies[:collection_serializer].new(
-              sorted_collection(collection),
-              include: collection_includes
+              collection,
+              collection_options(collection)
             ).serializable_hash
           end
 
@@ -29,7 +31,11 @@ module Spree
             ).serializable_hash
           end
 
-          def sorted_collection(collection)
+          def paginated_collection
+            dependencies[:collection_paginator].new(sorted_collection, params).call
+          end
+
+          def sorted_collection
             dependencies[:collection_sorter].new(collection, params, current_currency).call
           end
 
@@ -45,8 +51,17 @@ module Spree
             {
               collection_sorter:     Spree::Products::Sort,
               collection_finder:     Spree::Products::Find,
+              collection_paginator:  Spree::Shared::Paginate,
               collection_serializer: Spree::V2::Storefront::ProductSerializer,
               resource_serializer:   Spree::V2::Storefront::ProductSerializer
+            }
+          end
+
+          def collection_options(collection)
+            {
+              links:   collection_links(collection),
+              meta:    collection_meta(collection),
+              include: collection_includes
             }
           end
 
