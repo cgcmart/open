@@ -230,6 +230,8 @@ en:
       spree/property:
         name: Name
         presentation: Presentation
+      spree/prototype:
+        name: Name
       spree/refund:
         amount: Amount
         description: Description
@@ -549,6 +551,9 @@ en:
       spree/property:
         one: Property Type
         other: Property Types
+      spree/prototype:
+        one: Prototype
+        other: Prototypes
       spree/refund:
         one: Refund
         other: Refunds
@@ -925,6 +930,7 @@ en:
         promotions: Promotions
         promotion_categories: Promotion Categories
         properties: Property Types
+        prototypes: Prototypes
         reports: Reports
         rma: RMA
         settings: Settings
@@ -1488,6 +1494,7 @@ en:
     new_promotion_category: New Promotion Category
     new_promotion_code_batch: New Promotion Code Batch
     new_property: New Property Type
+    bew_prototype: New Prototype
     new_refund: New Refund
     new_refund_reason: New Refund Reason
     new_rma_reason: New RMA Reason
@@ -1619,6 +1626,8 @@ en:
     orders: Orders
     other_items_in_other: Other Items in Order
     out_of_stock: Out of Stock
+    backordered_info: Selected item is backordered so expect delays
+    backordered_confirm_info: Selected item is backordered so expect delays. Are you sure you want to order it?
     overview: Overview
     package_from: package from
     pagination:
@@ -1721,6 +1730,8 @@ en:
     propagate_all_variants: Propagate all variants
     properties: Property Types
     property: Property Type
+    prototype: Prototype
+    prototypes: Prototypes
     provider: Provider
     payment_method_settings_warning: If you are changing the payment method type, you must save first before you can edit the payment method settings
     qty: Qty
@@ -1838,6 +1849,7 @@ en:
     select: Select
     select_a_reason: Select a reason
     select_a_stock_location: Select a stock location
+    select_from_prototype: Select From Prototype
     select_stock: Select stock
     selected_quantity_not_available: ! 'selected of %{item} is not available.'
     send_copy_of_all_mails_to: Send Copy of All Mails To
@@ -1985,6 +1997,8 @@ en:
     successfully_removed: ! '%{resource} has been successfully removed!'
     successfully_signed_up_for_analytics: Successfully signed up for Spree Analytics
     successfully_updated: ! '%{resource} has been successfully updated!'
+    tags: Tags
+    tags_placeholder: Add Tags
     tax: Tax
     tax_included: "Tax (incl.)"
     tax_categories: Tax Categories
