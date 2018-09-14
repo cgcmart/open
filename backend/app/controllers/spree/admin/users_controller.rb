@@ -5,10 +5,10 @@ module Spree
     class UsersController < ResourceController
       rescue_from ActiveRecord::DeleteRestrictionError, with: :user_destroy_with_orders_error
 
+      after_action :sign_in_if_change_own_password, only: :update
+
       before_action :load_roles, only: [:index, :edit, :new]
       before_action :load_stock_locations, only: [:edit, :new]
-
-      after_action :sign_in_if_change_own_password, only: :update
 
       def index
         respond_with(@collection) do |format|
@@ -102,13 +102,12 @@ module Spree
         return @collection if @collection.present?
         if request.xhr? && params[:q].present?
           @collection = Spree.user_class.includes(:bill_address, :ship_address)
-                            .where("spree_users.email #{LIKE} :search
-                                   OR (spree_addresses.firstname #{LIKE} :search AND spree_addresses.id = spree_users.bill_address_id)
-                                   OR (spree_addresses.lastname  #{LIKE} :search AND spree_addresses.id = spree_users.bill_address_id)
-                                   OR (spree_addresses.firstname #{LIKE} :search AND spree_addresses.id = spree_users.ship_address_id)
-                                   OR (spree_addresses.lastname  #{LIKE} :search AND spree_addresses.id = spree_users.ship_address_id)",
-                                  { search: "#{params[:q].strip}%" })
-                            .limit(params[:limit] || 100)
+                            .where("#{Spree.user_class.table_name}.email #{LIKE} :search
+                                   OR (spree_addresses.firstname #{LIKE} :search AND spree_addresses.id = #{Spree.user_class.table_name}.bill_address_id)
+                                   OR (spree_addresses.lastname  #{LIKE} :search AND spree_addresses.id = #{Spree.user_class.table_name}.bill_address_id)
+                                   OR (spree_addresses.firstname #{LIKE} :search AND spree_addresses.id = #{Spree.user_class.table_name}.ship_address_id)
+                                   OR (spree_addresses.lastname  #{LIKE} :search AND spree_addresses.id = #{Spree.user_class.table_name}.ship_address_id)",
+                                  { search: "#{params[:q].strip}%" }).limit(params[:limit] || 100)
         else
           @search = Spree.user_class.ransack(params[:q])
           @collection = @search.result.includes(:spree_roles)
