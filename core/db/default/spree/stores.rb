@@ -1,9 +1,10 @@
-# Possibly already created by a migration.
-unless Spree::Store.where(code: 'spree').exists?
-  Spree::Store.new do |s|
-    s.code              = 'spree'
-    s.name              = 'Spree Demo Site'
-    s.url               = 'example.com'
-    s.mail_from_address = 'spree@example.com'
-  end.save!
+# frozen_string_literal: true
+
+unless Spree::Store.where(code: 'sample-store').exists?
+  Spree::Store.create!(
+    name: "Sample Store",
+    code: "sample-store",
+    url: "example.com",
+    mail_from_address: "store@example.com"
+  )
 end
