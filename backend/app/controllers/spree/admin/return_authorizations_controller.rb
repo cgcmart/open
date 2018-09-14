@@ -10,9 +10,17 @@ module Spree
       update.fails  :load_form_data
 
       def fire
-        @return_authorization.send("#{params[:e]}!")
-        flash[:success] = Spree.t(:return_authorization_updated)
-        redirect_back fallback_location: spree.edit_admin_order_return_authorization_path(@order, @return_authorization)
+        action_from_params = "#{params[:e]}!"
+
+        if @return_authorization.state_events.include?(params[:e].to_sym) &&
+           @return_authorization.send(action_from_params)
+
+          flash_message = { success: t('spree.return_authorization_updated') }
+        else
+          flash_message = { error: t('spree.return_authorization_fire_error') }
+        end
+
+        redirect_back(fallback_location: admin_order_return_authorizations_path(@order),flash: flash_message)
       end
 
       private
@@ -34,7 +42,6 @@ module Spree
         new_return_items = unassociated_inventory_units.map do |new_unit|
           Spree::ReturnItem.new(inventory_unit: new_unit).tap(&:set_default_pre_tax_amount)
         end
-
         @form_return_items = (@return_authorization.return_items + new_return_items).sort_by(&:inventory_unit_id)
       end
 
