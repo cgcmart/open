@@ -49,8 +49,6 @@ en:
         preferred_base_percent: Base Percent
         preferred_currency: Currency
         preferred_tiers: Tiers
-      spree/carton:
-        tracking: Tracking
       spree/country:
         iso: ISO
         iso3: ISO3
@@ -542,9 +540,6 @@ en:
       spree/promotion_category:
         one: Promotion Category
         other: Promotion Categories
-      spree/promotion_code_batch:
-        one: Promotion Code Batch
-        other: Promotion Code Batches
       spree/promotion_code:
         one: Promotion Code
         other: Promotion Codes
@@ -658,6 +653,11 @@ en:
             base:
               card_expired: "Card has expired"
               expiry_invalid: "Card expiration is invalid"
+        spree/image:
+          attributes:
+            attachment:
+              not_allowed_content_type: has not allowed content type
+              attachment_must_be_present: must be present
         spree/inventory_unit:
           attributes:
             state:
@@ -701,10 +701,20 @@ en:
           attributes:
             base:
               cannot_destroy_default_store: Cannot destroy the default Store.
+        spree/taxon_image:
+          attributes:
+            attachment:
+              not_allowed_content_type: has not allowed content type
         spree/user_address:
           attributes:
             user_id:
               default_address_exists: "already has a default address"
+        spree/variant:
+          attributes:
+            base:
+              cannot_destroy_if_attached_to_line_items: Cannot delete variants once they are attached to line items.
+              no_master_variant_found_to_infer_price: No master variant found to infer price
+              must_supply_price_for_variant_or_master: Must supply price for variant or master price for product.
         spree/wallet_payment_source:
           attributes:
             payment_source:
@@ -1086,13 +1096,10 @@ en:
     cart_subtotal:
       one: 'Subtotal (1 item)'
       other: 'Subtotal (%{count} items)'
-    carton_external_number: External Number
-    carton_orders: 'Other orders with Carton'
     categories: Categories
     category: Category
     charged: Charged
     check: Check
-    check_stock_on_transfer: Check stock on transfer
     checkout: Checkout
     choose_a_customer: Choose a customer
     choose_a_taxon_to_sort_products_for: "Choose a taxon to sort products for"
@@ -1492,7 +1499,6 @@ en:
     new_product: New Product
     new_promotion: New Promotion
     new_promotion_category: New Promotion Category
-    new_promotion_code_batch: New Promotion Code Batch
     new_property: New Property Type
     bew_prototype: New Prototype
     new_refund: New Refund
