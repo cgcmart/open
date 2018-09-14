@@ -1,18 +1,45 @@
+# frozen_string_literal: true
+
 require 'carmen'
 
-Carmen::Country.all.each do |country|
-  Spree::Country.where(
-    name: country.name,
-    iso3: country.alpha_3_code,
-    iso: country.alpha_2_code,
-    iso_name: country.name.upcase,
-    numcode: country.numeric_code,
-    states_required: country.subregions?
-  ).first_or_create
+# Insert Countries into the spree_countries table, checking to ensure that no
+# duplicates are created, using as few SQL statements as possible (2)
+
+connection = ApplicationRecord.connection
+
+country_mapper = ->(country) do
+  name            = connection.quote country.name
+  iso3            = connection.quote country.alpha_3_code
+  iso             = connection.quote country.alpha_2_code
+  iso_name        = connection.quote country.name.upcase
+  numcode         = connection.quote country.numeric_code
+  states_required = connection.quote country.subregions?
+
+  [name, iso3, iso, iso_name, numcode, states_required].join(", ")
 end
 
-Spree::Config[:default_country_id] = Spree::Country.find_by(iso: "US").id
+country_values = -> do
+  carmen_countries = Carmen::Country.all
 
-# find countries that do not use postal codes (by iso) and set 'zipcode_required' to false for them.
+  # find entires already in the database (so that we may ignore them)
+  existing_country_isos =
+    Spree::Country.where(iso: carmen_countries.map(&:alpha_2_code)).pluck(:iso)
 
-Spree::Country.where(iso: Spree::Address::NO_ZIPCODE_ISO_CODES).update_all(zipcode_required: false)
+  # create VALUES statements for each country _not_ already in the database
+  carmen_countries
+    .reject { |c| existing_country_isos.include?(c.alpha_2_code) }
+    .map(&country_mapper)
+    .join("), (")
+end
+
+country_columns = %w(name iso3 iso iso_name numcode states_required).join(', ')
+country_vals = country_values.call
+
+if country_vals.present?
+  # execute raw SQL (insted of ActiveRecord.create) to use a single
+  # INSERT statement, and to avoid any validations or callbacks
+  connection.execute <<-SQL
+    INSERT INTO spree_countries (#{country_columns})
+    VALUES (#{country_vals});
+  SQL
+end
