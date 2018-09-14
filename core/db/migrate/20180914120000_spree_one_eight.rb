@@ -170,16 +170,12 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
     create_table "spree_inventory_units", force: :cascade do |t|
       t.string "state"
       t.integer "variant_id"
-      t.integer "order_id"
       t.integer "shipment_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.boolean "pending", default: true
       t.integer "line_item_id"
-      t.integer "carton_id"
-      t.index ["carton_id"], name: "index_spree_inventory_units_on_carton_id"
       t.index ["line_item_id"], name: "index_spree_inventory_units_on_line_item_id"
-      t.index ["order_id"], name: "index_inventory_units_on_order_id"
       t.index ["shipment_id"], name: "index_inventory_units_on_shipment_id"
       t.index ["variant_id"], name: "index_inventory_units_on_variant_id"
     end
@@ -201,7 +197,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.decimal "price", precision: 10, scale: 2, null: false
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.string "currency"
       t.decimal "cost_price", precision: 10, scale: 2
       t.integer "tax_category_id"
       t.decimal "adjustment_total", precision: 10, scale: 2, default: "0.0"
@@ -335,7 +330,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "deleted_at"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.string "display_on"
+      t.boolean "available_to_admin", default: true
+      t.boolean "available_to_users", default: true
       t.boolean "auto_capture"
       t.text "preferences"
       t.string "preference_source"
@@ -357,6 +353,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "number"
       t.string "cvv_response_code"
       t.string "cvv_response_message"
+      t.index ['number'], unique: true
       t.index ["order_id"], name: "index_spree_payments_on_order_id"
       t.index ["payment_method_id"], name: "index_spree_payments_on_payment_method_id"
       t.index ["source_id", "source_type"], name: "index_spree_payments_on_source_id_and_source_type"
@@ -685,7 +682,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.decimal "cost", precision: 10, scale: 2, default: "0.0"
       t.datetime "shipped_at"
       t.integer "order_id"
-      t.integer "deprecated_address_id"
       t.string "state"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
@@ -694,7 +690,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.decimal "additional_tax_total", precision: 10, scale: 2, default: "0.0"
       t.decimal "promo_total", precision: 10, scale: 2, default: "0.0"
       t.decimal "included_tax_total", precision: 10, scale: 2, default: "0.0", null: false
-      t.index ["deprecated_address_id"], name: "index_spree_shipments_on_deprecated_address_id"
       t.index ["number"], name: "index_shipments_on_number"
       t.index ["order_id"], name: "index_spree_shipments_on_order_id"
       t.index ["stock_location_id"], name: "index_spree_shipments_on_stock_location_id"
@@ -733,7 +728,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
 
     create_table "spree_shipping_methods", force: :cascade do |t|
       t.string "name"
-      t.string "display_on"
       t.datetime "deleted_at"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
@@ -741,7 +735,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "admin_name"
       t.integer "tax_category_id"
       t.string "code"
-      t.boolean "available_to_all", default: true
+      t.boolean "available_to_users", default: true
       t.string "carrier"
       t.string "service_level"
       t.index ["tax_category_id"], name: "index_spree_shipping_methods_on_tax_category_id"
@@ -889,7 +883,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.decimal "amount_authorized", precision: 8, scale: 2, default: "0.0", null: false
       t.string "currency"
       t.text "memo"
-      t.datetime "spree_store_credits"
       t.datetime "deleted_at"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
@@ -978,9 +971,11 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "meta_description"
       t.string "meta_keywords"
       t.integer "depth"
+      t.index ["lft"], name: "index_taxons_on_lft"
       t.index ["parent_id"], name: "index_taxons_on_parent_id"
       t.index ["permalink"], name: "index_taxons_on_permalink"
       t.index ["position"], name: "index_spree_taxons_on_position"
+      t.index ["rgt"], name: "index_taxons_on_rgt"
       t.index ["taxonomy_id"], name: "index_taxons_on_taxonomy_id"
     end
 
