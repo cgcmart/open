@@ -375,7 +375,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.decimal "amount", precision: 10, scale: 2
       t.string "currency"
       t.datetime "deleted_at"
-      t.boolean "is_default", default: true, null: false
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.string "country_iso", limit: 2
