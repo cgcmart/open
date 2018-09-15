@@ -287,7 +287,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "approver_id"
       t.datetime "approved_at"
       t.boolean "confirmation_delivered", default: false
-      t.string "guest_token"
+      t.string 'token'
       t.datetime "canceled_at"
       t.integer "canceler_id"
       t.integer "store_id"
@@ -297,7 +297,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.index ["bill_address_id"], name: "index_spree_orders_on_bill_address_id"
       t.index ["completed_at"], name: "index_spree_orders_on_completed_at"
       t.index ["created_by_id"], name: "index_spree_orders_on_created_by_id"
-      t.index ["guest_token"], name: "index_spree_orders_on_guest_token"
+      t.index ['token'], name: 'index_spree_orders_on_token'
       t.index ["number"], name: "index_spree_orders_on_number"
       t.index ["ship_address_id"], name: "index_spree_orders_on_ship_address_id"
       t.index ["user_id", "created_by_id"], name: "index_spree_orders_on_user_id_and_created_by_id"
