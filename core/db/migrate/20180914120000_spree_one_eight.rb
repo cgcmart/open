@@ -330,8 +330,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "deleted_at"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.boolean "available_to_admin", default: true
-      t.boolean "available_to_users", default: true
+      t.boolean 'available_to_admin', default: true
+      t.boolean 'available_to_users', default: true
       t.boolean "auto_capture"
       t.text "preferences"
       t.string "preference_source"
@@ -353,7 +353,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "number"
       t.string "cvv_response_code"
       t.string "cvv_response_message"
-      t.index ['number'], unique: true
+      t.index ['number'], name: 'index_spree_payments_on_number', unique: true
       t.index ["order_id"], name: "index_spree_payments_on_order_id"
       t.index ["payment_method_id"], name: "index_spree_payments_on_payment_method_id"
       t.index ["source_id", "source_type"], name: "index_spree_payments_on_source_id_and_source_type"
@@ -479,6 +479,13 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "updated_at", precision: 6
       t.index ["promotion_id"], name: "index_spree_promotion_codes_on_promotion_id"
       t.index ["value"], name: "index_spree_promotion_codes_on_value", unique: true
+    end
+
+    create_table 'spree_promotion_rules_stores', force: :cascade do |t|
+      t.references 'store', null: false
+      t.references 'promotion_rule', null: false
+      t.datetime 'created_at', precision: 6
+      t.datetime 'updated_at', precision: 6
     end
 
     create_table "spree_promotion_rule_taxons", force: :cascade do |t|
@@ -665,6 +672,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "name"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
+      t.index ['name'], name: 'index_spree_roles_on_name', unique: true
     end
 
     create_table "spree_roles_users", force: :cascade do |t|
@@ -672,8 +680,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "user_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ["role_id"], name: "index_spree_roles_users_on_role_id"
-      t.index ["user_id"], name: "index_spree_roles_users_on_user_id"
+      t.index ['role_id'], name: 'index_spree_roles_users_on_role_id', unique: true
+      t.index ['user_id'], name: 'index_spree_roles_users_on_user_id', unique: true
     end
 
     create_table "spree_shipments", force: :cascade do |t|
@@ -735,7 +743,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "admin_name"
       t.integer "tax_category_id"
       t.string "code"
-      t.boolean "available_to_users", default: true
+      t.boolean 'available_to_users', default: true
       t.string "carrier"
       t.string "service_level"
       t.index ["tax_category_id"], name: "index_spree_shipping_methods_on_tax_category_id"
@@ -847,8 +855,9 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
     create_table "spree_store_credit_events", force: :cascade do |t|
       t.integer "store_credit_id", null: false
       t.string "action", null: false
-      t.decimal "amount", precision: 8, scale: 2
-      t.decimal "user_total_amount", precision: 8, scale: 2, default: "0.0", null: false
+      t.decimal 'amount', precision: 8, scale: 2
+      t.decimal 'user_total_amount', precision: 8, scale: 2, default: "0.0", null: false
+      t.decimal 'amount_remaining', precision: 8, scale: 2, default: '0.0', null: true
       t.string "authorization_code", null: false
       t.datetime "deleted_at"
       t.string "originator_type"
@@ -884,8 +893,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "currency"
       t.text "memo"
       t.datetime "deleted_at"
-      t.datetime "created_at", precision: 6
-      t.datetime "updated_at", precision: 6
+      t.datetime 'created_at', precision: 6
+      t.datetime 'updated_at', precision: 6
       t.integer "type_id"
       t.datetime "invalidated_at"
       t.index ["deleted_at"], name: "index_spree_store_credits_on_deleted_at"
@@ -902,6 +911,13 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.index ["store_id"], name: "index_spree_store_payment_methods_on_store_id"
     end
 
+    create_table 'spree_store_shipping_methods' force: :cascade do |t|
+      t.references 'store', null: false
+      t.references 'shipping_method' null: false
+      t.datetime 'created_at', precision: 6
+      t.datetime 'updated_at', precision: 6
+    end
+
     create_table "spree_stores", force: :cascade do |t|
       t.string "name"
       t.string "url"
@@ -911,6 +927,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "mail_from_address"
       t.string "default_currency"
       t.string "code"
+      t.string 'available_locales'
       t.boolean "default", default: false, null: false
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
@@ -936,6 +953,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.boolean "included_in_price", default: false
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
+      t.datetime 'starts_at'
+      t.datetime 'expire_at'
       t.string "name"
       t.boolean "show_rate_in_label", default: true
       t.datetime "deleted_at"
@@ -1070,7 +1089,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
     create_table "spree_zones", force: :cascade do |t|
       t.string "name"
       t.string "description"
-      t.boolean "default_tax", default: false
       t.integer "zone_members_count", default: 0
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
