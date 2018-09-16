@@ -34,6 +34,7 @@ module Spree
         end
 
         def set_token
+          cookies.permanent.signed[:token] ||= cookies.signed[:guest_token]
           cookies.permanent.signed[:token] ||= {
             value: SecureRandom.urlsafe_base64(nil, false),
             httponly: true
