@@ -1,13 +1,15 @@
+# frozen_string_literal: true
+
 module Spree
   module Core
     module Search
       class Base
         attr_accessor :properties
         attr_accessor :current_user
-        attr_accessor :current_currency
+        attr_accessor :pricing_options
 
         def initialize(params)
-          self.current_currency = Spree::Config[:currency]
+          self.pricing_options = Spree::Config.default_pricing_options
           @properties = {}
           prepare(params)
         end
@@ -17,26 +19,29 @@ module Spree
           curr_page = page || 1
 
           unless Spree::Config.show_products_without_price
-            @products = @products.where('spree_prices.amount IS NOT NULL').
-                        where('spree_prices.currency' => current_currency)
+            @products = @products.joins(:prices).merge(Spree::Price.where(pricing_options.search_arguments)).distinct
           end
-          @products = @products.page(curr_page).per(per_page)
+          @products = @products.page(curr_page).per(@properties[:per_page])
         end
 
         def method_missing(name)
-          if @properties.key? name
+          if @properties.key?(name)
             @properties[name]
           else
             super
           end
         end
 
+        def respond_to_missing?(name)
+          @properties.key?(name) || super(name)
+        end
+
         protected
 
         def get_base_scope
-          base_scope = Spree::Product.spree_base_scopes.active
-          base_scope = base_scope.in_taxon(taxon) unless taxon.blank?
-          base_scope = get_products_conditions_for(base_scope, keywords)
+          base_scope = Spree::Product.display_includes.available
+          base_scope = base_scope.in_taxon(@properties[:taxon]) unless @properties[:taxon].blank?
+          base_scope = get_products_conditions_for(base_scope, @properties[:keywords])
           base_scope = add_search_scopes(base_scope)
           base_scope = add_eagerload_scopes(base_scope)
           base_scope
@@ -58,21 +63,20 @@ module Spree
           # separate queries most of the time but opt for a join as soon as any
           # `where` constraints affecting joined tables are added to the search;
           # which is the case as soon as a taxon is added to the base scope.
-          scope = scope.preload(:tax_category)
-          scope = scope.preload(master: :prices)
-          scope = scope.preload(master: :images) if include_images
+          scope = scope.preload(master: :currently_valid_prices)
+          scope = scope.preload(master: :images) if @properties[:include_images]
           scope
         end
 
         def add_search_scopes(base_scope)
-          if search.is_a?(ActionController::Parameters)
-            search.each do |name, scope_attribute|
+          if @properties[:search]
+            @properties[:search].each do |name, scope_attribute|
               scope_name = name.to_sym
-              base_scope = if base_scope.respond_to?(:search_scopes) && base_scope.search_scopes.include?(scope_name.to_sym)
-                             base_scope.send(scope_name, *scope_attribute)
-                           else
-                             base_scope.merge(Spree::Product.ransack(scope_name => scope_attribute).result)
-                           end
+              if base_scope.respond_to?(:search_scopes) && base_scope.search_scopes.include?(scope_name.to_sym)
+                base_scope = base_scope.send(scope_name, *scope_attribute)
+              else
+                base_scope = base_scope.merge(Spree::Product.ransack({ scope_name => scope_attribute }).result)
+              end
             end
           end
           base_scope
@@ -94,11 +98,7 @@ module Spree
 
           per_page = params[:per_page].to_i
           @properties[:per_page] = per_page > 0 ? per_page : Spree::Config[:products_per_page]
-          @properties[:page] = if params[:page].respond_to?(:to_i)
-                                 params[:page].to_i <= 0 ? 1 : params[:page].to_i
-                               else
-                                 1
-                               end
+          @properties[:page] = (params[:page].to_i <= 0) ? 1 : params[:page].to_i
         end
       end
     end
