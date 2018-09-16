@@ -25,6 +25,14 @@ module Spree
             create_adjustments_from_params(params.delete(:adjustments_attributes), order)
             create_payments_from_params(params.delete(:payments_attributes), order)
 
+            params.delete(:user_id) unless user.try(:has_spree_role?, "admin") && params.key?(:user_id)
+
+            completed_at = params.delete(:completed_at)
+
+            order.update_attributes!(params)
+
+            order.create_proposed_shipments unless shipments_attrs.present?
+
             if completed_at
               order.completed_at = completed_at
               order.state = 'complete'
