@@ -58,3 +58,5 @@ module Spree
     end
   end
 end
+
+require 'spree/core/components'
