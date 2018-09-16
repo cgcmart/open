@@ -5,6 +5,7 @@ require 'bundler'
 require 'bundler/cli'
 
 module Spree
+  # @private
   class InstallGenerator < Rails::Generators::Base
     CORE_MOUNT_ROUTE = "mount Spree::Core::Engine"
 
@@ -40,7 +41,7 @@ module Spree
     end
 
     def add_files
-      template 'config/initializers/spree.rb', 'config/initializers/spree.rb'
+      template 'config/initializers/spree.rb.tt', 'config/initializers/spree.rb'
     end
 
     def additional_tweaks
