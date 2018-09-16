@@ -34,11 +34,15 @@ development:
   database: <%= database_prefix %><%= lib_name %>_spree_development
 test:
   <<: *mysql
+  <% if ENV['TRAVIS'] %>
+  username: root
+  password:
+  <% end %>
   database: <%= database_prefix %><%= lib_name %>_spree_test
 production:
   <<: *mysql
   database: <%= database_prefix %><%= lib_name %>_spree_production
-<% when 'postgres' %>
+<% when 'postgres', 'postgresql' %>
 <% db_host = ENV['DB_HOST'] %>
 postgres: &postgres
   adapter: postgresql
@@ -62,7 +66,7 @@ test:
 production:
   <<: *postgres
   database: <%= database_prefix %><%= lib_name %>_spree_production
-<% else %>
+<% when 'sqlite', '', nil %>
 development:
   adapter: sqlite3
   database: db/spree_development.sqlite3
@@ -72,4 +76,6 @@ test:
 production:
   adapter: sqlite3
   database: db/spree_production.sqlite3
+<% else %>
+  <% raise "Invalid DB specified: #{ENV['DB']}" %>
 <% end %>
