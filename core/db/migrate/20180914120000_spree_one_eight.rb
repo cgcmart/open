@@ -8,7 +8,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
     return if table_exists?(:spree_addresses)
 
     # this table should not technically exist in the database (as its provided by auth_devise),
-    # but spree_api depends on it existing. This defininition comes from solidus_auth_devise's first migration,
+    # but spree_api depends on it existing. This defininition comes from spree_auth_devise's first migration,
     # and creates a table equivolent to it
     create_table "spree_users", force: true do |t|
       t.string   "crypted_password", limit: 128
@@ -42,8 +42,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.datetime 'deleted_at', precision: 6
-      t.index ["slug", "sluggable_type", "scope"], name: "index_friendly_id_slugs_on_slug_and_sluggable_type_and_scope", unique: true
-      t.index ["slug", "sluggable_type"], name: "index_friendly_id_slugs_on_slug_and_sluggable_type"
+      t.index ['slug', 'sluggable_type'], name: 'index_friendly_id_slugs_on_slug_and_sluggable_type', length: { name: 100, slug: 20, sluggable_type: 20 }
+      t.index ['slug', 'sluggable_type', 'scope'], name: 'index_friendly_id_slugs_on_slug_and_sluggable_type_and_scope', length: { name: 100, slug: 20, sluggable_type: 20, scope: 20 }, unique: true
       t.index ["sluggable_id"], name: "index_friendly_id_slugs_on_sluggable_id"
       t.index ["sluggable_type"], name: "index_friendly_id_slugs_on_sluggable_type"
       t.index ['deleted_at'], name: 'index_friendly_id_slugs_on_deleted_at'
@@ -95,11 +95,11 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "promotion_code_id"
       t.integer "adjustment_reason_id"
       t.boolean "finalized", default: false, null: false
-      t.index ["adjustable_id", "adjustable_type"], name: "index_spree_adjustments_on_adjustable_id_and_adjustable_type"
+      t.index ['adjustable_id', 'adjustable_type'], name: 'index_adjustments_on_adjustable_id_and_type'
       t.index ["adjustable_id"], name: "index_adjustments_on_order_id"
-      t.index ["eligible"], name: "index_spree_adjustments_on_eligible"
-      t.index ["promotion_code_id"], name: "index_spree_adjustments_on_promotion_code_id"
-      t.index ["source_id", "source_type"], name: "index_spree_adjustments_on_source_id_and_source_type"
+      t.index ["eligible"], name: "index_adjustments_on_eligible"
+      t.index ["promotion_code_id"], name: "index_adjustments_on_promotion_code_id"
+      t.index ["source_id", "source_type"], name: "index_adjustments_on_source_id_and_type"
     end
 
     create_table "spree_assets", force: :cascade do |t|
@@ -128,7 +128,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "updated_at", precision: 6
       t.datetime "deleted_at", precision: 6
       t.text "preferences"
-      t.index ["calculable_id", "calculable_type"], name: "index_spree_calculators_on_calculable_id_and_calculable_type"
+      t.index ['calculable_id', 'calculable_type'], name: 'index_calculators_on_calculable_id_and_type'
       t.index ["id", "type"], name: "index_spree_calculators_on_id_and_type"
       t.index ['deleted_at'], name: 'index_spree_calculators_on_deleted_at'
     end
@@ -227,7 +227,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "option_type_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ['prototype_id', 'option_type_id'], name: 'index_spree_option_type_prototypes_on_prototype_option_type_id', unique: true
+      t.index ['prototype_id', 'option_type_id'], name: 'index_option_type_prototypes_on_prototype_and_option_type', unique: true
       t.index ['prototype_id'], name: 'index_spree_option_type_prototypes_on_prototype_id'
     end
 
@@ -256,7 +256,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "option_value_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ['variant_id','option_value_id'], name: 'index_option_value_variants_on_variant_option_value_id', unique: true
+      t.index ['variant_id','option_value_id'], name: 'index_option_value_variants_on_variant_and_option_value', unique: true
       t.index ['variant_id'], name: 'index_spree_option_value_variants_on_variant_id'
     end
 
@@ -275,6 +275,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.index ['order_id'], name: 'index_spree_order_promotions_on_order_id'
       t.index ["promotion_code_id"], name: "index_spree_order_promotions_on_promotion_code_id"
       t.index ['promotion_id'], name: 'index_spree_order_promotions_on_promotion_id'
+      t.index ['promotion_id', 'order_id'], name: 'index_spree_order_promotions_on_oder_promotion'
     end
 
     create_table "spree_orders", force: :cascade do |t|
@@ -320,6 +321,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.index ['number'], name: 'index_spree_orders_on_number', unique: true
       t.index ["ship_address_id"], name: "index_spree_orders_on_ship_address_id"
       t.index ["user_id", "created_by_id"], name: "index_spree_orders_on_user_id_and_created_by_id"
+      t.index ['canceler_id'], name: 'index_spree_orders_on_canceler'
+      t.index ['store_id'], name: 'index_spree_orders_on_store'
     end
 
     create_table "spree_payment_capture_events", force: :cascade do |t|
@@ -403,6 +406,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "promotion_rule_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
+      t.index ['promotion_rule_id', 'product_id'], name: 'index_product_promotion_rules_on_promotion_rule_and_product'
       t.index ["product_id"], name: "index_product_promotion_rules_on_product_id"
     end
 
@@ -521,6 +525,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "promotion_rule_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
+      t.index ['user_id', 'promotion_rule_id'], name: 'index_promotion_rule_users_on_user_id_and_promotion_rule_id'
       t.index ["promotion_rule_id"], name: "index_promotion_rule_users_on_promotion_rule_id"
     end
 
@@ -542,7 +547,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.boolean "apply_automatically", default: false
       t.index ["advertise"], name: "index_spree_promotions_on_advertise"
       t.index ["apply_automatically"], name: "index_spree_promotions_on_apply_automatically"
-      t.index ["code"], name: "index_spree_promotions_on_code"
+      t.index ['code'], name: 'index_spree_promotions_on_code', unique: true
       t.index ["expires_at"], name: "index_spree_promotions_on_expires_at"
       t.index ["id", "type"], name: "index_spree_promotions_on_id_and_type"
       t.index ["promotion_category_id"], name: "index_spree_promotions_on_promotion_category_id"
@@ -561,7 +566,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "property_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ['prototype_id', 'property_id'], name: 'index_spree_property_prototypes_on_prototype_property_id', unique: true
+      t.index ['prototype_id', 'property_id'], name: 'index_property_prototypes_on_prototype_and_property', unique: true
       t.index ['prototype_id'], name: 'index_spree_property_prototypes_on_prototype_id'
       t.index ['property_id'], name: 'index_spree_property_prototypes_on_property_id'
     end
@@ -573,6 +578,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "updated_at", precision: 6
       t.index ["taxon_id"], name: "index_spree_prototype_taxons_on_taxon_id"
       t.index ['prototype_id'], name: 'index_spree_prototypes_taxons_on_prototype_id'
+      t.index ['prototype_id', 'taxon_id'], name: 'index_prototypes_taxons_on_prototype_and_taxon'
     end
 
     create_table "spree_prototypes", force: :cascade do |t|
@@ -673,8 +679,14 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "override_reimbursement_type_id"
       t.boolean "resellable", default: true, null: false
       t.integer "return_reason_id"
-      t.index ["customer_return_id"], name: "index_return_items_on_customer_return_id"
+      t.index ["customer_return_id"], name: "index_spree_return_items_on_customer_return_id"
+      t.index ['return_authorization_id'], name: 'index_spree_return_items_on_return_authorization_id'
+      t.index ['inventory_unit_id'], name: 'index_spree_return_items_on_inventory_unit_id'
+      t.index ['reimbursement_id'], name: 'index_spree_return_items_on_reimbursement_id'
       t.index ["exchange_inventory_unit_id"], name: "index_spree_return_items_on_exchange_inventory_unit_id"
+      t.index ['exchange_variant_id'], name: 'index_spree_return_items_on_exchange_variant_id'
+      t.index ['preferred_reimbursement_type'], name: 'index_spree_return_items_on_preferred_reimbursement_type'
+      t.index ['override_reimbursement_type_id'], name: 'index_spree_return_items_on_override_reimbursement_type_id'
     end
 
     create_table "spree_return_reasons", force: :cascade do |t|
@@ -698,8 +710,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "user_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ['role_id'], name: 'index_spree_roles_users_on_role_id', unique: true
-      t.index ['user_id'], name: 'index_spree_roles_users_on_user_id', unique: true
+      t.index ['role_id', 'user_id'], name: 'index_spree_roles_users_on_role_user_id', unique: true
     end
 
     create_table "spree_shipments", force: :cascade do |t|
@@ -732,7 +743,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "shipping_category_id", null: false
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ["shipping_category_id", "shipping_method_id"], name: "unique_spree_shipping_method_categories", unique: true
+      t.index ['shipping_method_id', 'shipping_category_id'], name: 'index_spree_shipping_method_categories_on_shipping_method_category_id', unique: true
+      t.index ['shipping_category_id'], name: 'index_spree_shipping_method_categories_on_shipping_category_id'
       t.index ["shipping_method_id"], name: "index_spree_shipping_method_categories_on_shipping_method_id"
     end
 
@@ -750,6 +762,9 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "zone_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
+      t.index ['shipping_method_id', 'zone_id'], name: 'index_spee_shipping_method_zones_on_shipping_method_zone_id', unique: true
+      t.index ['zone_id'], name: 'index_spee_shipping_method_zones_on_zone_id'
+      t.index ['shipping_method_id'], name: 'index_spee_shipping_method_zones_on_shipping_method_id'
     end
 
     create_table "spree_shipping_methods", force: :cascade do |t|
@@ -785,7 +800,9 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.integer "tax_rate_id"
-      t.index ["shipment_id", "shipping_method_id"], name: "spree_shipping_rates_join_index", unique: true
+      t.index ['shipment_id', 'shipping_method_id'], name: 'index_spree_shipping_rates_on_shipment_shipping_method_id', unique: true
+      t.index ['shipment_id'], name: 'index_spree_shipping_rates_on_shipment_id'
+      t.index ['shipping_method_id'], name: 'index_spree_shipping_rates_on_shipping_method_id'
     end
 
     create_table "spree_state_changes", force: :cascade do |t|
@@ -818,11 +835,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.boolean "backorderable", default: false
       t.datetime "deleted_at"
       t.index ["deleted_at"], name: "index_spree_stock_items_on_deleted_at"
-      t.index ["stock_location_id", "variant_id"], name: "stock_item_by_loc_and_var_id"
-
-      if connection.supports_partial_index?
-        t.index ["variant_id", "stock_location_id"], name: "index_spree_stock_items_on_variant_id_and_stock_location_id", unique: true, where: "deleted_at is null"
-      end
+      t.index ['variant_id', 'stock_location_id'], name: 'index_spree_stock_items_on_variant_id_and_stock_location_id', unique: true
+      t.index ['stock_location_id'], name: 'index_spree_stock_items_on_stock_location_id'
     end
 
     create_table "spree_stock_locations", force: :cascade do |t|
@@ -859,7 +873,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.datetime "updated_at", null: false, precision: 6
       t.string "originator_type"
       t.integer "originator_id"
-      t.index ["stock_item_id"], name: "index_spree_stock_movements_on_stock_item_id"
+      t.index ['stock_item_id'], name: 'index_spree_stock_movements_on_stock_item_id'
+      t.index ['originator_id', 'originator_type'], name: 'index_spree_stock_movements_on_originator_id_type'
     end
 
     create_table "spree_store_credit_categories", force: :cascade do |t|
@@ -1016,10 +1031,6 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.integer "taxonomy_id"
       t.integer "lft"
       t.integer "rgt"
-      t.string "icon_file_name"
-      t.string "icon_content_type"
-      t.integer "icon_file_size"
-      t.datetime "icon_updated_at"
       t.text "description"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
@@ -1118,8 +1129,8 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
       t.string "payment_source_type", null: false
       t.integer "payment_source_id", null: false
       t.boolean "default", default: false, null: false
-      t.datetime "created_at", null: false
-      t.datetime "updated_at", null: false
+      t.datetime "created_at", null: false, precision: 6
+      t.datetime "updated_at", null: false, precision: 6
       t.index ["user_id", "payment_source_id", "payment_source_type"], name: "index_spree_wallet_payment_sources_on_source_and_user", unique: true
       t.index ["user_id"], name: "index_spree_wallet_payment_sources_on_user_id"
     end
