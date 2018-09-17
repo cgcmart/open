@@ -5,10 +5,10 @@ require 'spree/testing_support/factories/variant_factory'
 
 FactoryBot.define do
   factory :promotion, class: Spree::Promotion do
-    name 'Promo'
+    name { 'Promo' }
 
     transient do
-      code nil
+      code { nil }
     end
     before(:create) do |promotion, evaluator|
       if evaluator.code
@@ -18,7 +18,7 @@ FactoryBot.define do
 
     trait :with_line_item_adjustment do
       transient do
-        adjustment_rate 10
+        adjustment_rate { 10 }
       end
 
       after(:create) do |promotion, evaluator|
@@ -27,11 +27,12 @@ FactoryBot.define do
         Spree::Promotion::Actions::CreateItemAdjustments.create!(calculator: calculator, promotion: promotion)
       end
     end
+
     factory :promotion_with_item_adjustment, traits: [:with_line_item_adjustment]
 
     trait :with_order_adjustment do
       transient do
-        weighted_order_adjustment_amount 10
+        weighted_order_adjustment_amount { 10 }
       end
 
       after(:create) do |promotion, evaluator|
@@ -42,11 +43,12 @@ FactoryBot.define do
         promotion.save!
       end
     end
+
     factory :promotion_with_order_adjustment, traits: [:with_order_adjustment]
 
     trait :with_item_total_rule do
       transient do
-        item_total_threshold_amount 10
+        item_total_threshold_amount { 10 }
       end
 
       after(:create) do |promotion, evaluator|
