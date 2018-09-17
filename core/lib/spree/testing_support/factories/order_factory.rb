@@ -18,9 +18,10 @@ FactoryBot.define do
     currency 'USD'
 
     transient do
-      line_items_price BigDecimal.new(10)
+      line_items_price { BigDecimal.new(10) }
     end
 
+    # TODO: Improve the name of order_with_totals factory.
     factory :order_with_totals do
       after(:build) do |order, evaluator|
         order.line_items << build(
@@ -35,15 +36,26 @@ FactoryBot.define do
       end
     end
 
+    factory :order_with_line_item_quantity do
+      transient do
+        line_items_quantity { 1 }
+      end
+
+      after(:create) do |order, evaluator|
+        create(:line_item, order: order, price: evaluator.line_items_price, quantity: evaluator.line_items_quantity)
+        order.line_items.reload # to ensure order.line_items is accessible after
+      end
+    end
+
     factory :order_with_line_items do
       bill_address
       ship_address
 
       transient do
-        line_items_count 1
+        line_items_count { 1 }
         line_items_attributes { [{}] * line_items_count }
-        shipment_cost 100
-        shipping_method nil
+        shipment_cost { 100 }
+        shipping_method_filter { Spree::ShippingMethod::DISPLAY_ON_FRONT_END }
         stock_location { create(:stock_location) }
       end
 
@@ -81,11 +93,11 @@ FactoryBot.define do
       end
 
       factory :order_ready_to_complete do
-        state 'confirm'
-        payment_state 'checkout'
+        state { 'confirm' }
+        payment_state { 'checkout' }
 
         transient do
-          payment_type :credit_card_payment
+          payment_type { :credit_card_payment }
         end
 
         after(:create) do |order, evaluator|
@@ -100,7 +112,7 @@ FactoryBot.define do
       end
 
       factory :completed_order_with_totals do
-        state 'complete'
+        state { 'complete' }
 
         after(:create) do |order|
           order.shipments.each do |shipment|
@@ -111,22 +123,16 @@ FactoryBot.define do
 
         factory :completed_order_with_pending_payment do
           after(:create) do |order|
-            create(:payment, amount: order.total, order: order)
-          end
-        end
-
-        factory :completed_order_with_pending_payment do
-          after(:create) do |order|
             create(:payment, amount: order.total, order: order, state: 'pending')
           end
         end
 
         factory :order_ready_to_ship do
-          payment_state 'paid'
-          shipment_state 'ready'
+          payment_state { 'paid' }
+          shipment_state { 'ready' }
 
           transient do
-            payment_type :credit_card_payment
+            payment_type { :credit_card_payment }
           end
 
           after(:create) do |order, evaluator|
@@ -138,19 +144,15 @@ FactoryBot.define do
           end
 
           factory :shipped_order do
+            transient do
+              with_cartons { true }
+            end
             after(:create) do |order, evaluator|
               order.shipments.each do |shipment|
                 shipment.inventory_units.update_all state: 'shipped'
                 shipment.update_columns(state: 'shipped', shipped_at: Time.current)
-                next unless evaluator.with_cartons
-                Spree::Carton.create!(
-                  stock_location: shipment.stock_location,
-                  address: order.ship_address,
-                  shipping_method: shipment.shipping_method,
-                  inventory_units: shipment.inventory_units,
-                  shipped_at: Time.current
-                )
               end
+              # We need to update the shipment_state after all callbacks have run
               order.update_column('shipment_state', 'shipped')
               order.reload
             end
