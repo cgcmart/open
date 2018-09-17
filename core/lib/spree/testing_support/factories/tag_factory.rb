@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 FactoryBot.define do
   factory :tag, class: Spree::Tag do
     sequence(:name) { |n| "Tag ##{n} - #{Kernel.rand(9999)}" }
