@@ -5,7 +5,7 @@ FactoryBot.define do
     sequence(:code) { |i| "spree_#{i}" }
     sequence(:name) { |i| "Spree Test Store #{i}" }
     sequence(:url) { |i| "www.example#{i}.com" }
-    mail_from_address 'spree@example.org'
-    default_currency 'USD'
+    mail_from_address { 'spree@example.org' }
+    default_currency { 'USD' }
   end
 end
