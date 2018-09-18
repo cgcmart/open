@@ -20,11 +20,11 @@ StateMachines::Machine.ignore_method_conflicts = true
 module Spree
   mattr_accessor :user_class
 
-  def self.user_class
+  def self.user_class(constantize: true)
     if @@user_class.is_a?(Class)
       raise 'Spree.user_class MUST be a String or Symbol object, not a Class object.'
     elsif @@user_class.is_a?(String) || @@user_class.is_a?(Symbol)
-      @@user_class.to_s.constantize
+      constantize ? @@user_class.to_s.constantize : @@user_class.to_s
     end
   end
 
@@ -38,7 +38,7 @@ module Spree
   #
   # This method is defined within the core gem on purpose.
   # Some people may only wish to use the Core part of Spree.
-  def self.config
+  def self.config(&_block)
     yield(Spree::Config)
   end
 
@@ -51,10 +51,6 @@ require 'spree/core/version'
 
 require 'spree/core/active_merchant_dependencies'
 require 'spree/core/class_constantizer'
-require 'spree/core/environment_extension'
-require 'spree/core/environment/calculators'
-require 'spree/core/environment'
-require 'spree/promo/environment'
 require 'spree/migrations'
 require 'spree/migration_helpers'
 require 'spree/core/engine'
@@ -63,8 +59,10 @@ require 'spree/i18n'
 require 'spree/localized_number'
 require 'spree/money'
 require 'spree/permitted_attributes'
+require 'spree/service_module'
 
 require 'spree/core/importer'
+require 'spree/core/query_filters'
 require 'spree/core/permalinks'
 require 'spree/core/product_duplicator'
 require 'spree/core/current_store'
