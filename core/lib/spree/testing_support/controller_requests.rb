@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Use this module to easily test Spree actions within Spree components
 # or inside your application to test routes for the mounted Spree engine.
 #
@@ -32,61 +34,36 @@ module Spree
         routes { Spree::Core::Engine.routes }
       end
 
-      def spree_get(action, parameters = nil, session = nil, flash = nil)
+      def get(action, parameters = nil, session = nil, flash = nil)
         process_spree_action(action, parameters, session, flash, 'GET')
       end
 
       # Executes a request simulating POST HTTP method and set/volley the response
-      def spree_post(action, parameters = nil, session = nil, flash = nil)
+      def post(action, parameters = nil, session = nil, flash = nil)
         process_spree_action(action, parameters, session, flash, 'POST')
       end
 
       # Executes a request simulating PUT HTTP method and set/volley the response
-      def spree_put(action, parameters = nil, session = nil, flash = nil)
+      def put(action, parameters = nil, session = nil, flash = nil)
         process_spree_action(action, parameters, session, flash, 'PUT')
       end
 
-      # Executes a request simulating PATCH HTTP method and set/volley the response
-      def spree_patch(action, parameters = nil, session = nil, flash = nil)
-        process_spree_action(action, parameters, session, flash, 'PATCH')
-      end
-
-      # Executes a request simulating DELETE HTTP method and set/volley the response
-      def spree_delete(action, parameters = nil, session = nil, flash = nil)
+       # Executes a request simulating DELETE HTTP method and set/volley the response
+      def delete(action, parameters = nil, session = nil, flash = nil)
         process_spree_action(action, parameters, session, flash, 'DELETE')
-      end
-
-      def spree_xhr_get(action, parameters = nil, session = nil, flash = nil)
-        process_spree_xhr_action(action, parameters, session, flash, :get)
-      end
-
-      def spree_xhr_post(action, parameters = nil, session = nil, flash = nil)
-        process_spree_xhr_action(action, parameters, session, flash, :post)
-      end
-
-      def spree_xhr_put(action, parameters = nil, session = nil, flash = nil)
-        process_spree_xhr_action(action, parameters, session, flash, :put)
-      end
-
-      def spree_xhr_patch(action, parameters = nil, session = nil, flash = nil)
-        process_spree_xhr_action(action, parameters, session, flash, :patch)
-      end
-
-      def spree_xhr_delete(action, parameters = nil, session = nil, flash = nil)
-        process_spree_xhr_action(action, parameters, session, flash, :delete)
       end
 
       private
 
       def process_spree_action(action, parameters = nil, session = nil, flash = nil, method = 'GET')
         parameters ||= {}
-        process(action, method: method, params: parameters, session: session, flash: flash)
+        process(action, method, parameters, session, flash)
       end
 
       def process_spree_xhr_action(action, parameters = nil, session = nil, flash = nil, method = :get)
         parameters ||= {}
         parameters.reverse_merge!(format: :json)
-        process(action, method: method, params: parameters, session: session, flash: flash, xhr: true)
+        xml_http_request(method, action, parameters, session, flash)
       end
     end
   end
