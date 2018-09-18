@@ -1,3 +1,7 @@
+# frozen_string_literal: true
+
+require 'cancan'
+
 module Spree
   module TestingSupport
     module AuthorizationHelpers
@@ -60,4 +64,5 @@ end
 RSpec.configure do |config|
   config.extend Spree::TestingSupport::AuthorizationHelpers::Controller, type: :controller
   config.extend Spree::TestingSupport::AuthorizationHelpers::Request, type: :feature
+  config.extend Spree::TestingSupport::AuthorizationHelpers::Request, type: :request
 end
