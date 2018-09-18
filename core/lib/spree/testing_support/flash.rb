@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module TestingSupport
     module Flash
@@ -10,14 +12,16 @@ module Spree
       end
 
       def assert_successful_update_message(resource)
-        flash = Spree.t(:successfully_updated, resource: Spree.t(resource))
+        flash = I18n.t('spree.successfully_updated', resource: I18n.t(resource, scope: 'spree'))
         assert_flash_success(flash)
       end
 
       private
 
       def convert_flash(flash)
-        flash = Spree.t(flash) if flash.is_a?(Symbol)
+        if flash.is_a?(Symbol)
+          flash = I18n.t(flash, scope: 'spree')
+        end
         flash
       end
     end
