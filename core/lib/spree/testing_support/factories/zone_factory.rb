@@ -1,25 +1,24 @@
+# frozen_string_literal: true
+
+require 'spree/testing_support/sequences'
+require 'spree/testing_support/factories/country_factory'
+
 FactoryBot.define do
   factory :global_zone, class: Spree::Zone do
-    name 'GlobalZone'
-    description { generate(:random_string) }
+    name        { 'GlobalZone' }
     zone_members do |proxy|
       zone = proxy.instance_eval { @instance }
       Spree::Country.all.map do |c|
-        zone_member = Spree::ZoneMember.create(zoneable: c, zone: zone)
+        Spree::ZoneMember.create(zoneable: c, zone: zone)
       end
     end
   end
 
-  factory :zone, class: Spree::Zone do
-    name { generate(:random_string) }
-    description { generate(:random_string) }
+  factory :zone, class: 'Spree::Zone' do
+    sequence(:name) { |i| "Zone #{i}" }
 
-    factory :zone_with_country do
-      zone_members do |proxy|
-        zone = proxy.instance_eval { @instance }
-        country = create(:country)
-        [Spree::ZoneMember.create(zoneable: country, zone: zone)]
-      end
+    trait :with_country do
+      countries { [create(:country)] }
     end
   end
 end
