@@ -1,11 +1,12 @@
+# frozen_string_literal: true
+
 module Spree
   class Migrations
     attr_reader :config, :engine_name
 
     # Takes the engine config block and engine name
     def initialize(config, engine_name)
-      @config = config
-      @engine_name = engine_name
+      @config, @engine_name = config, engine_name
     end
 
     # Puts warning when any engine migration is not present on the Rails app
