@@ -20,7 +20,6 @@
 require "spree/core/search/base"
 require "spree/core/search/variant"
 require 'spree/preferences/configuration'
-require 'spree/core/environment'
 
 module Spree
   class AppConfiguration < Preferences::Configuration
@@ -126,6 +125,12 @@ module Spree
     #   @return [String] Two-letter ISO code of a {Spree::Country} to assumed as the country of an unidentified customer (default: "US")
     preference :default_country_iso, :string, default: 'US'
 
+    # @!attribute [rw] admin_vat_country_iso
+    #   Set this if you want to enter prices in the backend including value added tax.
+    #   @return [String, nil] Two-letter ISO code of that {Spree::Country} for which
+    #      prices are entered in the backend (default: nil)
+    # preference :admin_vat_country_iso, :string, default: nil
+
     # @!attribute [rw] generate_api_key_for_all_roles
     #   @return [Boolean] Allow generating api key automatically for user
     #   at role_user creation for all roles. (default: +false+)
@@ -170,11 +175,11 @@ module Spree
 
     # @!attribute [rw] promotions_per_page
     #   @return [Integer] Promotions to show per-page in the admin (default: +15+)
-    preference :promotions_per_page, :integer, default: 15
+    preference :promotions_per_page, :integer, default: 10
 
     # @!attribute [rw] customer_returns_per_page
     #   @return [Integer] Customer returns to show per-page in the admin (default: +15+)
-    preference :customer_returns_per_page, :integer, default: 15
+    preference :customer_returns_per_page, :integer, default: 20
 
     # @!attribute [rw] require_master_price
     #   @return [Boolean] Require a price on the master variant of a product (default: +true+)
@@ -310,6 +315,15 @@ module Spree
     #   signature as Spree::OrderMailer.confirm_email.
     class_name_attribute :order_mailer_class, default: 'Spree::OrderMailer'
 
+    # Allows providing your own Mailer for promotion code batch mailer.
+    #
+    # @!attribute [rw] promotion_code_batch_mailer_class
+    # @return [ActionMailer::Base] an object that responds to "promotion_code_batch_finished",
+    #   and "promotion_code_batch_errored"
+    #   (e.g. an ActionMailer with a "promotion_code_batch_finished" method) with the same
+    #   signature as Spree::PromotionCodeBatchMailer.promotion_code_batch_finished.
+    # class_name_attribute :promotion_code_batch_mailer_class, default: 'Spree::PromotionCodeBatchMailer'
+
     # Allows providing your own Mailer for reimbursement mailer.
     #
     # @!attribute [rw] reimbursement_mailer_class
@@ -317,6 +331,14 @@ module Spree
     #   (e.g. an ActionMailer with a "reimbursement_email" method) with the same
     #   signature as Spree::ReimbursementMailer.reimbursement_email.
     class_name_attribute :reimbursement_mailer_class, default: 'Spree::ReimbursementMailer'
+
+    # Allows providing your own Mailer for shipped cartons.
+    #
+    # @!attribute [rw] carton_shipped_email_class
+    # @return [ActionMailer::Base] an object that responds to "shipped_email"
+    #   (e.g. an ActionMailer with a "shipped_email" method) with the same
+    #   signature as Spree::CartonMailer.shipped_email.
+    # class_name_attribute :carton_shipped_email_class, default: 'Spree::CartonMailer'
 
     # Allows providing your own class for merging two orders.
     #
@@ -486,5 +508,18 @@ module Spree
         ]
       end
     end
+
+    # Default admin VAT location
+    #
+    # An object that responds to :state_id and :country_id so it can double as a Spree::Address in
+    # Spree::Zone.for_address. Takes the `admin_vat_country_iso` as input.
+    #
+    # @see admin_vat_country_iso The admin VAT country
+    # @return [Spree::Tax::TaxLocation] default tax location
+    # def admin_vat_location
+    #  @default_tax_location ||= Spree::Tax::TaxLocation.new(
+    #    country: Spree::Country.find_by(iso: admin_vat_country_iso)
+    #  )
+    # end
   end
 end
