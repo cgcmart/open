@@ -1,2 +1,3 @@
-require 'friendly_id/slug_rails5_patch'
+# frozen_string_literal: true
+
 require 'spree/core'
