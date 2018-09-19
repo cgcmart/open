@@ -1,4 +1,9 @@
+# frozen_string_literal: true
+
 module Spree
+  # Spree::PermittedAttributes contains the attributes permitted through strong
+  # params in various controllers in the frontend. Extensions and stores that
+  # need additional params to be accepted can mutate these arrays to add them.
   module PermittedAttributes
     ATTRIBUTES = [
       :address_attributes,
@@ -34,7 +39,7 @@ module Spree
     @@address_attributes = [
       :id, :firstname, :lastname, :first_name, :last_name,
       :address1, :address2, :city, :country_id, :state_id,
-      :zipcode, :phone, :state_name, :alternative_phone, :company,
+      :zipcode, :phone, :state_name, :country_iso, :alternative_phone, :company,
       country: [:iso, :name, :iso3, :iso_name],
       state: [:name, :abbr]
     ]
@@ -42,14 +47,14 @@ module Spree
     @@address_book_attributes = address_attributes + [:default]
 
     @@checkout_attributes = [
-      :coupon_code, :email, :shipping_method_id, :special_instructions, :use_billing, :user_id
+      :coupon_code, :email, :special_instructions, :use_billing, :user_id
     ]
 
     @@credit_card_update_attributes = [
       :month, :year, :expiry, :first_name, :last_name, :name
     ]
 
-    @@customer_return_attributes = [:stock_location_id, return_items_attributes: [:id, :inventory_unit_id, :return_authorization_id, :returned, :amount, :acceptance_status, :exchange_variant_id, :resellable]]
+    @@customer_return_attributes = [:stock_location_id, return_items_attributes: [:id, :inventory_unit_id, :return_authorization_id, :returned, :amount, :reception_status_event, :acceptance_status, :exchange_variant_id, :resellable]]
 
     @@image_attributes = [:alt, :attachment, :position, :viewable_type, :viewable_id]
 
@@ -78,14 +83,15 @@ module Spree
     @@return_authorization_attributes = [:memo, :stock_location_id, :return_reason_id, return_items_attributes: [:inventory_unit_id, :exchange_variant_id, :return_reason_id]]
 
     @@shipment_attributes = [
-      :order, :special_instructions, :stock_location_id, :id,
-      :tracking, :address, :inventory_units, :selected_shipping_rate_id]
+      :special_instructions, :stock_location_id, :id, :tracking,
+      :selected_shipping_rate_id]
 
     # month / year may be provided by some sources, or others may elect to use one field
     @@source_attributes = [
       :number, :month, :year, :expiry, :verification_value,
       :first_name, :last_name, :cc_type, :gateway_customer_profile_id,
-      :gateway_payment_profile_id, :last_digits, :name, :encrypted_data, :existing_card_id :wallet_payment_source_id]
+      :gateway_payment_profile_id, :last_digits, :name, :encrypted_data,
+      :existing_card_id :wallet_payment_source_id]
 
     @@stock_item_attributes = [:variant, :stock_location, :backorderable, :variant_id]
 
@@ -98,9 +104,10 @@ module Spree
       :quantity, :stock_item, :stock_item_id, :originator, :action]
 
     @@store_attributes = [:name, :url, :seo_title, :code, :meta_keywords,
-                          :meta_description, :default_currency, :mail_from_address]
+                          :meta_description, :default_currency,
+                          :mail_from_address :cart_tax_country_iso]
 
-    @@store_credit_attributes = [:amount, :category_id, :memo]
+    @@store_credit_attributes = %i[amount currency category_id memo]
 
     @@taxonomy_attributes = [:name]
 
@@ -109,14 +116,13 @@ module Spree
       :meta_description, :meta_keywords, :meta_title, :child_index]
 
     # TODO: Should probably use something like Spree.user_class.attributes
-    @@user_attributes = [:email, :password, :password_confirmation]
+    @@user_attributes = [:password, :password_confirmation]
 
     @@variant_attributes = [
-      :name, :presentation, :cost_price, :discontinue_on, :lock_version,
+      :name, :presentation, :cost_price, :lock_version,
       :position, :track_inventory,
       :product_id, :product, :option_values_attributes, :price,
-      :weight, :height, :width, :depth, :sku, :cost_currency,
-      options: [:name, :value], option_value_ids: []
+      :weight, :height, :width, :depth, :sku, :cost_currency, option_value_ids: [], options: [:name, :value]
     ]
   end
 end
