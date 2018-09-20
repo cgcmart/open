@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::BaseHelper, type: :helper do
+require 'rails_helper'
+
+RSpec.describe Spree::BaseHelper, type: :helper do
   include Spree::BaseHelper
 
   let(:current_store) { create :store }
@@ -20,6 +22,10 @@ describe Spree::BaseHelper, type: :helper do
       it 'return complete list of countries' do
         expect(available_countries.count).to eq(Spree::Country.count)
       end
+
+      it 'uses locales for country names' do
+        expect(available_countries).to include(having_attributes(name: 'United States of America'))
+      end
     end
 
     context 'with a checkout zone defined' do
@@ -32,6 +38,10 @@ describe Spree::BaseHelper, type: :helper do
 
         it 'return only the countries defined by the checkout zone' do
           expect(available_countries).to eq([country])
+        end
+
+        it 'returns only the countries defined by the checkout zone passed as parameter' do
+          expect(available_countries(restrict_to_zone: @country_zone.name)).to eq([country])
         end
       end
 
@@ -50,31 +60,33 @@ describe Spree::BaseHelper, type: :helper do
     end
   end
 
-  # Regression test for #1436
-  context 'defining custom image helpers' do
-    let(:product) { mock_model(Spree::Product, images: [], variant_images: []) }
+  # Regression test for https://github.com/spree/spree/issues/2034
+  context "flash_message" do
+    let(:flash) { { "notice" => "ok", "foo" => "foo", "bar" => "bar" } }
 
-    before do
-      Spree::Image.class_eval do
-        styles[:very_strange] = '1x1'
-        styles.merge!(foobar: '2x2')
-      end
+    it "should output all flash content" do
+      flash_messages
+      html = Nokogiri::HTML(helper.output_buffer)
+      expect(html.css(".notice").text).to eq("ok")
+      expect(html.css(".foo").text).to eq("foo")
+      expect(html.css(".bar").text).to eq("bar")
     end
 
-    it 'does not raise errors when style exists' do
-      expect { very_strange_image(product) }.not_to raise_error
+    it "should output flash content except one key" do
+      flash_messages(ignore_types: :bar)
+      html = Nokogiri::HTML(helper.output_buffer)
+      expect(html.css(".notice").text).to eq("ok")
+      expect(html.css(".foo").text).to eq("foo")
+      expect(html.css(".bar").text).to be_empty
     end
 
-    it 'raises NoMethodError when style is not exists' do
-      expect { another_strange_image(product) }.to raise_error(NoMethodError)
-    end
-
-    it 'does not raise errors when helper method called' do
-      expect { foobar_image(product) }.not_to raise_error
-    end
-
-    it 'raises NoMethodError when statement with name equal to style name called' do
-      expect { foobar(product) }.to raise_error(NoMethodError)
+    it "should output flash content except some keys" do
+      flash_messages(ignore_types: [:foo, :bar])
+      html = Nokogiri::HTML(helper.output_buffer)
+      expect(html.css(".notice").text).to eq("ok")
+      expect(html.css(".foo").text).to be_empty
+      expect(html.css(".bar").text).to be_empty
+      expect(helper.output_buffer).to eq("<div class=\"flash notice\">ok</div>")
     end
   end
 
@@ -107,88 +119,50 @@ describe Spree::BaseHelper, type: :helper do
     end
   end
 
-  # Regression test for #2396
+  # Regression test for https://github.com/spree/spree/issues/2396
   context 'meta_data_tags' do
     it 'truncates a product description to 160 characters' do
       # Because the controller_name method returns "test"
       # controller_name is used by this method to infer what it is supposed
       # to be generating meta_data_tags for
-      text = FFaker::Lorem.paragraphs(2).join(' ')
       @test = Spree::Product.new(description: text)
       tags = Nokogiri::HTML.parse(meta_data_tags)
       content = tags.css('meta[name=description]').first['content']
-      assert content.length <= 160, 'content length is not truncated to 160 characters'
+      expect(content.length).to be <= 160
     end
   end
 
-  # Regression test for #5384
+  describe "#pretty_time" do
+    subject { pretty_time(date) }
 
-  context 'pretty_time' do
-    it 'prints in a format' do
-      expect(pretty_time(Time.new(2012, 5, 6, 13, 33))).to eq 'May 06, 2012  1:33 PM'
+    let(:date) { Time.new(2012, 11, 6, 13, 33) }
+
+    it "pretty prints time in long format" do
+      is_expected.to eq "November 06, 2012 1:33 PM"
+    end
+
+    context 'with format set to short' do
+      subject { pretty_time(date, :short) }
+
+      it "pretty prints time in short format" do
+        is_expected.to eq "Nov 6 '12 1:33pm"
+      end
     end
   end
 
-  describe '#display_price' do
-    let!(:product) { create(:product) }
-    let(:current_currency) { 'USD' }
-    let(:current_price_options) { { tax_zone: current_tax_zone } }
+  context "plural_resource_name" do
+    let(:plural_config) { Spree::I18N_GENERIC_PLURAL }
+    let(:base_class) { Spree::Product }
 
-    context 'when there is no current order' do
-      let (:current_tax_zone) { nil }
+    subject { plural_resource_name(base_class) }
 
-      it 'returns the price including default vat' do
-        expect(display_price(product)).to eq('$19.99')
-      end
-
-      context 'with a default VAT' do
-        let(:current_tax_zone) { create(:zone_with_country, default_tax: true) }
-        let!(:tax_rate) do
-          create :tax_rate,
-                 included_in_price: true,
-                 zone: current_tax_zone,
-                 tax_category: product.tax_category,
-                 amount: 0.2
-        end
-
-        it 'returns the price adding the VAT' do
-          expect(display_price(product)).to eq('$19.99')
-        end
-      end
+    it "should use ActiveModel::Naming module to pluralize model names" do
+      expect(subject).to eq base_class.model_name.human(count: plural_config)
     end
 
-    context 'with an order that has a tax zone' do
-      let(:current_tax_zone) { create(:zone_with_country) }
-      let(:current_order) { Spree::Order.new }
-      let(:default_zone) { create(:zone_with_country, default_tax: true) }
-
-      let!(:default_vat) do
-        create :tax_rate,
-               included_in_price: true,
-               zone: default_zone,
-               tax_category: product.tax_category,
-               amount: 0.2
-      end
-
-      context 'that matches no VAT' do
-        it 'returns the price excluding VAT' do
-          expect(display_price(product)).to eq('$16.66')
-        end
-      end
-
-      context 'that matches a VAT' do
-        let!(:other_vat) do
-          create :tax_rate,
-                 included_in_price: true,
-                 zone: current_tax_zone,
-                 tax_category: product.tax_category,
-                 amount: 0.4
-        end
-
-        it 'returns the price adding the VAT' do
-          expect(display_price(product)).to eq('$23.32')
-        end
-      end
+    it "should use the Spree::I18N_GENERIC_PLURAL constant" do
+      expect(base_class.model_name).to receive(:human).with(hash_including(count: plural_config))
+      subject
     end
   end
 end
