@@ -17,7 +17,7 @@ module Spree
     class << self
       attr_accessor :default_formatting_rules
 
-    def parse(amount, currency = Spree::Config[:currency])
+      def parse(amount, currency = Spree::Config[:currency])
         new(parse_to_money(amount, currency))
       end
 
