@@ -1,10 +1,12 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 class FakesController < ApplicationController
   include Spree::Core::ControllerHelpers::StrongParameters
 end
 
-describe Spree::Core::ControllerHelpers::StrongParameters, type: :controller do
+RSpec.describe Spree::Core::ControllerHelpers::StrongParameters, type: :controller do
   controller(FakesController) {}
 
   describe '#permitted_attributes' do
