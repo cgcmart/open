@@ -1,8 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::UserMethods do
+require 'rails_helper'
+
+RSpec.describe Spree::UserMethods do
   let(:test_user) { create :user }
-  let(:current_store) { create :store }
 
   describe '#has_spree_role?' do
     subject { test_user.has_spree_role? name }
@@ -21,14 +22,14 @@ describe Spree::UserMethods do
   end
 
   describe '#last_incomplete_spree_order' do
-    subject { test_user.last_incomplete_spree_order(current_store) }
+    subject { test_user.last_incomplete_spree_order }
 
     context 'with an incomplete order' do
-      let(:last_incomplete_order) { create :order, user: test_user, store: current_store }
+      let(:last_incomplete_order) { create :order, user: test_user }
 
       before do
-        create(:order, user: test_user, created_at: 1.day.ago, store: current_store)
-        create(:order, user: create(:user), store: current_store)
+        create(:order, user: test_user, created_at: 1.day.ago)
+        create(:order, user: create(:user))
         last_incomplete_order
       end
 
@@ -40,40 +41,81 @@ describe Spree::UserMethods do
     end
   end
 
-  context '#check_completed_orders' do
-    let(:possible_promotion) { create(:promotion, advertise: true, starts_at: 1.day.ago) }
-
-    context 'rstrict t delete dependent destroyed' do
-      before do
-        test_user.promotion_rules.create!(promotion: possible_promotion)
-        create(:order, user: test_user, completed_at: Time.current)
-      end
-
-      it 'does not destroy dependent destroy items' do
-        expect { test_user.destroy }.to raise_error(Spree::Core::DestroyWithOrdersError)
-        expect(test_user.promotion_rule_users.any?).to be(true)
+  describe 'deleting user' do
+    context 'with no orders' do
+      it 'fails validation' do
+        test_user.destroy!
+        expect(test_user).to be_destroyed
       end
     end
 
-    context 'allow to destroy dependent destroy' do
-      before do
-        test_user.promotion_rules.create!(promotion: possible_promotion)
-        create(:order, user: test_user, created_at: 1.day.ago)
-        test_user.destroy
-      end
+    context 'with an order' do
+      let!(:order) { create(:order, user: test_user) }
 
-      it 'does not destroy dependent destroy items' do
-        expect(test_user.promotion_rule_users.any?).to be(false)
+      it 'fails validation' do
+        expect {
+          test_user.destroy!
+        }.to raise_error(ActiveRecord::DeleteRestrictionError)
       end
     end
   end
 
-  context 'when user destroyed with approved orders' do
-    let(:order) { create(:order, approver_id: test_user.id, created_at: 1.day.ago) }
+  describe '#available_store_credit_total' do
+    subject do
+      test_user.available_store_credit_total(currency: 'USD')
+    end
 
-    it 'nullifies all approver ids' do
-      expect(test_user).to receive(:nullify_approver_id_in_approved_orders)
-      test_user.destroy
+    context 'when the user does not have any credit' do
+      it { is_expected.to eq(0) }
+    end
+
+    context 'when the user has credits' do
+      let!(:credit_1) { create(:store_credit, user: test_user, amount: 100) }
+      let!(:credit_2) { create(:store_credit, user: test_user, amount: 200) }
+
+      it { is_expected.to eq(100 + 200) }
+
+      context 'when some has been used' do
+        before { credit_1.update_attributes!(amount_used: 35) }
+
+        it { is_expected.to eq(100 + 200 - 35) }
+
+        context 'when some has been authorized' do
+          before { credit_1.update_attributes!(amount_authorized: 10) }
+
+          it { is_expected.to eq(100 + 200 - 35 - 10) }
+        end
+      end
+
+      context 'when some has been authorized' do
+        before { credit_1.update_attributes!(amount_authorized: 10) }
+
+        it { is_expected.to eq(100 + 200 - 10) }
+      end
+
+      context 'with credits of multiple currencies' do
+        let!(:credit_3) { create(:store_credit, user: test_user, amount: 400, currency: 'GBP') }
+
+        it 'separates the currencies' do
+          expect(test_user.available_store_credit_total(currency: 'USD')).to eq(100 + 200)
+          expect(test_user.available_store_credit_total(currency: 'GBP')).to eq(400)
+        end
+      end
+    end
+  end
+
+  describe '#display_available_store_credit_total' do
+    subject do
+      test_user.display_available_store_credit_total(currency: 'USD')
+    end
+
+    context 'without credit' do
+      it { is_expected.to eq(Spree::Money.new(0)) }
+    end
+
+    context 'with credit' do
+      let!(:credit) { create(:store_credit, user: test_user, amount: 100) }
+      it { is_expected.to eq(Spree::Money.new(100)) }
     end
   end
 end
