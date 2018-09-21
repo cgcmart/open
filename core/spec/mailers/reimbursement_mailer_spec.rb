@@ -1,25 +1,14 @@
-require 'spec_helper'
-require 'email_spec'
+# frozen_string_literal: true
 
-describe Spree::ReimbursementMailer, type: :mailer do
-  include EmailSpec::Helpers
-  include EmailSpec::Matchers
+require 'rails_helper'
 
+RSpec.describe Spree::ReimbursementMailer, type: :mailer do
   let(:reimbursement) { create(:reimbursement) }
-
-  context ':from not set explicitly' do
-    it 'falls back to spree config' do
-      message = Spree::ReimbursementMailer.reimbursement_email(reimbursement)
-      expect(message.from).to eq [Spree::Store.current.mail_from_address]
-    end
-  end
 
   it 'accepts a reimbursement id as an alternative to a Reimbursement object' do
     expect(Spree::Reimbursement).to receive(:find).with(reimbursement.id).and_return(reimbursement)
 
-    expect do
-      Spree::ReimbursementMailer.reimbursement_email(reimbursement.id).body
-    end.not_to raise_error
+    Spree::ReimbursementMailer.reimbursement_email(reimbursement.id).body
   end
 
   context 'emails must be translatable' do
@@ -37,14 +26,9 @@ describe Spree::ReimbursementMailer, type: :mailer do
           I18n.enforce_available_locales = true
         end
 
-        it 'localized in HTML template' do
+        specify do
           reimbursement_email = Spree::ReimbursementMailer.reimbursement_email(reimbursement)
-          reimbursement_email.html_part.to include('Caro Cliente,')
-        end
-
-        it 'localized in text template' do
-          reimbursement_email = Spree::ReimbursementMailer.reimbursement_email(reimbursement)
-          reimbursement_email.text_part.to include('Caro Cliente,')
+          expect(reimbursement_email.parts.first.body).to include('Caro Cliente,')
         end
       end
     end
