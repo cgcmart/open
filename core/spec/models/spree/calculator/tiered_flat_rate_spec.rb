@@ -34,7 +34,7 @@ RSpec.describe Spree::Calculator::TieredFlatRate, type: :model do
       end
 
       context 'and the key is a string number' do
-        before { calculator.preferred_tiers = { 20 => 20 } }
+        before { calculator.preferred_tiers = { '20' => 20 } }
         it 'converts successfully' do
           is_expected.to be true
           expect(calculator.preferred_tiers).to eq({ BigDecimal('20') => BigDecimal('20') })
@@ -42,7 +42,7 @@ RSpec.describe Spree::Calculator::TieredFlatRate, type: :model do
       end
 
       context 'and the key is a numeric string with spaces' do
-        before { calculator.preferred_tiers = { 20 => 20 } }
+        before { calculator.preferred_tiers = { ' 20 ' => 20 } }
         it 'converts successfully' do
           is_expected.to be true
           expect(calculator.preferred_tiers).to eq({ BigDecimal('20') => BigDecimal('20') })
@@ -50,7 +50,7 @@ RSpec.describe Spree::Calculator::TieredFlatRate, type: :model do
       end
 
       context 'and the key is a string number with decimals' do
-        before { calculator.preferred_tiers = { 20.5 => 20.5 } }
+        before { calculator.preferred_tiers = { '20.5' => 20.5 } }
         it 'converts successfully' do
           is_expected.to be true
           expect(calculator.preferred_tiers).to eq({ BigDecimal('20.5') => BigDecimal('20.5') })
