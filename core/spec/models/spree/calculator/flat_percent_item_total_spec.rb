@@ -1,13 +1,18 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Calculator::FlatPercentItemTotal, type: :model do
+require 'rails_helper'
+require 'shared_examples/calculator_shared_examples'
+
+RSpec.describe Spree::Calculator::FlatPercentItemTotal, type: :model do
   let(:calculator) { Spree::Calculator::FlatPercentItemTotal.new }
   let(:line_item) { mock_model Spree::LineItem }
+
+  it_behaves_like 'a calculator with a description'
 
   before { allow(calculator).to receive_messages preferred_flat_percent: 10 }
 
   context 'compute' do
-    it 'rounds result correctly' do
+    it 'should round result correctly' do
       allow(line_item).to receive_messages amount: 31.08
       expect(calculator.compute(line_item)).to eq 3.11
 
