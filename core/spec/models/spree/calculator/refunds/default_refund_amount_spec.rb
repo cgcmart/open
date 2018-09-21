@@ -1,33 +1,42 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Calculator::Returns::DefaultRefundAmount, type: :model do
-  subject { calculator.compute(return_item) }
+require 'rails_helper'
+require 'shared_examples/calculator_shared_examples'
 
-  let(:order) { create(:order) }
-  let(:line_item_quantity) { 2 }
+RSpec.describe Spree::Calculator::Returns::DefaultRefundAmount, type: :model do
+  let(:line_item_quantity) { 3 }
   let(:item_price)      { 100.0 }
-  let(:pre_tax_amount)  { line_item_quantity * item_price }
   let(:line_item)       { create(:line_item, price: item_price, quantity: line_item_quantity) }
-  let(:inventory_unit)  { build(:inventory_unit, order: order, line_item: line_item, quantity: 1) }
+  let(:shipment)        { create(:shipment, order: order) }
+  let(:inventory_unit)  { build(:inventory_unit, shipment: shipment, line_item: line_item) }
   let(:return_item)     { build(:return_item, inventory_unit: inventory_unit) }
   let(:calculator)      { Spree::Calculator::Returns::DefaultRefundAmount.new }
+  let(:order)           { line_item.order }
 
-  before { order.line_items << line_item }
+  it_behaves_like 'a calculator with a description'
+
+  subject { calculator.compute(return_item) }
 
   context 'not an exchange' do
     context 'no promotions or taxes' do
-      it { is_expected.to eq pre_tax_amount / line_item_quantity }
+      it { is_expected.to eq line_item_price }
     end
 
     context 'order adjustments' do
       let(:adjustment_amount) { -10.0 }
 
       before do
-        order.adjustments << create(:adjustment, order: order, amount: adjustment_amount, eligible: true, label: 'Adjustment', source_type: 'Spree::Order')
+        order.adjustments << create(:adjustment, adjustable: order, order: order, amount: adjustment_amount, eligible: true, label: 'Adjustment', source_type: 'Spree::Order')
         order.adjustments.first.update_attributes(amount: adjustment_amount)
       end
 
-      it { is_expected.to eq (pre_tax_amount - adjustment_amount.abs) / line_item_quantity }
+      it 'will return the line item amount deducted of refund' do
+        # line_item_price    = 100
+        # line_item_quantity = 3
+        # adjustment_amount  = 10
+        # 100 - (10 / 3)     = 96.66666666666666667
+        expect(subject).to eq BigDecimal('96.66666666666666667')
+      end
     end
 
     context 'shipping adjustments' do
@@ -35,13 +44,18 @@ describe Spree::Calculator::Returns::DefaultRefundAmount, type: :model do
 
       before { order.shipments << Spree::Shipment.new(adjustment_total: adjustment_total) }
 
-      it { is_expected.to eq pre_tax_amount / line_item_quantity }
+      it { is_expected.to eq line_item_price }
     end
   end
 
   context 'an exchange' do
     let(:return_item) { build(:exchange_return_item) }
 
+    it { is_expected.to eq 0.0 }
+  end
+
+  context 'line item amount is zero' do
+    let(:line_item_price) { 0 }
     it { is_expected.to eq 0.0 }
   end
 end
