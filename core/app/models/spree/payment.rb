@@ -36,6 +36,7 @@ module Spree
     validates :source, presence: true, if: :source_required?
     validates :payment_method, presence: true
 
+    delegate :name, to: :payment_method, allow_nil: true, prefix: true
     default_scope -> { order(:created_at) }
 
     scope :from_credit_card, -> { where(source_type: 'Spree::CreditCard') }
