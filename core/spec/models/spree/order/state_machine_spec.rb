@@ -1,14 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Order, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Order, type: :model do
   let(:order) { build(:order) }
-
-  before do
-    # Ensure state machine has been re-defined correctly
-    Spree::Order.define_state_machine!
-    # We don't care about this validation here
-    allow(order).to receive(:require_email)
-  end
 
   context '#next!' do
     context 'when current state is confirm' do
