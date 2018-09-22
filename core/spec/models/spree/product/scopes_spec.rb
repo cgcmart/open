@@ -1,33 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe 'Product scopes', type: :model do
+require 'rails_helper'
+
+RSpec.describe 'Product scopes', type: :model do
   let!(:product) { create(:product) }
-
-  describe '#available' do
-    context 'when discontinued' do
-      let!(:discontinued_product) { create(:product, discontinue_on: Time.current - 1.day) }
-
-      it { expect(Spree::Product.available).not_to include(discontinued_product) }
-    end
-
-    context 'when not discontinued' do
-      let!(:product_2) { create(:product, discontinue_on: Time.current + 1.day) }
-
-      it { expect(Spree::Product.available).to include(product_2) }
-    end
-
-    context 'when available' do
-      let!(:product_2) { create(:product, available_on: Time.current - 1.day) }
-
-      it { expect(Spree::Product.available).to include(product_2) }
-    end
-
-    context 'when not available' do
-      let!(:unavailable_product) { create(:product, available_on: Time.current + 1.day) }
-
-      it { expect(Spree::Product.available).not_to include(unavailable_product) }
-    end
-  end
 
   context 'A product assigned to parent and child taxons' do
     before do
@@ -83,7 +59,6 @@ describe 'Product scopes', type: :model do
 
     context 'with_property' do
       let(:with_property) { Spree::Product.method(:with_property) }
-
       it "finds by a property's name" do
         expect(with_property.call(name).count).to eq(1)
       end
@@ -107,7 +82,6 @@ describe 'Product scopes', type: :model do
 
     context 'with_property_value' do
       let(:with_property_value) { Spree::Product.method(:with_property_value) }
-
       it "finds by a property's name" do
         expect(with_property_value.call(name, value).count).to eq(1)
       end
@@ -142,34 +116,48 @@ describe 'Product scopes', type: :model do
     end
   end
 
-  context '#add_simple_scopes' do
-    let(:simple_scopes) { [:ascend_by_updated_at, :descend_by_name] }
+  describe '#available' do
+    context "a product with past available_on" do
+      let!(:product) { create(:product, available_on: 1.day.ago) }
 
-    before do
-      Spree::Product.add_simple_scopes(simple_scopes)
-    end
+      it "includes the product" do
+        expect(Spree::Product.available).to match_array([product])
+      end
 
-    context 'define scope' do
-      context 'ascend_by_updated_at' do
-        context 'on class' do
-          it { expect(Spree::Product.ascend_by_updated_at.to_sql).to eq Spree::Product.order(Arel.sql("#{Spree::Product.quoted_table_name}.updated_at ASC")).to_sql }
-        end
+      context "with no master price" do
+        before { product.master.prices.delete_all }
 
-        context 'on ActiveRecord::Relation' do
-          it { expect(Spree::Product.limit(2).ascend_by_updated_at.to_sql).to eq Spree::Product.limit(2).order(Arel.sql("#{Spree::Product.quoted_table_name}.updated_at ASC")).to_sql }
-          it { expect(Spree::Product.limit(2).ascend_by_updated_at.to_sql).to eq Spree::Product.ascend_by_updated_at.limit(2).to_sql }
+        it "doesn't include the product" do
+          expect(Spree::Product.available).to match_array([])
         end
       end
 
-      context 'descend_by_name' do
-        context 'on class' do
-          it { expect(Spree::Product.descend_by_name.to_sql).to eq Spree::Product.order(Arel.sql("#{Spree::Product.quoted_table_name}.name DESC")).to_sql }
+      context "with soft-deleted master price" do
+        before { product.master.prices.discard_all }
+
+        it "doesn't include the product" do
+          expect(Spree::Product.available).to match_array([])
+        end
+      end
+
+      context "with multiple prices" do
+        let!(:second_price) { create(:price, variant: product.master) }
+
+        it "includes the product only once" do
+          expect(Spree::Product.available).to match_array([product])
         end
 
-        context 'on ActiveRecord::Relation' do
-          it { expect(Spree::Product.limit(2).descend_by_name.to_sql).to eq Spree::Product.limit(2).order(Arel.sql("#{Spree::Product.quoted_table_name}.name DESC")).to_sql }
-          it { expect(Spree::Product.limit(2).descend_by_name.to_sql).to eq Spree::Product.descend_by_name.limit(2).to_sql }
+        it "has a count of 1" do
+          expect(Spree::Product.available.count).to eq(1)
         end
+      end
+    end
+
+    context "a product with future available_on" do
+      let!(:product) { create(:product, available_on: 1.day.from_now) }
+
+      it "doesn't include the product" do
+        expect(Spree::Product.available).to match_array([])
       end
     end
   end
