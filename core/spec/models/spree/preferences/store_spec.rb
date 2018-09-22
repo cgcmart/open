@@ -1,7 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Preferences::Store, type: :model do
-  before do
+require 'rails_helper'
+
+RSpec.describe Spree::Preferences::Store, type: :model do
+  before(:each) do
     @store = Spree::Preferences::StoreInstance.new
   end
 
@@ -26,20 +28,13 @@ describe Spree::Preferences::Store, type: :model do
     expect(Rails.cache.read(:test)).to eq '123'
   end
 
-  it 'returns and cache fallback value when supplied' do
+  it 'should return and cache fallback value when supplied' do
     Rails.cache.clear
     expect(@store.get(:test) { false }).to be false
     expect(Rails.cache.read(:test)).to be false
   end
 
-  it 'returns but not cache fallback value when persistence is disabled' do
-    Rails.cache.clear
-    allow(@store).to receive_messages(should_persist?: false)
-    expect(@store.get(:test) { true }).to be true
-    expect(Rails.cache.exist?(:test)).to be false
-  end
-
-  it "returns nil when key can't be found and fallback value is not supplied" do
+  it "should return nil when key can't be found and fallback value is not supplied" do
     expect(@store.get(:random_key) { nil }).to be_nil
   end
 end
