@@ -1,12 +1,14 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Promotion::Rules::UserLoggedIn, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Promotion::Rules::UserLoggedIn, type: :model do
   let(:rule) { Spree::Promotion::Rules::UserLoggedIn.new }
 
   context '#eligible?(order)' do
     let(:order) { Spree::Order.new }
 
-    it 'is eligible if order has an associated user' do
+    it 'should be eligible if order has an associated user' do
       user = double('User')
       allow(order).to receive_messages(user: user)
 
