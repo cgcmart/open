@@ -1,9 +1,11 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe Spree::Order, type: :model do
+  RSpec.describe Spree::Order, type: :model do
     context 'validations' do
-      # Regression test for #2214
+      # Regression test for https://github.com/spree/spree/issues/2214
       it 'does not return two error messages when email is blank' do
         order = Spree::Order.new
         allow(order).to receive_messages(require_email: true)
