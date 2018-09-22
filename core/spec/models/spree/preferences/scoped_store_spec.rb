@@ -1,22 +1,22 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Preferences::ScopedStore, type: :model do
-  subject { scoped_store }
+require 'rails_helper'
 
+RSpec.describe Spree::Preferences::ScopedStore, type: :model do
   let(:scoped_store) { described_class.new(prefix, suffix) }
-
+  subject { scoped_store }
   let(:prefix) { nil }
   let(:suffix) { nil }
 
   describe '#store' do
     subject { scoped_store.store }
-
-    it { is_expected.to be Spree::Preferences::Store.instance }
+    it "uses the global preferences instance" do
+      is_expected.to be Spree::Preferences::Store.instance
+    end
   end
 
   context 'stubbed store' do
     let(:store) { double(:store) }
-
     before do
       allow(scoped_store).to receive(:store).and_return(store)
     end
