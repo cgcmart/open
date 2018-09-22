@@ -1,8 +1,10 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
   module PromotionHandler
-    describe Page, type: :model do
+    RSpec.describe Page, type: :model do
       let(:order) { create(:order_with_line_items, line_items_count: 1) }
 
       let(:promotion) { Promotion.create(name: '10% off', path: '10off') }
