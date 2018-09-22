@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Preferences::Configuration, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Preferences::Configuration, type: :model do
   before :all do
     class AppConfig < Spree::Preferences::Configuration
       preference :color, :string, default: :blue
