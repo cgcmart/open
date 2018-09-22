@@ -1,39 +1,38 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Promotion::Rules::Taxon, type: :model do
-  let(:rule) { subject }
+require 'rails_helper'
+
+RSpec.describe Spree::Promotion::Rules::Taxon, type: :model do
+  let(:taxon) { create :taxon, name: 'first' }
+  let(:taxon2) { create :taxon, name: 'second' }
+  let(:order) { create :order_with_line_items }
+  let(:product) { order.products.first }
+
+  let(:rule) { Spree::Promotion::Rules::Taxon.create!(promotion: create(:promotion)) }
 
   context '#elegible?(order)' do
-    let(:taxon) { create :taxon, name: 'first' }
-    let(:taxon2) { create :taxon, name: 'second' }
-    let(:order) { create :order_with_line_items }
-
-    before do
-      rule.save
-    end
-
     context 'with any match policy' do
       before do
-        rule.preferred_match_policy = 'any'
+        rule.update!(preferred_match_policy: 'any')
       end
 
-      it 'is eligible if order does has any prefered taxon' do
-        order.products.first.taxons << taxon
+      it 'is eligible if order does have any prefered taxon' do
+        product.taxons << taxon
         rule.taxons << taxon
         expect(rule).to be_eligible(order)
       end
 
       context 'when order contains items from different taxons' do
         before do
-          order.products.first.taxons << taxon
+          product.taxons << taxon
           rule.taxons << taxon
         end
 
-        it 'acts on a product within the eligible taxon' do
+        it 'should act on a product within the eligible taxon' do
           expect(rule).to be_actionable(order.line_items.last)
         end
 
-        it 'does not act on a product in another taxon' do
+        it 'should not act on a product in another taxon' do
           order.line_items << create(:line_item, product: create(:product, taxons: [taxon2]))
           expect(rule).not_to be_actionable(order.line_items.last)
         end
@@ -52,8 +51,8 @@ describe Spree::Promotion::Rules::Taxon, type: :model do
       context 'when a product has a taxon child of a taxon rule' do
         before do
           taxon.children << taxon2
-          order.products.first.taxons << taxon2
-          rule.taxons << taxon2
+          products.taxons << taxon2
+          rule.taxons << taxon
         end
 
         it { expect(rule).to be_eligible(order) }
@@ -62,11 +61,11 @@ describe Spree::Promotion::Rules::Taxon, type: :model do
 
     context 'with all match policy' do
       before do
-        rule.preferred_match_policy = 'all'
+        rule.update!(preferred_match_policy: 'all')
       end
 
       it 'is eligible order has all prefered taxons' do
-        order.products.first.taxons << taxon2
+        products.taxons << taxon2
         order.products.last.taxons << taxon
 
         rule.taxons = [taxon, taxon2]
@@ -89,13 +88,84 @@ describe Spree::Promotion::Rules::Taxon, type: :model do
 
         before do
           taxon.children << taxon2
-          order.products.first.taxons << taxon2
-          order.products.last.taxons << taxon3
-          rule.taxons << taxon2
-          rule.taxons << taxon3
+          taxon.save!
+          product.taxons = [taxon2, taxon3]
+          rule.taxons = [taxon, taxon3]
         end
 
         it { expect(rule).to be_eligible(order) }
+      end
+    end
+
+    context 'with none match policy' do
+      before do
+        rule.preferred_match_policy = 'none'
+      end
+
+      context "none of the order's products are in listed taxon" do
+        before { rule.taxons << taxon2 }
+        it { expect(rule).to be_eligible(order) }
+      end
+
+      context "one of the order's products is in a listed taxon" do
+        before do
+          order.products.first.taxons << taxon
+          rule.taxons << taxon
+        end
+        it "should not be eligible" do
+          expect(rule).not_to be_eligible(order)
+        end
+        it "sets an error message" do
+          rule.eligible?(order)
+          expect(rule.eligibility_errors.full_messages.first).
+            to eq "Your cart contains a product from an excluded category that prevents this coupon code from being applied."
+        end
+      end
+    end
+
+    context 'with an invalid match policy' do
+      before do
+        order.products.first.taxons << taxon
+        rule.taxons << taxon
+        rule.preferred_match_policy = 'invalid'
+        rule.save!(validate: false)
+      end
+
+      it 'logs a warning and uses "any" policy' do
+        expect(Spree::Deprecation).to(
+          receive(:warn).
+          with(/has unexpected match policy "invalid"/)
+        )
+
+        expect(
+          rule.eligible?(order)
+        ).to be_truthy
+      end
+    end
+  end
+
+  describe '#actionable?' do
+    let(:line_item) { order.line_items.first! }
+    let(:order) { create :order_with_line_items }
+    let(:taxon) { create :taxon, name: 'first' }
+
+    before do
+      rule.preferred_match_policy = 'invalid'
+      rule.save!(validate: false)
+      line_item.product.taxons << taxon
+      rule.taxons << taxon
+    end
+
+    context 'with an invalid match policy' do
+      it 'logs a warning and uses "any" policy' do
+        expect(Spree::Deprecation).to(
+          receive(:warn).
+          with(/has unexpected match policy "invalid"/)
+        )
+
+        expect(
+          rule.actionable?(line_item)
+        ).to be_truthy
       end
     end
   end
