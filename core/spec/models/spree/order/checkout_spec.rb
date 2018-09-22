@@ -5,7 +5,7 @@ require 'spree/testing_support/order_walkthrough'
 
 RSpec.describe Spree::Order, type: :model do
   let!(:store) { create(:store) }
-let(:order) { Spree::Order.new(store: store) }
+  let(:order) { Spree::Order.new(store: store) }
 
   def assert_state_changed(order, from, to)
     state_change_exists = order.state_changes.where(previous_state: from, next_state: to).exists?
@@ -69,7 +69,7 @@ let(:order) { Spree::Order.new(store: store) }
         end
 
         specify do
-          expect(order.checkout_steps).to eq(%w(address delivery payment complete))
+          expect(order.checkout_steps).to eq(%w(address delivery payment confirm complete))
         end
       end
 
@@ -136,8 +136,8 @@ let(:order) { Spree::Order.new(store: store) }
             end
           end
 
-          it_behaves_like 'it cloned the default address' do
-            let(:address_kind) { 'ship' }
+          it_behaves_like "it references the user's the default address" do
+            let(:address_kind) { :ship }
             before do
               order.user = FactoryBot.create(:user)
               order.user.default_address = default_address
@@ -160,7 +160,7 @@ let(:order) { Spree::Order.new(store: store) }
 
       it 'cannot transition to address without any line items' do
         expect(order.line_items).to be_blank
-        expect { order.next! }.to raise_error(StateMachines::InvalidTransition, /#{t('spree.there_are_no_items_for_this_order')}/)
+        expect { order.next! }.to raise_error(StateMachines::InvalidTransition, /#{I18n.t('spree.there_are_no_items_for_this_order')}/)
       end
     end
 
@@ -229,8 +229,9 @@ let(:order) { Spree::Order.new(store: store) }
         expect(order.user).not_to receive(:persist_order_address)
         order.next!
       end
+    end
 
-      context "to delivery" do
+    context "to delivery" do
       let(:ship_address) { FactoryBot.create(:ship_address) }
 
       before do
@@ -243,7 +244,7 @@ let(:order) { Spree::Order.new(store: store) }
         let(:shipping_rate) {
           [
           Spree::ShippingRate.create!(shipping_method: shipping_method, cost: 10.00, shipment: shipment)
-        ]
+          ]
         }
 
         before do
@@ -310,7 +311,7 @@ let(:order) { Spree::Order.new(store: store) }
 
         it 'transitions to complete' do
           order.next!
-          expect(order.state).to eq('complete')
+          expect(order.state).to eq('confirm')
         end
       end
 
@@ -615,6 +616,10 @@ let(:order) { Spree::Order.new(store: store) }
 
     after do
       Spree::Order.checkout_flow(&@old_checkout_flow)
+    end
+
+    it 'should not keep old event transitions when checkout_flow is redefined' do
+      expect(Spree::Order.next_event_transitions).to eq([{ cart: :payment }, { payment: :complete }])
     end
 
     it 'should not keep old events when checkout_flow is redefined' do
