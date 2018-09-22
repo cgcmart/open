@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'API V2 Storefront Cart Spec', type: :request do
@@ -15,7 +17,25 @@ describe 'API V2 Storefront Cart Spec', type: :request do
       expect(json_response['data']).to have_attribute(:number).with_value(order.number)
       expect(json_response['data']).to have_attribute(:state).with_value('cart')
       expect(json_response['data']).to have_attribute(:token).with_value(order.token)
-      expect(json_response['data']).to have_relationships(:user, :line_items, :variants)
+      expect(json_response['data']).to have_attribute(:total).with_value(order.total.to_s)
+      expect(json_response['data']).to have_attribute(:item_total).with_value(order.item_total.to_s)
+      expect(json_response['data']).to have_attribute(:ship_total).with_value(order.ship_total.to_s)
+      expect(json_response['data']).to have_attribute(:adjustment_total).with_value(order.adjustment_total.to_s)
+      expect(json_response['data']).to have_attribute(:included_tax_total).with_value(order.included_tax_total.to_s)
+      expect(json_response['data']).to have_attribute(:additional_tax_total).with_value(order.additional_tax_total.to_s)
+      expect(json_response['data']).to have_attribute(:display_additional_tax_total).with_value(order.display_additional_tax_total.to_s)
+      expect(json_response['data']).to have_attribute(:display_included_tax_total).with_value(order.display_included_tax_total.to_s)
+      expect(json_response['data']).to have_attribute(:tax_total).with_value(order.tax_total.to_s)
+      expect(json_response['data']).to have_attribute(:currency).with_value(order.currency.to_s)
+      expect(json_response['data']).to have_attribute(:email).with_value(order.email)
+      expect(json_response['data']).to have_attribute(:display_item_total).with_value(order.display_item_total.to_s)
+      expect(json_response['data']).to have_attribute(:display_ship_total).with_value(order.display_ship_total.to_s)
+      expect(json_response['data']).to have_attribute(:display_adjustment_total).with_value(order.display_adjustment_total.to_s)
+      expect(json_response['data']).to have_attribute(:display_tax_total).with_value(order.display_tax_total.to_s)
+      expect(json_response['data']).to have_attribute(:item_count).with_value(order.item_count)
+      expect(json_response['data']).to have_attribute(:special_instructions).with_value(order.special_instructions)
+      expect(json_response['data']).to have_attribute(:display_total).with_value(order.display_total.to_s)
+      expect(json_response['data']).to have_relationships(:user, :line_items, :variants, :billing_address, :shipping_address, :payments)
     end
   end
 
@@ -96,7 +116,6 @@ describe 'API V2 Storefront Cart Spec', type: :request do
         post '/api/v2/storefront/cart/add_item', params: { variant_id: variant.id, quantity: 5 }, headers: headers
 
         expect(response.status).to eq(200)
-
         expect(order.line_items.count).to eq(1)
         expect(order.line_items.first.variant).to eq(variant)
         expect(order.line_items.first.quantity).to eq(5)
