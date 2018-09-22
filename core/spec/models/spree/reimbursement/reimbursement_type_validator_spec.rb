@@ -1,7 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe Reimbursement::ReimbursementTypeValidator, type: :model do
+  RSpec.describe Reimbursement::ReimbursementTypeValidator, type: :model do
     class DummyClass
       include Spree::Reimbursement::ReimbursementTypeValidator
 
