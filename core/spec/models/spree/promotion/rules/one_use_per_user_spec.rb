@@ -1,11 +1,12 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Promotion::Rules::OneUsePerUser, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Promotion::Rules::OneUsePerUser, type: :model do
   let(:rule) { described_class.new }
 
   describe '#eligible?(order)' do
     subject { rule.eligible?(order) }
-
     let(:order) { double Spree::Order, user: user }
     let(:user) { double Spree::LegacyUser }
     let(:promotion) { stub_model Spree::Promotion, used_by?: used_by }
@@ -32,7 +33,6 @@ describe Spree::Promotion::Rules::OneUsePerUser, type: :model do
 
     context 'when the order is not assigned to a user' do
       let(:user) { nil }
-
       it { is_expected.to be false }
       it 'sets an error message' do
         subject
