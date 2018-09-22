@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Preferences::Preferable, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Preferences::Preferable, type: :model do
   before :all do
     class A
       include Spree::Preferences::Preferable
@@ -24,14 +26,7 @@ describe Spree::Preferences::Preferable, type: :model do
 
   before do
     @a = A.new
-    allow(@a).to receive_messages(persisted?: true)
     @b = B.new
-    allow(@b).to receive_messages(persisted?: true)
-
-    # ensure we're persisting as that is the default
-    #
-    store = Spree::Preferences::Store.instance
-    store.persistence = true
   end
 
   describe 'preference definitions' do
@@ -106,8 +101,52 @@ describe Spree::Preferences::Preferable, type: :model do
     end
 
     it 'builds a hash of preference defaults' do
-      expect(@b.default_preferences).to eq(flavor: nil,
-                                           color: 'green')
+      expect(@b.default_preferences).to eq({ flavor: nil,
+                                           color: 'green' })
+    end
+
+    describe '#admin_form_preference_names' do
+      subject do
+        ComplexPreferableClass.new.admin_form_preference_names
+      end
+
+      before do
+        class ComplexPreferableClass
+          include Spree::Preferences::Preferable
+          preference :name, :string
+          preference :password, :password
+          preference :mapping, :hash
+          preference :recipients, :array
+        end
+      end
+
+      it "returns an array of preference names excluding preferences not presentable as form field" do
+        is_expected.to contain_exactly(:name, :password)
+      end
+
+      context 'with overwritten allowed_admin_form_preference_types class method' do
+        subject do
+          ComplexOverwrittenPreferableClass.new.admin_form_preference_names
+        end
+
+        before do
+          class ComplexOverwrittenPreferableClass
+            include Spree::Preferences::Preferable
+            preference :name, :string
+            preference :password, :password
+            preference :mapping, :hash
+            preference :recipients, :array
+
+            def self.allowed_admin_form_preference_types
+              %i(string password hash array)
+            end
+          end
+        end
+
+        it 'returns these types instead' do
+          is_expected.to contain_exactly(:name, :password, :mapping, :recipients)
+        end
+      end
     end
 
     context 'converts integer preferences to integer values' do
@@ -182,17 +221,7 @@ describe Spree::Preferences::Preferable, type: :model do
 
       it 'with arrays' do
         @a.set_preference(:is_array, [])
-        expect(@a.preferences[:is_array]).to be_is_a(Array)
-      end
-
-      it 'with string' do
-        @a.set_preference(:is_array, 'string')
-        expect(@a.preferences[:is_array]).to be_is_a(Array)
-      end
-
-      it 'with hash' do
-        @a.set_preference(:is_array, {})
-        expect(@a.preferences[:is_array]).to be_is_a(Array)
+        expect(@a.preferences[:is_array]).to eq []
       end
     end
 
@@ -208,37 +237,7 @@ describe Spree::Preferences::Preferable, type: :model do
 
       it 'with hash and keys are integers' do
         @a.set_preference(:is_hash, 1 => 2, 3 => 4)
-        expect(@a.preferences[:is_hash]).to eql(1 => 2, 3 => 4)
-      end
-
-      it 'with string' do
-        @a.set_preference(:is_hash, '{"0"=>{"answer"=>"1", "value"=>"No"}}')
-        expect(@a.preferences[:is_hash]).to be_is_a(Hash)
-      end
-
-      it 'with boolean' do
-        @a.set_preference(:is_hash, false)
-        expect(@a.preferences[:is_hash]).to be_is_a(Hash)
-        @a.set_preference(:is_hash, true)
-        expect(@a.preferences[:is_hash]).to be_is_a(Hash)
-      end
-
-      it 'with simple array' do
-        @a.set_preference(:is_hash, ['key', 'value', 'another key', 'another value'])
-        expect(@a.preferences[:is_hash]).to be_is_a(Hash)
-        expect(@a.preferences[:is_hash]['key']).to eq('value')
-        expect(@a.preferences[:is_hash]['another key']).to eq('another value')
-      end
-
-      it 'with a nested array' do
-        @a.set_preference(:is_hash, [['key', 'value'], ['another key', 'another value']])
-        expect(@a.preferences[:is_hash]).to be_is_a(Hash)
-        expect(@a.preferences[:is_hash]['key']).to eq('value')
-        expect(@a.preferences[:is_hash]['another key']).to eq('another value')
-      end
-
-      it 'with single array' do
-        expect { @a.set_preference(:is_hash, ['key']) }.to raise_error(ArgumentError)
+        expect(@a.preferences[:is_hash]).to eql({ 1 => 2, 3 => 4 })
       end
     end
 
@@ -257,14 +256,14 @@ describe Spree::Preferences::Preferable, type: :model do
       it 'with hash' do
         expect(@a.preferences[:product_attributes]).to eq({})
         @a.set_preference(:product_attributes, id: 1, name: 2)
-        expect(@a.preferences[:product_attributes]).to eq(id: 1, name: 2)
+        expect(@a.preferences[:product_attributes]).to eq({ id: 1, name: 2 })
       end
     end
   end
 
   describe 'persisted preferables' do
     before(:all) do
-      class CreatePrefTest < ActiveRecord::Migration[4.2]
+      class CreatePrefTest < ActiveRecord::Migration[5.2]
         def self.up
           create_table :pref_tests do |t|
             t.string :col
@@ -277,8 +276,8 @@ describe Spree::Preferences::Preferable, type: :model do
         end
       end
 
-      @migration_verbosity = ActiveRecord::Migration.verbose
-      ActiveRecord::Migration.verbose = false
+      @migration_verbosity = ActiveRecord::Migration[5.2].verbose
+      ActiveRecord::Migration[5.2].verbose = false
       CreatePrefTest.migrate(:up)
 
       class PrefTest < Spree::Base
@@ -289,12 +288,10 @@ describe Spree::Preferences::Preferable, type: :model do
 
     after(:all) do
       CreatePrefTest.migrate(:down)
-      ActiveRecord::Migration.verbose = @migration_verbosity
+      ActiveRecord::Migration[5.2].verbose = @migration_verbosity
     end
 
-    before do
-      # load PrefTest table
-      PrefTest.first
+    before(:each) do
       @pt = PrefTest.create
     end
 
@@ -314,13 +311,6 @@ describe Spree::Preferences::Preferable, type: :model do
         pr.save!
         expect(pr.get_preference(:pref_test_any)).to eq([1, 2])
       end
-    end
-
-    it 'clear preferences' do
-      @pt.set_preference(:pref_test_pref, 'xyz')
-      expect(@pt.preferred_pref_test_pref).to eq('xyz')
-      @pt.clear_preferences
-      expect(@pt.preferred_pref_test_pref).to eq('abc')
     end
 
     it 'clear preferences when record is deleted' do
