@@ -1,10 +1,10 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe Reimbursement::ReimbursementTypeEngine, type: :model do
+  RSpec.describe Reimbursement::ReimbursementTypeEngine, type: :model do
     describe '#calculate_reimbursement_types' do
-      subject { reimbursement_type_engine.calculate_reimbursement_types }
-
       let(:return_item)   { create(:return_item) }
       let(:return_items)  { [return_item] }
       let(:reimbursement_type_engine) { Spree::Reimbursement::ReimbursementTypeEngine.new(return_items) }
@@ -22,9 +22,13 @@ module Spree
         ]
       end
 
+      subject { reimbursement_type_engine.calculate_reimbursement_types }
+
       shared_examples_for 'reimbursement type hash' do
         it 'contain all keys that respond to reimburse' do
-          expect(calculated_reimbursement_types.keys).to all(respond_to(:reimburse))
+          calculated_reimbursement_types.keys.each do |r_type|
+            expect(r_type).to respond_to :reimburse
+          end
         end
       end
 
@@ -47,7 +51,7 @@ module Spree
           end
         end
 
-        it_behaves_like 'reimbursement type hash'
+        it_should_behaves_like 'reimbursement type hash'
       end
 
       context 'the return item does not require exchange' do
@@ -64,7 +68,7 @@ module Spree
             end
           end
 
-          it_behaves_like 'reimbursement type hash'
+          it_should_behaves_like 'reimbursement type hash'
         end
 
         context 'the return item does not have an override reimbursement type' do
@@ -84,7 +88,7 @@ module Spree
                 end
               end
 
-              it_behaves_like 'reimbursement type hash'
+              it_should_behaves_like 'reimbursement type hash'
             end
 
             context 'the reimbursement type is valid for the return item' do
@@ -98,7 +102,7 @@ module Spree
                 end
               end
 
-              it_behaves_like 'reimbursement type hash'
+              it_should_behaves_like 'reimbursement type hash'
             end
           end
 
@@ -116,7 +120,7 @@ module Spree
                 end
               end
 
-              it_behaves_like 'reimbursement type hash'
+              it_should_behaves_like 'reimbursement type hash'
             end
 
             context 'the return item is within the time constraint' do
@@ -130,7 +134,7 @@ module Spree
                 end
               end
 
-              it_behaves_like 'reimbursement type hash'
+              it_should_behaves_like 'reimbursement type hash'
             end
           end
         end
