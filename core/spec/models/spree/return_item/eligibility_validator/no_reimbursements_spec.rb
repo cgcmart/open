@@ -1,7 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::ReturnItem::EligibilityValidator::NoReimbursements do
-  let(:validator) { described_class.new(return_item) }
+require 'rails_helper'
+
+RSpec.describe Spree::ReturnItem::EligibilityValidator::NoReimbursements do
+  let(:validator) { Spree::ReturnItem::EligibilityValidator::NoReimbursements.new(return_item) }
 
   describe '#eligible_for_return?' do
     subject { validator.eligible_for_return? }
@@ -16,7 +18,31 @@ describe Spree::ReturnItem::EligibilityValidator::NoReimbursements do
 
       it 'sets an error' do
         subject
-        expect(validator.errors[:inventory_unit_reimbursed]).to eq Spree.t('return_item_inventory_unit_reimbursed')
+        expect(validator.errors[:inventory_unit_reimbursed]).to eq I18n.t('spree.return_item_inventory_unit_reimbursed')
+      end
+
+      context "but the return item has been expired" do
+        before { return_item.expired }
+
+        it "returns true" do
+          expect(subject).to eq true
+        end
+      end
+
+      context "but the return item has been canceled" do
+        before { return_item.cancel }
+
+        it "returns true" do
+          expect(subject).to eq true
+        end
+      end
+
+      context "but the return item has been unexchanged" do
+        before { return_item.unexchange }
+
+        it "returns true" do
+          expect(subject).to eq true
+        end
       end
     end
 
