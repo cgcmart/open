@@ -45,7 +45,7 @@ RSpec.describe Spree::Ability, type: :model do
       expect(Spree::Ability.new(user).abilities).not_to be_empty
     end
 
-    it 'should applie the registered abilities permissions' do
+    it 'should apply the registered abilities permissions' do
       Spree::Ability.register_ability(FooAbility)
       expect(Spree::Ability.new(user).can?(:update, mock_model(Spree::Order, user: nil, id: 1))).to be true
     end
