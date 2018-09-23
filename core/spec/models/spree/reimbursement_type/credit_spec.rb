@@ -1,9 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe ReimbursementType::Credit, type: :model do
-    subject { Spree::ReimbursementType::Credit.reimburse(reimbursement, [return_item], simulate) }
-
+  RSpec.describe ReimbursementType::Credit, type: :model do
     let(:reimbursement)           { create(:reimbursement, return_items_count: 1) }
     let(:return_item)             { reimbursement.return_items.first }
     let(:payment)                 { reimbursement.order.payments.first }
@@ -16,9 +16,11 @@ module Spree
       self.table_name = 'spree_payments' # Your creditable class should not use this table
     end
 
+    subject { Spree::ReimbursementType::Credit.reimburse(reimbursement, [return_item], simulate) }
+
     before do
       reimbursement.update!(total: reimbursement.calculated_total)
-      allow(Spree::StoreCredit).to receive(:new).and_return(creditable)
+      allow(Spree::ReimbursementType::Credit).to receive(:create_creditable).and_return(creditable)
     end
 
     describe '.reimburse' do
