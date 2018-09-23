@@ -1,8 +1,10 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Country, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Country, type: :model do
   let(:america) { create :country }
-  let(:canada)  { create :country, name: 'Canada', iso_name: 'CANADA', numcode: '124' }
+  let(:canada) { create :country, name: 'Canada', iso_name: 'CANADA', numcode: '124' }
 
   describe '.default' do
     context 'when default_country_id config is set' do
@@ -43,6 +45,22 @@ describe Spree::Country, type: :model do
 
     context 'will destroy if it is not a default' do
       it { expect(canada.destroy).to be_truthy }
+    end
+  end
+
+  describe '#prices' do
+    let(:country) { create(:country) }
+    subject { country.prices }
+
+    it { is_expected.to be_a(ActiveRecord::Associations::CollectionProxy) }
+
+    context "if the country has associated prices" do
+      let!(:price_one) { create(:price) }
+      let!(:price_two) { create(:price) }
+      let!(:price_three) { create(:price) }
+      let(:country) { create(:country, prices: [price_one, price_two]) }
+
+      it { is_expected.to contain_exactly(price_one, price_two) }
     end
   end
 end
