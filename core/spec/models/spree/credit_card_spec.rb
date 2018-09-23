@@ -104,8 +104,16 @@ RSpec.describe Spree::CreditCard, type: :model do
       expect(persisted_card.number).to be_blank
     end
 
-    it 'does not actually store the security code' do
+    it 'should not actually store the security code' do
       expect(persisted_card.verification_value).to be_blank
+    end
+
+    it 'should save and update addresses through nested attributes' do
+      persisted_card.update_attributes({ address_attributes: valid_address_attributes })
+      persisted_card.save!
+      updated_attributes = { id: persisted_card.address.id, address1: '123 Main St.' }
+      persisted_card.update_attributes({ address_attributes: updated_attributes })
+      expect(persisted_card.address.address1).to eq '123 Main St.'
     end
   end
 
@@ -160,10 +168,16 @@ RSpec.describe Spree::CreditCard, type: :model do
       expect(credit_card.year).to eq(2018)
     end
 
-    it 'can set with a 2-digit month and 4-digit year without whitespace' do
+    it 'can set with a 2-digit month and 2-digit year without whitespace' do
       credit_card.expiry = '07/18'
       expect(credit_card.month).to eq(7)
       expect(credit_card.year).to eq(2018)
+    end
+
+    it "can set with a 2-digit month and 4-digit year without whitespace" do
+      credit_card.expiry = '07/2018'
+      expect(credit_card.month).to eq('7')
+      expect(credit_card.year).to eq('2018')
     end
 
     it 'can set with a 2-digit month and 4-digit year without whitespace and slash' do
@@ -258,6 +272,102 @@ RSpec.describe Spree::CreditCard, type: :model do
       expect(am_card.first_name).to eq('Ludwig')
       expect(am_card.last_name).to eq('van Beethoven')
       expect(am_card.verification_value).to eq(123)
+    end
+  end
+  
+  # TODO: Remove these specs once default is removed
+  describe 'default' do
+    def default_with_silence(card)
+      Spree::Deprecation.silence { card.default }
+    end
+
+    context 'with a user' do
+      let(:user) { create(:user) }
+      let(:credit_card) { create(:credit_card, user: user) }
+
+      it 'uses the wallet information' do
+        wallet_payment_source = user.wallet.add(credit_card)
+        user.wallet.default_wallet_payment_source = wallet_payment_source
+
+        expect(default_with_silence(credit_card)).to be_truthy
+      end
+    end
+
+    context 'without a user' do
+      let(:credit_card) { create(:credit_card) }
+
+      it 'returns false' do
+        expect(default_with_silence(credit_card)).to eq(false)
+      end
+    end
+  end
+
+  # TODO: Remove these specs once default= is removed
+  describe 'default=' do
+    def default_with_silence(card)
+      Spree::Deprecation.silence { card.default }
+    end
+
+    context 'with a user' do
+      let(:user) { create(:user) }
+      let(:credit_card) { create(:credit_card, user: user) }
+
+      it 'updates the wallet information' do
+        Spree::Deprecation.silence do
+          credit_card.default = true
+        end
+        expect(user.wallet.default_wallet_payment_source.payment_source).to eq(credit_card)
+      end
+    end
+
+    context 'with multiple cards for one user' do
+      let(:user) { create(:user) }
+      let(:first_card) { create(:credit_card, user: user) }
+      let(:second_card) { create(:credit_card, user: user) }
+
+      it 'ensures only one default' do
+        Spree::Deprecation.silence do
+          first_card.default = true
+          second_card.default = true
+        end
+
+        expect(default_with_silence(first_card)).to be_falsey
+        expect(default_with_silence(second_card)).to be_truthy
+
+        Spree::Deprecation.silence do
+          first_card.default = true
+        end
+
+        expect(default_with_silence(first_card)).to be_truthy
+        expect(default_with_silence(second_card)).to be_falsey
+      end
+    end
+
+    context 'with multiple cards for different users' do
+      let(:first_card) { create(:credit_card, user: create(:user)) }
+      let(:second_card) { create(:credit_card, user: create(:user)) }
+
+      it 'allows multiple defaults' do
+        Spree::Deprecation.silence do
+          first_card.default = true
+          second_card.default = true
+        end
+
+        expect(default_with_silence(first_card)).to be_truthy
+        expect(default_with_silence(second_card)).to be_truthy
+      end
+    end
+
+    context 'without a user' do
+      let(:credit_card) { create(:credit_card) }
+
+      it 'raises' do
+        expect {
+          Spree::Deprecation.silence do
+            credit_card.default = true
+          end
+        }.to raise_error("Cannot set 'default' on a credit card without a user")
+      end
     end
   end
 end
