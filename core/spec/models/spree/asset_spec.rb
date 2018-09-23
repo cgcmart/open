@@ -1,21 +1,20 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Asset, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Asset, type: :model do
   describe '#viewable' do
     it 'touches association' do
-      Timecop.scale(3600) do
-        product = create(:custom_product)
-        asset   = Spree::Asset.create! { |a| a.viewable = product.master }
+      product = build(:custom_product)
 
-        expect do
-          asset.touch
-        end.to change { product.reload.updated_at }
-      end
+      expect do
+        Spree::Asset.create! { |a| a.viewable = product.master }
+      end.to change { product.updated_at }
     end
   end
 
   describe '#acts_as_list scope' do
-    it 'starts from first position for different viewables' do
+    it 'should start from first position for different viewables' do
       asset1 = Spree::Asset.create(viewable_type: 'Spree::Image', viewable_id: 1)
       asset2 = Spree::Asset.create(viewable_type: 'Spree::LineItem', viewable_id: 1)
 
