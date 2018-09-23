@@ -1,55 +1,29 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::CustomerReturn, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::CustomerReturn, type: :model do
   before do
     allow_any_instance_of(Spree::Order).to receive_messages(return!: true)
   end
 
   describe '.validation' do
-    describe '#must_have_return_authorization' do
-      subject { customer_return.valid? }
-
+    describe '#return_items_belong_to_same_order' do
       let(:customer_return) { build(:customer_return) }
 
-      let(:inventory_unit)  { build(:inventory_unit) }
-      let(:return_item)     { build(:return_item, inventory_unit: inventory_unit) }
+      let(:first_order) { create(:order_with_line_items) }
+      let(:second_order) { first_order }
 
-      before do
-        customer_return.return_items << return_item
-      end
+      let(:first_shipment) { first_order.shipments.first }
+      let(:second_shipment) { second_order.shipments.first }
 
-      context 'return item does not belong to return authorization' do
-        before do
-          return_item.return_authorization = nil
-        end
-
-        it 'is not valid' do
-          expect(subject).to eq false
-        end
-
-        it 'adds an error message' do
-          subject
-          expect(customer_return.errors.full_messages).to include(Spree.t(:missing_return_authorization, item_name: inventory_unit.variant.name))
-        end
-      end
-
-      context 'return item belongs to return authorization' do
-        it 'is valid' do
-          expect(subject).to eq true
-        end
-      end
-    end
-
-    describe '#return_items_belong_to_same_order' do
-      subject { customer_return.valid? }
-
-      let(:customer_return)       { build(:customer_return) }
-
-      let(:first_inventory_unit)  { build(:inventory_unit) }
+      let(:first_inventory_unit)  { build(:inventory_unit, shipment: first_shipment) }
       let(:first_return_item)     { build(:return_item, inventory_unit: first_inventory_unit) }
 
-      let(:second_inventory_unit) { build(:inventory_unit, order: second_order) }
-      let(:second_return_item)    { build(:return_item, inventory_unit: second_inventory_unit) }
+      let(:second_inventory_unit) { build(:inventory_unit, shipment: second_shipment) }
+      let(:second_return_item) { build(:return_item, inventory_unit: second_inventory_unit) }
+
+      subject { customer_return.valid? }
 
       before do
         customer_return.return_items << first_return_item
@@ -57,7 +31,7 @@ describe Spree::CustomerReturn, type: :model do
       end
 
       context 'return items are part of different orders' do
-        let(:second_order) { create(:order) }
+        let(:second_order) { create(:order_with_line_items) }
 
         it 'is not valid' do
           expect(subject).to eq false
@@ -65,12 +39,12 @@ describe Spree::CustomerReturn, type: :model do
 
         it 'adds an error message' do
           subject
-          expect(customer_return.errors.full_messages).to include(Spree.t(:return_items_cannot_be_associated_with_multiple_orders))
+          expect(customer_return.errors.full_messages).to include(I18n.t('spree.return_items_cannot_be_associated_with_multiple_orders'))
         end
       end
 
       context 'return items are part of the same order' do
-        let(:second_order) { first_inventory_unit.order }
+        let(:second_order) { first_order }
 
         it 'is valid' do
           expect(subject).to eq true
@@ -79,39 +53,95 @@ describe Spree::CustomerReturn, type: :model do
     end
   end
 
-  describe 'whitelisted_ransackable_attributes' do
-    it { expect(Spree::CustomerReturn.whitelisted_ransackable_attributes).to eq(%w(number)) }
+  describe ".before_create" do
+    describe "#generate_number" do
+      context "number is assigned" do
+        let(:customer_return) { Spree::CustomerReturn.new(number: '123') }
+
+        it "should return the assigned number" do
+          customer_return.save
+          expect(customer_return.number).to eq('123')
+        end
+      end
+
+      context "number is not assigned" do
+        let(:customer_return) { Spree::CustomerReturn.new(number: nil) }
+
+        before do
+          allow(customer_return).to receive_messages(valid?: true, process_return!: true)
+        end
+
+        it "should assign number with random CR number" do
+          customer_return.save
+          expect(customer_return.number).to match(/CR\d{9}/)
+        end
+      end
+    end
   end
 
-  describe '#pre_tax_total' do
-    subject { customer_return.pre_tax_total }
-
-    let(:pre_tax_amount)  { 15.0 }
+  describe "#total" do
+    let(:amount) { 15.0 }
+    let(:tax_amount) { 5.0 }
     let(:customer_return) { create(:customer_return, line_items_count: 2) }
 
     before do
-      Spree::ReturnItem.where(customer_return_id: customer_return.id).update_all(pre_tax_amount: pre_tax_amount)
+      Spree::ReturnItem.where(customer_return_id: customer_return.id).update_all(amount: amount, additional_tax_total: tax_amount)
+      customer_return.reload
     end
 
-    it "returns the sum of the return item's pre_tax_amount" do
-      expect(subject).to eq (pre_tax_amount * 2)
+    subject { customer_return.total }
+
+    it "returns the sum of the return item's total amount" do
+      expect(subject).to eq((amount * 2) + (tax_amount * 2))
     end
   end
 
-  describe '#display_pre_tax_total' do
-    let(:customer_return) { Spree::CustomerReturn.new }
+  describe "#display_total" do
+    let(:customer_return) { stub_model(Spree::CustomerReturn, total: 21.22, currency: "GBP") }
 
-    it 'returns a Spree::Money' do
-      allow(customer_return).to receive_messages(pre_tax_total: 21.22)
-      expect(customer_return.display_pre_tax_total).to eq(Spree::Money.new(21.22))
+    it "returns a Spree::Money" do
+      expect(customer_return.display_total).to eq(Spree::Money.new(21.22, currency: "GBP"))
+    end
+  end
+
+  describe "#currency" do
+    let(:order) { stub_model(Spree::Order, currency: "GBP") }
+    let(:customer_return) { stub_model(Spree::CustomerReturn, order: order) }
+
+    it 'returns the order currency' do
+      expect(Spree::Config.currency).to eq("USD")
+      expect(customer_return.currency).to eq("GBP")
+    end
+  end
+
+  describe "#amount" do
+    let(:amount) { 15.0 }
+    let(:customer_return) { create(:customer_return, line_items_count: 2) }
+
+    before do
+      Spree::ReturnItem.where(customer_return_id: customer_return.id).update_all(amount: amount)
+    end
+
+    subject { customer_return.amount }
+
+    it "returns the sum of the return item's amount" do
+      expect(subject).to eq(amount * 2)
+    end
+  end
+
+  describe "#display_amount" do
+    let(:customer_return) { stub_model(Spree::CustomerReturn, amount: 21.22, currency: "RUB") }
+
+    it "returns a Spree::Money" do
+      expect(customer_return.display_amount).to eq(Spree::Money.new(21.22, currency: "RUB"))
     end
   end
 
   describe '#order' do
-    subject { customer_return.order }
-
     let(:return_item) { create(:return_item) }
     let(:customer_return) { build(:customer_return, return_items: [return_item]) }
+
+    subject { customer_return.order }
 
     it "returns the order associated with the return item's inventory unit" do
       expect(subject).to eq return_item.inventory_unit.order
@@ -144,14 +174,16 @@ describe Spree::CustomerReturn, type: :model do
     let(:return_item)     { create(:return_item, inventory_unit: inventory_unit) }
 
     context 'to the initial stock location' do
-      it 'marks all inventory units are returned' do
+      it 'should mark all inventory units are returned' do
         create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: inventory_unit.shipment.stock_location_id)
+        return_item.receive!
         expect(inventory_unit.reload.state).to eq 'returned'
       end
 
-      it 'updates the stock item counts in the stock location' do
+      it 'should update the stock item counts in the stock location' do
         expect do
           create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: inventory_unit.shipment.stock_location_id)
+          return_item.receive!
         end.to change { inventory_unit.find_stock_item.count_on_hand }.by(1)
       end
 
@@ -162,7 +194,7 @@ describe Spree::CustomerReturn, type: :model do
           expect(Spree::StockMovement).not_to receive(:create!)
         end
 
-        it 'does not update the stock item counts in the stock location' do
+        it 'should not update the stock item counts in the stock location' do
           count_on_hand = inventory_unit.find_stock_item.count_on_hand
           create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: inventory_unit.shipment.stock_location_id)
           expect(inventory_unit.find_stock_item.count_on_hand).to eql count_on_hand
@@ -173,33 +205,56 @@ describe Spree::CustomerReturn, type: :model do
     context 'to a different stock location' do
       let(:new_stock_location) { create(:stock_location, name: 'other') }
 
-      it 'updates the stock item counts in new stock location' do
+      it 'should update the stock item counts in new stock location' do
         expect do
           create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: new_stock_location.id)
+          return_item.receive!
         end.to change {
           Spree::StockItem.where(variant_id: inventory_unit.variant_id, stock_location_id: new_stock_location.id).first.count_on_hand
         }.by(1)
       end
 
-      it 'does not raise an error when no stock item exists in the stock location' do
-        inventory_unit.find_stock_item.destroy
-        expect { create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: new_stock_location.id) }.not_to raise_error
+      it 'should not raise an error when no stock item exists in the stock location' do
+        inventory_unit.find_stock_item.really.destroy!
+        create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: new_stock_location.id)
       end
 
-      it 'does not update the stock item counts in the original stock location' do
+      it "should NOT raise an error when a soft-deleted stock item exists in the stock location" do
+        inventory_unit.find_stock_item.discard
+        create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: new_stock_location.id)
+      end
+
+      it 'should not update the stock item counts in the original stock location' do
         count_on_hand = inventory_unit.find_stock_item.count_on_hand
         create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: new_stock_location.id)
         expect(inventory_unit.find_stock_item.count_on_hand).to eq(count_on_hand)
       end
     end
+
+    context "it was not received" do
+      before do
+        return_item.update_attributes!(reception_status: "lost_in_transit")
+      end
+
+      it 'should not updated inventory unit to returned' do
+        create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: inventory_unit.shipment.stock_location_id)
+        expect(inventory_unit.reload.state).to eq 'shipped'
+      end
+
+      it "should not update the stock item counts in the stock location" do
+        expect do
+          create(:customer_return_without_return_items, return_items: [return_item], stock_location_id: inventory_unit.shipment.stock_location_id)
+        end.to_not change { inventory_unit.find_stock_item.count_on_hand }
+      end
+    end
   end
 
   describe '#fully_reimbursed?' do
-    subject { customer_return.fully_reimbursed? }
-
     let(:customer_return) { create(:customer_return) }
 
     let!(:default_refund_reason) { Spree::RefundReason.find_or_create_by!(name: Spree::RefundReason::RETURN_PROCESSING_REASON, mutable: false) }
+
+    subject { customer_return.fully_reimbursed? }
 
     context 'when some return items are undecided' do
       it { is_expected.to be false }
