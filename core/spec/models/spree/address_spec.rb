@@ -1,126 +1,109 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Address, type: :model do
-  describe 'clone' do
-    it 'creates a copy of the address with the exception of the id, updated_at and created_at attributes' do
-      state = create(:state)
-      original = create(:address,
-                        address1: 'address1',
-                        address2: 'address2',
-                        alternative_phone: 'alternative_phone',
-                        city: 'city',
-                        country: Spree::Country.first,
-                        firstname: 'firstname',
-                        lastname: 'lastname',
-                        company: 'company',
-                        phone: 'phone',
-                        state_id: state.id,
-                        state_name: state.name,
-                        zipcode: '10001')
+require 'rails_helper'
 
-      cloned = original.clone
-
-      expect(cloned.address1).to eq(original.address1)
-      expect(cloned.address2).to eq(original.address2)
-      expect(cloned.alternative_phone).to eq(original.alternative_phone)
-      expect(cloned.city).to eq(original.city)
-      expect(cloned.country_id).to eq(original.country_id)
-      expect(cloned.firstname).to eq(original.firstname)
-      expect(cloned.lastname).to eq(original.lastname)
-      expect(cloned.company).to eq(original.company)
-      expect(cloned.phone).to eq(original.phone)
-      expect(cloned.state_id).to eq(original.state_id)
-      expect(cloned.state_name).to eq(original.state_name)
-      expect(cloned.zipcode).to eq(original.zipcode)
-
-      expect(cloned.id).not_to eq(original.id)
-      expect(cloned.created_at).not_to eq(original.created_at)
-      expect(cloned.updated_at).not_to eq(original.updated_at)
-    end
-  end
-
+RSpec.describe Spree::Address, type: :model do
+  subject { Spree::Address }
+  
   context 'aliased attributes' do
-    let(:address) { Spree::Address.new }
+    let(:address) { Spree::Address.new firstname: 'Ryan', lastname: 'Bigg' }
 
     it 'first_name' do
-      address.firstname = 'Ryan'
       expect(address.first_name).to eq('Ryan')
     end
 
     it 'last_name' do
-      address.lastname = 'Bigg'
       expect(address.last_name).to eq('Bigg')
     end
   end
 
   context 'validation' do
-    let(:country) { stub_model(Spree::Country, states: [state], states_required: true) }
-    let(:state) { stub_model(Spree::State, name: 'maryland', abbr: 'md') }
+    let(:country) { create :country, states_required: true }
+    let(:state) { Spree::State.new name: 'maryland', abbr: 'md', country: country }
     let(:address) { build(:address, country: country) }
 
     before do
-      allow(Spree::State).to receive(:find_all_by_name_or_abbr) { [state] }
+      allow(country.state).to receive_messages with_name_or_abbr: [state]
+    end
 
-      configure_spree_preferences do |config|
-        config.address_requires_state = true
+    context 'address does not require state' do
+      before do
+        Spree::Config.address_requires_state = false
+      end
+      it "address_requires_state preference is false" do
+        address.state = nil
+        address.state_name = nil
+        expect(address).to be_valid
       end
     end
 
-    it 'state_name is not nil and country does not have any states' do
-      address.state = nil
-      address.state_name = 'alabama'
-      expect(address).to be_valid
-    end
+    context 'address requires state' do
+      before do
+        Spree::Config.address_requires_state = true
+      end
 
-    it 'errors when state_name is nil' do
-      address.state_name = nil
-      address.state = nil
-      expect(address).not_to be_valid
-    end
+      it 'state_name is not nil and country does not have any states' do
+        address.state = nil
+        address.state_name = 'alabama'
+        expect(address).to be_valid
+      end
 
-    it 'full state name is in state_name and country does contain that state' do
-      address.state_name = 'alabama'
-      # called by state_validate to set up state_id.
-      # Perhaps this should be a before_validation instead?
-      expect(address).to be_valid
-      expect(address.state).not_to be_nil
-      expect(address.state_name).to be_nil
-    end
+      it 'errors when state_name is nil' do
+        address.state_name = nil
+        address.state = nil
+        expect(address).not_to be_valid
+      end
 
-    it 'state abbr is in state_name and country does contain that state' do
-      address.state_name = state.abbr
-      expect(address).to be_valid
-      expect(address.state_id).not_to be_nil
-      expect(address.state_name).to be_nil
-    end
+      it 'full state name is in state_name and country does contain that state' do
+        address.state_name = 'alabama'
+        # called by state_validate to set up state_id.
+        # Perhaps this should be a before_validation instead?
+        expect(address).to be_valid
+        expect(address.state).not_to be_nil
+        expect(address.state_name).to be_nil
+      end
 
-    it 'state is entered but country does not contain that state' do
-      address.state = state
-      address.country = stub_model(Spree::Country, states_required: true)
-      address.valid?
-      expect(address.errors['state']).to eq(['is invalid'])
-    end
+      it 'state abbr is in state_name and country does contain that state' do
+        address.state_name = state.abbr
+        expect(address).to be_valid
+        expect(address.state_id).not_to be_nil
+        expect(address.state_name).to be_nil
+      end
 
-    it 'both state and state_name are entered but country does not contain the state' do
-      address.state = state
-      address.state_name = 'maryland'
-      address.country = stub_model(Spree::Country, states_required: true)
-      expect(address).to be_valid
-      expect(address.state_id).to be_nil
-    end
+      context 'when the country does not match the state' do
+        context 'when the country requires states' do
+          it 'is invalid' do
+            address.state = state
+            address.country = Spree::Country.new(states_required: true)
+            address.valid?
+            expect(address.errors["state"]).to eq(['is invalid', 'does not match the country'])
+          end
+        end
 
-    it 'both state and state_name are entered and country does contain the state' do
-      address.state = state
-      address.state_name = 'maryland'
-      expect(address).to be_valid
-      expect(address.state_name).to be_nil
-    end
+        context 'when the country does not require states' do
+          it 'is invalid' do
+            address.state = state
+            address.country = Spree::Country.new(states_required: false)
+            address.valid?
+            expect(address.errors["state"]).to eq(['does not match the country'])
+          end
+        end
+      end
 
-    it 'address_requires_state preference is false' do
-      Spree::Config.set address_requires_state: false
-      address.state = nil
-      address.state_name = nil
-      expect(address).to be_valid
+      it 'both state and state_name are entered but country does not contain the state' do
+        address.state = state
+        address.state_name = 'maryland'
+        address.country = create :country, states_required: true
+        expect(address).to be_valid
+        expect(address.state_id).to be_nil
+      end
+
+      it 'both state and state_name are entered and country does contain the state' do
+        address.state = state
+        address.state_name = 'maryland'
+        expect(address).to be_valid
+        expect(address.state_name).to be_nil
+      end
     end
 
     it 'requires phone' do
@@ -133,54 +116,6 @@ describe Spree::Address, type: :model do
       address.zipcode = ''
       address.valid?
       expect(address.errors['zipcode']).to include("can't be blank")
-    end
-
-    context 'zipcode validation' do
-      it 'validates the zipcode' do
-        allow(address.country).to receive(:iso).and_return('US')
-        address.zipcode = 'abc'
-        address.valid?
-        expect(address.errors['zipcode']).to include('is invalid')
-      end
-
-      it 'accepts a zip code with surrounding white space' do
-        allow(address.country).to receive(:iso).and_return('US')
-        address.zipcode = ' 12345 '
-        address.valid?
-        expect(address.errors['zipcode']).not_to include('is invalid')
-      end
-
-      context 'does not validate' do
-        it 'does not have a country' do
-          address.country = nil
-          address.valid?
-          expect(address.errors['zipcode']).not_to include('is invalid')
-        end
-
-        it 'country does not requires zipcode' do
-          allow(address.country).to receive(:zipcode_required?).and_return(false)
-          address.valid?
-          expect(address.errors['zipcode']).not_to include('is invalid')
-        end
-
-        it 'does not have an iso' do
-          allow(address.country).to receive(:iso).and_return(nil)
-          address.valid?
-          expect(address.errors['zipcode']).not_to include('is invalid')
-        end
-
-        it 'does not have a zipcode' do
-          address.zipcode = ''
-          address.valid?
-          expect(address.errors['zipcode']).not_to include('is invalid')
-        end
-
-        it 'does not have a supported country iso' do
-          allow(address.country).to receive(:iso).and_return('BO')
-          address.valid?
-          expect(address.errors['zipcode']).not_to include('is invalid')
-        end
-      end
     end
 
     context 'phone not required' do
@@ -204,213 +139,237 @@ describe Spree::Address, type: :model do
     end
   end
 
-  context '.default' do
+  context '.build_default' do
     context 'no user given' do
-      before do
-        @default_country_id = Spree::Config[:default_country_id]
-        new_country = create(:country)
-        Spree::Config[:default_country_id] = new_country.id
+      let!(:default_country) { create(:country) }
+
+      context 'has a default country' do
+        before do
+          Spree::Config[:default_country_iso] = default_country.iso
+        end
+
+        it "sets up a new record with Spree::Config[:default_country_iso]" do
+          expect(Spree::Address.build_default.country).to eq default_country
+        end
       end
 
-      after do
-        Spree::Config[:default_country_id] = @default_country_id
+      # Regression test for https://github.com/spree/spree/issues/1142
+      it "raises ActiveRecord::RecordNotFound if :default_country_iso is set to an invalid value" do
+        Spree::Config[:default_country_iso] = "00"
+        expect {
+          Spree::Address.build_default.country
+        }.to raise_error(ActiveRecord::RecordNotFound)
       end
+    end
+  end
 
-      it 'sets up a new record with Spree::Config[:default_country_id]' do
-        expect(Spree::Address.default.country).to eq(Spree::Country.find(Spree::Config[:default_country_id]))
+  context '.factory' do
+    context 'with attributes that use setters defined in Address' do
+      let(:address_attributes) { attributes_for(:address, country_id: nil, country_iso: country.iso) }
+      let(:country) { create(:country, iso: 'ZW') }
+
+      it 'uses the setters' do
+        expect(subject.factory(address_attributes).country_id).to eq(country.id)
       end
+    end
+  end
 
-      # Regression test for #1142
-      it 'uses the first available country if :default_country_id is set to an invalid value' do
-        Spree::Config[:default_country_id] = '0'
-        expect(Spree::Address.default.country).to eq(Spree::Country.first)
+  context ".immutable_merge" do
+    RSpec::Matchers.define :be_address_equivalent_attributes do |expected|
+      fields_of_interest = [:firstname, :lastname, :company, :address1, :address2, :city, :zipcode, :phone, :alternative_phone]
+      match do |actual|
+        expected_attrs = expected.symbolize_keys.slice(*fields_of_interest)
+        actual_attrs = actual.symbolize_keys.slice(*fields_of_interest)
+        expected_attrs == actual_attrs
       end
     end
 
-    context 'user given' do
-      let(:bill_address) { Spree::Address.new(phone: Time.current.to_i) }
-      let(:ship_address) { double('ShipAddress') }
-      let(:user) { double('User', bill_address: bill_address, ship_address: ship_address) }
+    let(:new_address_attributes) { attributes_for(:address) }
+    subject { Spree::Address.immutable_merge(existing_address, new_address_attributes) }
 
-      it 'returns a copy of that user bill address' do
-        expect(Spree::Address.default(user).phone).to eq bill_address.phone
+    context "no existing address supplied" do
+      let(:existing_address) { nil }
+
+      context 'and there is not a matching address in the database' do
+        it "returns new Address matching attributes given" do
+          expect(subject.attributes).to be_address_equivalent_attributes(new_address_attributes)
+        end
       end
 
-      it 'falls back to build default when user has no address' do
-        allow(user).to receive_messages(bill_address: nil)
-        expect(Spree::Address.default(user)).to eq Spree::Address.build_default
+      context 'and there is a matching address in the database' do
+        let(:new_address_attributes) { Spree::Address.value_attributes(matching_address.attributes) }
+        let!(:matching_address) { create(:address, firstname: 'Jordan') }
+
+        it "returns the matching address" do
+          expect(subject.attributes).to be_address_equivalent_attributes(new_address_attributes)
+          expect(subject.id).to eq(matching_address.id)
+        end
       end
+    end
+
+    context "with existing address" do
+      let(:existing_address) { create(:address) }
+
+      it "returns a new Address of merged data" do
+        merged_attributes = subject.attributes.merge(new_address_attributes.symbolize_keys)
+        expect(subject.attributes).to be_address_equivalent_attributes merged_attributes
+        expect(subject.id).not_to eq existing_address.id
+      end
+
+      context "and no changes to attributes" do
+        let(:new_address_attributes) { existing_address.attributes }
+
+        it "returns existing address" do
+          expect(subject).to eq existing_address
+          expect(subject.id).to eq existing_address.id
+        end
+      end
+
+      context 'and changed address matches an existing address' do
+        let(:new_address_attributes) { Spree::Address.value_attributes(matching_address.attributes) }
+        let!(:matching_address) { create(:address, firstname: 'Jordan') }
+
+        it 'returns the matching address' do
+          expect(subject.attributes).to be_address_equivalent_attributes(new_address_attributes)
+          expect(subject.id).to eq(matching_address.id)
+        end
+      end
+    end
+  end
+
+  describe '.value_attributes' do
+    subject do
+      Spree::Address.value_attributes(base_attributes, merge_attributes)
+    end
+
+    context 'with symbols and strings' do
+      let(:base_attributes) { { 'address1' => '1234 way', 'address2' => 'apt 2' } }
+      let(:merge_attributes) { { address1: '5678 way' } }
+
+      it 'stringifies and merges the keys' do
+        expect(subject).to eq('address1' => '5678 way', 'address2' => 'apt 2')
+      end
+    end
+
+    context 'with database-only attributes' do
+      let(:base_attributes) do
+        {
+          'id' => 1,
+          'created_at' => Time.current,
+          'updated_at' => Time.current,
+          'address1' => '1234 way'
+        }
+      end
+      let(:merge_attributes) do
+        {
+          'updated_at' => Time.current,
+          'address2' => 'apt 2'
+        }
+      end
+
+      it 'removes the database-only addresses' do
+        expect(subject).to eq('address1' => '1234 way', 'address2' => 'apt 2')
+      end
+    end
+
+    context 'with aliased attributes' do
+      let(:base_attributes) { { 'first_name' => 'Jordan' } }
+      let(:merge_attributes) { { 'last_name' => 'Brough' } }
+
+      it 'renames them to the normalized value' do
+        expect(subject).to eq('firstname' => 'Jordan', 'lastname' => 'Brough')
+      end
+
+      it 'does not modify the original hashes' do
+        subject
+        expect(base_attributes).to eq('first_name' => 'Jordan')
+        expect(merge_attributes).to eq('last_name' => 'Brough')
+      end
+    end
+  end
+
+  describe '.taxation_attributes' do
+    context 'both taxation and non-taxation attributes are present ' do
+      let(:address) { Spree::Address.new firstname: 'Michael', lastname: 'Jackson', state_id: 1, country_id: 2, zipcode: '12345' }
+
+      it 'removes the non-taxation attributes' do
+        expect(address.taxation_attributes).not_to eq('firstname' => 'Michael', 'lastname' => 'Jackson')
+      end
+
+      it 'returns only the taxation attributes' do
+        expect(address.taxation_attributes).to eq('state_id' => 1, 'country_id' => 2, 'zipcode' => '12345')
+      end
+    end
+
+    context 'taxation attributes are blank' do
+      let(:address) { Spree::Address.new firstname: 'Michael', lastname: 'Jackson' }
+
+      it 'returns a subset of the attributes with the correct keys and nil values' do
+        expect(address.taxation_attributes).to eq('state_id' => nil, 'country_id' => nil, 'zipcode' => nil)
+      end
+    end
+  end
+
+  context '#country_iso=' do
+    let(:address) { build(:address, country_id: nil) }
+    let(:country) { create(:country, iso: 'ZW') }
+
+    it 'sets the country to the country with the matching iso code' do
+      address.country_iso = country.iso
+      expect(address.country_id).to eq(country.id)
+    end
+
+    it 'raises an exception if the iso is not found' do
+      expect {
+        address.country_iso = "NOCOUNTRY"
+      }.to raise_error(::ActiveRecord::RecordNotFound, "Couldn't find Spree::Country")
     end
   end
 
   context '#full_name' do
     context 'both first and last names are present' do
-      let(:address) { stub_model(Spree::Address, firstname: 'Michael', lastname: 'Jackson') }
-
+      let(:address) { Spree::Address.new firstname: 'Michael', lastname: 'Jackson' }
       specify { expect(address.full_name).to eq('Michael Jackson') }
     end
 
     context 'first name is blank' do
-      let(:address) { stub_model(Spree::Address, firstname: nil, lastname: 'Jackson') }
-
+      let(:address) { Spree::Address.new firstname: nil, lastname: 'Jackson' }
       specify { expect(address.full_name).to eq('Jackson') }
     end
 
     context 'last name is blank' do
-      let(:address) { stub_model(Spree::Address, firstname: 'Michael', lastname: nil) }
-
+      let(:address) { Spree::Address.new firstname: 'Michael', lastname: nil }
       specify { expect(address.full_name).to eq('Michael') }
     end
 
     context 'both first and last names are blank' do
-      let(:address) { stub_model(Spree::Address, firstname: nil, lastname: nil) }
-
+      let(:address) { Spree::Address.new firstname: nil, lastname: nil }
       specify { expect(address.full_name).to eq('') }
     end
   end
 
   context '#state_text' do
     context 'state is blank' do
-      let(:address) { stub_model(Spree::Address, state: nil, state_name: 'virginia') }
-
+      let(:address) { Spree::Address.new state: nil, state_name: 'virginia' }
       specify { expect(address.state_text).to eq('virginia') }
     end
 
     context 'both name and abbr is present' do
-      let(:state) { stub_model(Spree::State, name: 'virginia', abbr: 'va') }
-      let(:address) { stub_model(Spree::Address, state: state) }
-
+      let(:state) { Spree::State.new name: 'virginia', abbr: 'va' }
+      let(:address) { Spree::Address.new state: state }
       specify { expect(address.state_text).to eq('va') }
     end
 
     context 'only name is present' do
-      let(:state) { stub_model(Spree::State, name: 'virginia', abbr: nil) }
-      let(:address) { stub_model(Spree::Address, state: state) }
-
+      let(:state) { Spree::State.new name: 'virginia', abbr: nil }
+      let(:address) { Spree::Address.new state: state }
       specify { expect(address.state_text).to eq('virginia') }
     end
   end
 
-  context 'defines require_phone? helper method' do
-    let(:address) { stub_model(Spree::Address) }
+  context '#requires_phone' do
+    subject { described_class.new }
 
-    specify { expect(address.instance_eval { require_phone? }).to be true }
-  end
-
-  context '#clear_state' do
-    let (:address) { create(:address) }
-
-    before { address.state_name = 'maryland' }
-
-    it { expect { address.send(:clear_state) }.to change(address, :state).to(nil).from(address.state) }
-    it { expect { address.send(:clear_state) }.not_to change(address, :state_name) }
-  end
-
-  context '#clear_state_name' do
-    let (:address) { create(:address) }
-
-    before { address.state_name = 'maryland' }
-
-    it { expect { address.send(:clear_state_name) }.not_to change(address, :state_id) }
-    it { expect { address.send(:clear_state_name) }.to change(address, :state_name).to(nil).from('maryland') }
-  end
-
-  context '#clear_invalid_state_entities' do
-    let(:country) { create(:country) }
-    let(:state) { create(:state, country: country) }
-    let (:address) { create(:address, country: country, state: state) }
-
-    def clear_state_entities
-      address.send(:clear_invalid_state_entities)
-    end
-
-    context 'state not present and state_name both not present' do
-      before do
-        address.state = nil
-        address.state_name = nil
-        clear_state_entities
-      end
-
-      it { expect(address.state).to be_nil }
-      it { expect(address.state_name).to be_nil }
-    end
-
-    context 'state_name not present and state present ' do
-      before { address.state_name = nil }
-
-      context 'state belongs to a different country than to which address is associated' do
-        before do
-          address.country = create(:country)
-          clear_state_entities
-        end
-
-        it { expect(address.state).to be_nil }
-        it { expect(address.state_name).to be_nil }
-      end
-
-      context 'state belongs to the same country associated with address' do
-        before { clear_state_entities }
-        it { expect(address.state).to eq(state) }
-        it { expect(address.state_name).to be_nil }
-      end
-    end
-
-    context 'state not present and state_name present' do
-      before do
-        address.state = nil
-        address.state_name = state.name
-      end
-
-      context 'when country has no states and state is required' do
-        before do
-          address.country = create(:country, states_required: true)
-          clear_state_entities
-        end
-
-        it { expect(address.state).to be_nil }
-        it { expect(address.state_name).to eq(state.name) }
-      end
-
-      context 'when country has states' do
-        before do
-          address.state_name = state.name
-          clear_state_entities
-        end
-
-        it { expect(address.state).to be_nil }
-        it { expect(address.state_name).to eq(state.name) }
-      end
-
-      context 'when country has no states and state is not required' do
-        before do
-          address.country = create(:country, states_required: false)
-          address.state_name = state.name
-          clear_state_entities
-        end
-
-        it { expect(address.state).to be_nil }
-        it { expect(address.state_name).to be_nil }
-      end
-    end
-  end
-
-  context '#same_as' do
-    let(:address) { create(:address) }
-    let(:address2) { address.clone }
-
-    context 'same addresses' do
-      it { expect(address.same_as?(address2)).to eq(true) }
-    end
-
-    context 'different addresses' do
-      before { address2.first_name = 'Someone Else' }
-      it { expect(address.same_as?(address2)).to eq(false) }
-    end
-  end
-
-  describe '.build_default' do
-    let(:_address) { described_class.build_default }
-
-    it { expect(_address.country).to eq(Spree::Country.default) }
+    it { is_expected.to be_require_phone }
   end
 end
