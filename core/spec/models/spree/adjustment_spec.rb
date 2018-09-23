@@ -1,67 +1,19 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Adjustment, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Adjustment, type: :model do
+  let!(:store) { create :store }
   let(:order) { Spree::Order.new }
+  let(:line_item) { create :line_item, order: order }
   let(:adjustment) { Spree::Adjustment.create!(label: 'Adjustment', adjustable: order, order: order, amount: 5) }
 
-  before do
-    allow(order).to receive(:update_with_updater!)
-  end
-
-  describe '#amount=' do
-    let(:amount) { '1,599,99' }
-
-    before { adjustment.amount = amount }
-
-    it 'is expected to equal to localized number' do
-      expect(adjustment.amount).to eq(Spree::LocalizedNumber.parse(amount))
-    end
-  end
-
-  describe 'scopes' do
-    describe '.for_complete_order' do
-      subject { Spree::Adjustment.for_complete_order }
-
-      let(:complete_order) { Spree::Order.create! completed_at: Time.current }
-      let(:incomplete_order) { Spree::Order.create! completed_at: nil }
-      let(:adjustment_for_complete_order) { Spree::Adjustment.create!(label: 'Adjustment', adjustable: complete_order, order: complete_order, amount: 5) }
-      let(:adjustment_for_incomplete_order) { Spree::Adjustment.create!(label: 'Adjustment', adjustable: incomplete_order, order: incomplete_order, amount: 5) }
-
-      it { is_expected.to include(adjustment_for_complete_order) }
-      it { is_expected.not_to include(adjustment_for_incomplete_order) }
-    end
-
-    describe '.for_incomplete_order' do
-      subject { Spree::Adjustment.for_incomplete_order }
-
-      let(:complete_order) { Spree::Order.create! completed_at: Time.current }
-      let(:incomplete_order) { Spree::Order.create! completed_at: nil }
-      let(:adjustment_for_complete_order) { Spree::Adjustment.create!(label: 'Adjustment', adjustable: complete_order, order: complete_order, amount: 5) }
-      let(:adjustment_for_incomplete_order) { Spree::Adjustment.create!(label: 'Adjustment', adjustable: incomplete_order, order: incomplete_order, amount: 5) }
-
-      it { is_expected.not_to include(adjustment_for_complete_order) }
-      it { is_expected.to include(adjustment_for_incomplete_order) }
-    end
-  end
-
-  context '#create & #destroy' do
-    let(:adjustment) { Spree::Adjustment.new(label: 'Adjustment', amount: 5, order: order, adjustable: create(:line_item)) }
-
-    it 'calls #update_adjustable_adjustment_total' do
-      expect(adjustment).to receive(:update_adjustable_adjustment_total).twice
-      adjustment.save
-      adjustment.destroy
-    end
-  end
-
   context '#save' do
-    let(:order) { Spree::Order.create! }
-    let!(:adjustment) { Spree::Adjustment.create(label: 'Adjustment', amount: 5, order: order, adjustable: order) }
+    let!(:adjustment) { Spree::Adjustment.create(label: 'Adjustment', amount: 5, order: order, adjustable: line_item) }
 
     it 'touches the adjustable' do
-      expect(adjustment.adjustable).to receive(:touch)
-      adjustment.amount = 3
-      adjustment.save
+      line_item.update_columns(updated_at: 1.day.ago)
+      expect { adjustment.save! }.to change { line_item.updated_at }
     end
   end
 
@@ -70,9 +22,9 @@ describe Spree::Adjustment, type: :model do
       Spree::Adjustment.non_tax.to_a
     end
 
-    let!(:tax_adjustment) { create(:adjustment, order: order, source: create(:tax_rate)) }
-    let!(:non_tax_adjustment_with_source) { create(:adjustment, order: order, source_type: 'Spree::Order', source_id: nil) }
-    let!(:non_tax_adjustment_without_source) { create(:adjustment, order: order, source: nil) }
+    let!(:tax_adjustment) { create(:adjustment, adjustable: order, order: order, source: create(:tax_rate)) }
+    let!(:non_tax_adjustment_with_source) { create(:adjustment, adjustable: order, order: order, source_type: 'Spree::Order', source_id: nil) }
+    let!(:non_tax_adjustment_without_source) { create(:adjustment, adjustable: order, order: order, source: nil) }
 
     it 'select non-tax adjustments' do
       expect(subject).not_to include tax_adjustment
@@ -81,62 +33,20 @@ describe Spree::Adjustment, type: :model do
     end
   end
 
-  describe 'competing_promos scope' do
-    before do
-      allow_any_instance_of(Spree::Adjustment).to receive(:update_adjustable_adjustment_total).and_return(true)
-    end
-
-    subject do
-      Spree::Adjustment.competing_promos.to_a
-    end
-
-    let!(:promotion_adjustment) { create(:adjustment, order: order, source_type: 'Spree::PromotionAction', source_id: nil) }
-    let!(:custom_adjustment_with_source) { create(:adjustment, order: order, source_type: 'Custom', source_id: nil) }
-    let!(:non_promotion_adjustment_with_source) { create(:adjustment, order: order, source_type: 'Spree::Order', source_id: nil) }
-    let!(:non_promotion_adjustment_without_source) { create(:adjustment, order: order, source: nil) }
-
-    context 'no custom source_types have been added to competing_promos' do
-      before { Spree::Adjustment.competing_promos_source_types = ['Spree::PromotionAction'] }
-
-      it 'selects promotion adjustments by default' do
-        expect(subject).to include promotion_adjustment
-        expect(subject).not_to include custom_adjustment_with_source
-        expect(subject).not_to include non_promotion_adjustment_with_source
-        expect(subject).not_to include non_promotion_adjustment_without_source
-      end
-    end
-
-    context 'a custom source_type has been added to competing_promos' do
-      before { Spree::Adjustment.competing_promos_source_types = ['Spree::PromotionAction', 'Custom'] }
-
-      it 'selects adjustments with registered source_types' do
-        expect(subject).to include promotion_adjustment
-        expect(subject).to include custom_adjustment_with_source
-        expect(subject).not_to include non_promotion_adjustment_with_source
-        expect(subject).not_to include non_promotion_adjustment_without_source
-      end
-    end
-  end
-
-  context 'adjustment state' do
-    let(:adjustment) { create(:adjustment, order: order, state: 'open') }
-
-    context '#closed?' do
-      it 'is true when adjustment state is closed' do
-        adjustment.state = 'closed'
-        expect(adjustment).to be_closed
-      end
-
-      it 'is false when adjustment state is open' do
-        adjustment.state = 'open'
-        expect(adjustment).not_to be_closed
-      end
-    end
-  end
-
   context '#currency' do
-    it 'returns the globally configured currency' do
-      expect(adjustment.currency).to eq 'USD'
+    let(:order) { Spree::Order.new currency: 'JPY' }
+
+    it 'returns the adjustables currency' do
+      expect(adjustment.currency).to eq 'JPY'
+    end
+
+    context 'adjustable is nil' do
+      before do
+        adjustment.adjustable = nil
+      end
+      it 'uses the global currency of USD' do
+        expect(adjustment.currency).to eq 'USD'
+      end
     end
   end
 
@@ -148,44 +58,272 @@ describe Spree::Adjustment, type: :model do
     end
 
     context 'with currency set to JPY' do
-      context 'when adjustable is set to an order' do
-        before do
-          expect(order).to receive(:currency).and_return('JPY')
-          adjustment.adjustable = order
-        end
+      let(:order) { Spree::Order.new currency: 'JPY' }
 
+      context "when adjustable is set to an order" do
         it 'displays in JPY' do
           expect(adjustment.display_amount.to_s).to eq '¥11'
-        end
-      end
-
-      context 'when adjustable is nil' do
-        it 'displays in the default currency' do
-          expect(adjustment.display_amount.to_s).to eq '$10.55'
         end
       end
     end
   end
 
-  context '#update!' do
-    context 'when adjustment is closed' do
-      before { expect(adjustment).to receive(:closed?).and_return(true) }
+  context '#recalculate' do
+    subject { adjustment.recalculate }
+    let(:adjustment) do
+      line_item.adjustments.create!(
+        label: 'Adjustment',
+        order: order,
+        adjustable: order,
+        amount: 5,
+        finalized: finalized,
+        source: source,
+      )
+    end
+    let(:order) { create(:order_with_line_items, line_items_price: 100) }
+    let(:line_item) { order.line_items.to_a.first }
 
-      it 'does not update the adjustment' do
-        expect(adjustment).not_to receive(:update_column)
-        adjustment.update!
+    context "when adjustment is finalized" do
+      let(:finalized) { true }
+
+      context 'with a promotion adjustment' do
+        let(:source) { promotion.actions.first! }
+        let(:promotion) { create(:promotion, :with_line_item_adjustment, adjustment_rate: 7) }
+
+        it 'does not update the adjustment' do
+          expect { subject }.not_to change { adjustment.amount }
+        end
+      end
+
+      context 'with a tax adjustment' do
+        let(:source) { mock_model(Spree::TaxRate, compute_amount: 10) }
+
+        it 'updates the adjustment' do
+          expect { subject }.to change { adjustment.amount }.from(5).to(10)
+        end
+      end
+
+      context 'with a sourceless adjustment' do
+        let(:source) { nil }
+
+        it 'does nothing' do
+          expect { subject }.not_to change { adjustment.amount }
+        end
       end
     end
 
-    context 'when adjustment is open' do
-      before { expect(adjustment).to receive(:closed?).and_return(false) }
+    context "when adjustment isn't finalized" do
+      let(:finalized) { false }
 
-      it 'updates the amount' do
-        expect(adjustment).to receive(:adjustable).and_return(double('Adjustable')).at_least(1).times
-        expect(adjustment).to receive(:source).and_return(double('Source')).at_least(1).times
-        expect(adjustment.source).to receive('compute_amount').with(adjustment.adjustable).and_return(5)
-        expect(adjustment).to receive(:update_columns).with(amount: 5, updated_at: kind_of(Time))
-        adjustment.update!
+      context 'with a promotion adjustment' do
+        let(:source) { promotion.actions.first! }
+        let(:promotion) { create(:promotion, :with_line_item_adjustment, adjustment_rate: 7) }
+
+        context 'when the promotion is eligible' do
+          it 'updates the adjustment' do
+            expect { subject }.to change { adjustment.amount }.from(5).to(-7)
+          end
+
+          it 'sets the adjustment elgiible to true' do
+            subject
+            expect(adjustment.eligible).to eq(true)
+          end
+        end
+
+        context 'when the promotion is not eligible' do
+          before do
+            promotion.update!(starts_at: 1.day.from_now)
+          end
+
+          it 'zeros out the adjustment' do
+            expect { subject }.to change { adjustment.amount }.from(5).to(0)
+          end
+
+          it 'sets the adjustment elgiible to false' do
+            subject
+            expect(adjustment.eligible).to eq(false)
+          end
+        end
+      end
+
+      context 'with a tax adjustment' do
+        let(:source) { mock_model(Spree::TaxRate, compute_amount: 10) }
+
+        it 'updates the adjustment' do
+          expect { subject }.to change { adjustment.amount }.from(5).to(10)
+        end
+      end
+
+      context 'with a sourceless adjustment' do
+        let(:source) { nil }
+
+        it 'does nothing' do
+          expect { subject }.to_not change { adjustment.amount }
+        end
+      end
+    end
+  end
+
+  describe "promotion code presence error" do
+    subject do
+      adjustment.valid?
+      adjustment.errors[:promotion_code]
+    end
+
+    context "when the adjustment is not a promotion adjustment" do
+      let(:adjustment) { build(:adjustment) }
+
+      it { is_expected.to be_blank }
+    end
+
+    context "when the adjustment is a promotion adjustment" do
+      let(:adjustment) { build(:adjustment, source: promotion.actions.first) }
+      let(:promotion) { create(:promotion, :with_order_adjustment) }
+
+      context "when the promotion does not have a code" do
+        it { is_expected.to be_blank }
+      end
+
+      context "when the promotion has a code" do
+        let!(:promotion_code) { create(:promotion_code, promotion: promotion) }
+
+        it { is_expected.to include("can't be blank") }
+      end
+    end
+  end
+
+  describe 'repairing adjustment associations' do
+    context 'on create' do
+      let(:adjustable) { order }
+      let(:adjustment_source) { promotion.actions[0] }
+      let(:order) { create(:order) }
+      let(:promotion) { create(:promotion, :with_line_item_adjustment) }
+
+      def expect_deprecation_warning
+        expect(Spree::Deprecation).to(
+          receive(:warn).
+          with(
+            /Adjustment \d+ was not added to #{adjustable.class} #{adjustable.id}/,
+            instance_of(Array),
+          )
+        )
+      end
+
+      context 'when adding adjustments via the wrong association' do
+        def create_adjustment
+          adjustment_source.adjustments.create!(
+            amount: 10,
+            adjustable: adjustable,
+            order: order,
+            label: 'some label',
+          )
+        end
+
+        context 'when adjustable.adjustments is loaded' do
+          before { adjustable.adjustments.to_a }
+
+          it 'repairs adjustable.adjustments' do
+            expect_deprecation_warning
+            adjustment = create_adjustment
+            expect(adjustable.adjustments).to include(adjustment)
+          end
+
+          context 'when the adjustment is destroyed before after_commit runs' do
+            it 'does not repair' do
+              expect(Spree::Deprecation).not_to receive(:warn)
+              Spree::Adjustment.transaction do
+                adjustment = create_adjustment
+                adjustment.destroy!
+              end
+            end
+          end
+        end
+
+        context 'when adjustable.adjustments is not loaded' do
+          it 'does repair' do
+            expect(Spree::Deprecation).not_to receive(:warn)
+            create_adjustment
+          end
+        end
+      end
+
+      context 'when adding adjustments via the correct association' do
+        def create_adjustment
+          adjustable.adjustments.create!(
+            amount: 10,
+            source: adjustment_source,
+            order: order,
+            label: 'some label',
+          )
+        end
+
+        context 'when adjustable.adjustments is loaded' do
+          before { adjustable.adjustments.to_a }
+
+          it 'does not repair' do
+            expect(Spree::Deprecation).not_to receive(:warn)
+            create_adjustment
+          end
+        end
+
+        context 'when adjustable.adjustments is not loaded' do
+          it 'does not repair' do
+            expect(Spree::Deprecation).not_to receive(:warn)
+            create_adjustment
+          end
+        end
+      end
+    end
+
+    context 'on destroy' do
+      let(:adjustment) { create(:adjustment) }
+      let(:adjustable) { adjustment.adjustable }
+
+      def expect_deprecation_warning(adjustable)
+        expect(Spree::Deprecation).to(
+          receive(:warn).
+          with(
+            /Adjustment #{adjustment.id} was not removed from #{adjustable.class} #{adjustable.id}/,
+            instance_of(Array),
+          )
+        )
+      end
+
+      context 'when destroying adjustments not via association' do
+        context 'when adjustable.adjustments is loaded' do
+          before { adjustable.adjustments.to_a }
+
+          it 'repairs adjustable.adjustments' do
+            expect_deprecation_warning(adjustable)
+            adjustment.destroy!
+            expect(adjustable.adjustments).not_to include(adjustment)
+          end
+        end
+
+        context 'when adjustable.adjustments is not loaded' do
+          it 'does not repair' do
+            expect(Spree::Deprecation).not_to receive(:warn)
+            adjustment.destroy!
+          end
+        end
+      end
+
+      context 'when destroying adjustments via the association' do
+        context 'when adjustable.adjustments is loaded' do
+          before { adjustable.adjustments.to_a }
+
+          it 'does not repair' do
+            expect(Spree::Deprecation).not_to receive(:warn)
+            adjustable.adjustments.destroy(adjustment)
+          end
+        end
+
+        context 'when adjustable.adjustments is not loaded' do
+          it 'does not repair' do
+            expect(Spree::Deprecation).not_to receive(:warn)
+            adjustable.adjustments.destroy(adjustment)
+          end
+        end
       end
     end
   end
