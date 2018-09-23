@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::ReturnItem::EligibilityValidator::Default, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::ReturnItem::EligibilityValidator::Default, type: :model do
   let(:return_item) { create(:return_item) }
   let(:validator) { Spree::ReturnItem::EligibilityValidator::Default.new(return_item) }
 
