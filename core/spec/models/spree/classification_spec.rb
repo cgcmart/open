@@ -1,8 +1,18 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe Classification, type: :model do
-    # Regression test for #3494
+  RSpec.describe Classification, type: :model do
+    # Regression test for https://github.com/spree/spree/issues/3494
+    it 'cannot link the same taxon to the same product more than once' do
+      product = create(:product)
+      taxon = create(:taxon)
+      add_taxon = -> { product.taxons << taxon }
+      expect(add_taxon).not_to raise_error
+      expect(add_taxon).to raise_error(ActiveRecord::RecordInvalid)
+    end
+
     let(:taxon_with_5_products) do
       products = []
       5.times do
@@ -10,14 +20,6 @@ module Spree
       end
 
       create(:taxon, products: products)
-    end
-
-    it 'cannot link the same taxon to the same product more than once' do
-      product = create(:product)
-      taxon = create(:taxon)
-      add_taxon = -> { product.taxons << taxon }
-      expect(add_taxon).not_to raise_error
-      expect(add_taxon).to raise_error(ActiveRecord::RecordInvalid)
     end
 
     def positions_to_be_valid(taxon)
@@ -31,7 +33,7 @@ module Spree
     end
 
     context 'removing product from taxon' do
-      before do
+      before(:each) do
         p = taxon_with_5_products.products[1]
         expect(p.classifications.first.position).to eq(2)
         taxon_with_5_products.products.destroy(p)
@@ -43,7 +45,7 @@ module Spree
     end
 
     context "replacing taxon's products" do
-      before do
+      before(:each) do
         products = taxon_with_5_products.products.to_a
         products.pop(1)
         taxon_with_5_products.products = products
@@ -56,7 +58,7 @@ module Spree
     end
 
     context 'removing taxon from product' do
-      before do
+      before(:each) do
         p = taxon_with_5_products.products[1]
         p.taxons.destroy(taxon_with_5_products)
         p.save!
@@ -68,7 +70,7 @@ module Spree
     end
 
     context "replacing product's taxons" do
-      before do
+      before(:each) do
         p = taxon_with_5_products.products[1]
         p.taxons = []
         p.save!
@@ -80,7 +82,7 @@ module Spree
     end
 
     context 'destroying classification' do
-      before do
+      before(:each) do
         classification = taxon_with_5_products.classifications[1]
         classification.destroy
       end
@@ -88,6 +90,25 @@ module Spree
       it 'resets positions' do
         expect positions_to_be_valid(taxon_with_5_products)
       end
+    end
+
+    it "touches the product" do
+      taxon = taxon_with_5_products
+      classification = taxon.classifications.first
+      product = classification.product
+      product.update_columns(updated_at: 1.day.ago)
+      expect {
+        classification.touch
+      }.to change { product.reload.updated_at }
+    end
+
+    it "touches the taxon" do
+      taxon = taxon_with_5_products
+      classification = taxon.classifications.first
+      taxon.update_columns(updated_at: 1.day.ago)
+      expect {
+        classification.touch
+      }.to change { taxon.reload.updated_at }
     end
   end
 end
