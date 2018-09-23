@@ -1,11 +1,11 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
   module ReturnItem::ExchangeVariantEligibility
-    describe SameOptionValue, type: :model do
+    RSpec.describe SameOptionValue, type: :model do
       describe '.eligible_variants' do
-        subject { SameOptionValue.eligible_variants(variant.reload) }
-
         let(:color_option_type) { create(:option_type, name: 'color') }
         let(:waist_option_type) { create(:option_type, name: 'waist') }
         let(:inseam_option_type) { create(:option_type, name: 'inseam') }
@@ -32,6 +32,8 @@ module Spree
         end
 
         after { SameOptionValue.option_type_restrictions = @original_option_type_restrictions }
+
+        subject { SameOptionValue.eligible_variants(variant.reload) }
 
         it 'returns all other variants for the same product with the same option value for the specified option type' do
           Spree::StockItem.update_all(count_on_hand: 10)
