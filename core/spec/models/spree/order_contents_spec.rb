@@ -1,14 +1,19 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::OrderContents, type: :model do
-  subject { described_class.new(order) }
+require 'rails_helper'
 
-  let(:order) { Spree::Order.create }
+RSpec.describe Spree::OrderContents, type: :model do
+  let!(:store) { create :store }
+  let(:order) { create(:order) }
   let(:variant) { create(:variant) }
+  let!(:stock_location) { variant.stock_locations.first }
+  let(:stock_location_2) { create(:stock_location) }
+
+  subject(:order_contents) { described_class.new(order) }
 
   context '#add' do
     context 'given quantity is not explicitly provided' do
-      it 'adds one line item' do
+      it 'should add one line item' do
         line_item = subject.add(variant)
         expect(line_item.quantity).to eq(1)
         expect(order.line_items.size).to eq(1)
@@ -16,12 +21,34 @@ describe Spree::OrderContents, type: :model do
     end
 
     context 'given a shipment' do
+      let!(:shipment) { create(:shipment, order: order) }
+
       it 'ensure shipment calls update_amounts instead of order calling ensure_updated_shipments' do
-        shipment = create(:shipment)
         expect(subject.order).not_to receive(:ensure_updated_shipments)
-        expect(subject.order).to receive(:refresh_shipment_rates).with(Spree::ShippingMethod::DISPLAY_ON_BACK_END)
         expect(shipment).to receive(:update_amounts)
         subject.add(variant, 1, shipment: shipment)
+      end
+
+      context "with quantity=1" do
+        it "creates correct inventory" do
+          subject.add(variant, 1, shipment: shipment)
+          expect(order.inventory_units.count).to eq(1)
+        end
+      end
+
+      context "with quantity=2" do
+        it "creates correct inventory" do
+          subject.add(variant, 2, shipment: shipment)
+          expect(order.inventory_units.count).to eq(2)
+        end
+      end
+
+      context "called multiple times" do
+        it "creates correct inventory" do
+          subject.add(variant, 1, shipment: shipment)
+          subject.add(variant, 1, shipment: shipment)
+          expect(order.inventory_units.count).to eq(2)
+        end
       end
     end
 
@@ -32,20 +59,20 @@ describe Spree::OrderContents, type: :model do
       end
     end
 
-    it 'adds line item if one does not exist' do
+    it 'should add line item if one does not exist' do
       line_item = subject.add(variant, 1)
       expect(line_item.quantity).to eq(1)
       expect(order.line_items.size).to eq(1)
     end
 
-    it 'updates line item if one exists' do
+    it 'should update line item if one exists' do
       subject.add(variant, 1)
       line_item = subject.add(variant, 1)
       expect(line_item.quantity).to eq(2)
       expect(order.line_items.size).to eq(1)
     end
 
-    it 'updates order totals' do
+    it 'should update order totals' do
       expect(order.item_total.to_f).to eq(0.00)
       expect(order.total.to_f).to eq(0.00)
 
@@ -53,12 +80,6 @@ describe Spree::OrderContents, type: :model do
 
       expect(order.item_total.to_f).to eq(19.99)
       expect(order.total.to_f).to eq(19.99)
-    end
-
-    context 'when store_credits payment' do
-      let!(:payment) { create(:store_credit_payment, order: order) }
-
-      it { expect { subject.add(variant, 1) }.to change { order.payments.store_credits.count }.by(-1) }
     end
 
     context 'running promotions' do
@@ -91,33 +112,36 @@ describe Spree::OrderContents, type: :model do
 
         include_context 'discount changes order total'
       end
+    end
 
-      context 'VAT for variant with percent promotion' do
-        let!(:category) { Spree::TaxCategory.create name: 'Taxable Foo' }
-        let!(:rate) do
-          Spree::TaxRate.create(
-            amount: 0.25,
-            included_in_price: true,
-            calculator: Spree::Calculator::DefaultTax.create,
-            tax_category: category,
-            zone: create(:zone_with_country, default_tax: true)
-          )
-        end
-        let(:variant) { create(:variant, price: 1000) }
-        let(:calculator) { Spree::Calculator::PercentOnLineItem.new(preferred_percent: 50) }
-        let!(:action) { Spree::Promotion::Actions::CreateItemAdjustments.create(promotion: promotion, calculator: calculator) }
+    describe 'tax calculations' do
+      let!(:zone) { create(:global_zone) }
+      let!(:tax_rate) do
+        create(:tax_rate, zone: zone, tax_categories: [variant.tax_category])
+      end
 
-        it 'updates included_tax_total' do
-          expect(order.included_tax_total.to_f).to eq(0.00)
-          subject.add(variant, 1)
-          expect(order.included_tax_total.to_f).to eq(100)
+      context 'when the order has a taxable address' do
+        before do
+          expect(order.tax_address.country_id).to be_present
         end
 
-        it 'updates included_tax_total after adding two line items' do
-          subject.add(variant, 1)
-          expect(order.included_tax_total.to_f).to eq(100)
-          subject.add(variant, 1)
-          expect(order.included_tax_total.to_f).to eq(200)
+        it 'creates a tax adjustment' do
+          order_contents.add(variant)
+          line_item = order.find_line_item_by_variant(variant)
+          expect(line_item.adjustments.tax.count).to eq(1)
+        end
+      end
+
+      context 'when the order does not have a taxable address' do
+        before do
+          order.update_attributes!(ship_address: nil, bill_address: nil)
+          expect(order.tax_address.country_id).to be_nil
+        end
+
+        it 'creates a tax adjustment' do
+          order_contents.add(variant)
+          line_item = order.find_line_item_by_variant(variant)
+          expect(line_item.adjustments.tax.count).to eq(0)
         end
       end
     end
@@ -133,7 +157,7 @@ describe Spree::OrderContents, type: :model do
     end
 
     context 'given quantity is not explicitly provided' do
-      it 'removes one line item' do
+      it 'should remove one line item' do
         line_item = subject.add(variant, 3)
         subject.remove(variant)
 
@@ -159,33 +183,28 @@ describe Spree::OrderContents, type: :model do
       end
     end
 
-    it 'reduces line_item quantity if quantity is less the line_item quantity' do
+    it 'should reduce line_item quantity if quantity is less the line_item quantity' do
       line_item = subject.add(variant, 3)
       subject.remove(variant, 1)
 
       expect(line_item.quantity).to eq(2)
     end
 
-    context 'when store_credits payment' do
-      let(:payment) { create(:store_credit_payment, order: order) }
-
-      before do
-        subject.add(variant, 1)
-        payment
-      end
-
-      it { expect { subject.remove(variant, 1) }.to change { order.payments.store_credits.count }.by(-1) }
-    end
-
-    it 'removes line_item if quantity matches line_item quantity' do
+    it 'should remove line_item if quantity matches line_item quantity' do
       subject.add(variant, 1)
-      removed_line_item = subject.remove(variant, 1)
+      subject.remove(variant, 1)
 
-      # Should reflect the change already in Order#line_item
-      expect(order.line_items).not_to include(removed_line_item)
+      expect(order.reload.find_line_item_by_variant(variant)).to be_nil
     end
 
-    it 'updates order totals' do
+    it 'should remove line_item if quantity is greater than line_item quantity' do
+      subject.add(variant, 1)
+      subject.remove(variant, 2)
+
+      expect(order.reload.find_line_item_by_variant(variant)).to be_nil
+    end
+
+    it 'should update order totals' do
       expect(order.item_total.to_f).to eq(0.00)
       expect(order.total.to_f).to eq(0.00)
 
@@ -219,25 +238,14 @@ describe Spree::OrderContents, type: :model do
       end
     end
 
-    context 'when store_credits payment' do
-      let(:payment) { create(:store_credit_payment, order: order) }
-
-      before do
-        @line_item = subject.add(variant, 1)
-        payment
-      end
-
-      it { expect { subject.remove_line_item(@line_item) }.to change { order.payments.store_credits.count }.by(-1) }
-    end
-
-    it 'removes line_item' do
+    it 'should remove line_item' do
       line_item = subject.add(variant, 1)
       subject.remove_line_item(line_item)
 
       expect(order.reload.line_items).not_to include(line_item)
     end
 
-    it 'updates order totals' do
+    it 'should update order totals' do
       expect(order.item_total.to_f).to eq(0.00)
       expect(order.total.to_f).to eq(0.00)
 
@@ -272,12 +280,6 @@ describe Spree::OrderContents, type: :model do
       end.to change { subject.order.total }
     end
 
-    context 'when store_credits payment' do
-      let!(:payment) { create(:store_credit_payment, order: order) }
-
-      it { expect { subject.update_cart params }.to change { order.payments.store_credits.count }.by(-1) }
-    end
-
     context 'submits item quantity 0' do
       let(:params) do
         { line_items_attributes: {
@@ -290,20 +292,6 @@ describe Spree::OrderContents, type: :model do
         expect do
           subject.update_cart params
         end.to change { subject.order.line_items.count }
-      end
-
-      it 'doesnt try to update unexistent items' do
-        filtered_params = { line_items_attributes: {
-          '0' => { id: shirt.id, quantity: 0 }
-        } }
-        expect(subject.order).to receive(:update_attributes).with(filtered_params)
-        subject.update_cart params
-      end
-
-      it 'does not filter if there is only one line item' do
-        single_line_item_params = { line_items_attributes: { id: shirt.id, quantity: 0 } }
-        expect(subject.order).to receive(:update_attributes).with(single_line_item_params)
-        subject.update_cart single_line_item_params
       end
     end
 
@@ -326,6 +314,50 @@ describe Spree::OrderContents, type: :model do
       expect do
         subject.remove variant
       end.to change(order, :payment_state)
+    end
+  end
+
+  describe "#approve" do
+    context 'when a name is supplied' do
+      it 'approves the order' do
+        order.contents.approve(name: 'Jordan')
+        expect(order.approver).to be_nil
+        expect(order.approver_name).to eq('Jordan')
+        expect(order.approved_at).to be_present
+        expect(order.approved?).to be_truthy
+      end
+    end
+
+    context 'when a user is supplied' do
+      let(:user) { create(:user) }
+
+      it 'approves the order' do
+        order.contents.approve(user: user)
+        expect(order.approver).to eq(user)
+        expect(order.approver_name).to be_nil
+        expect(order.approved_at).to be_present
+        expect(order.approved?).to be_truthy
+      end
+    end
+
+    context 'when a user and a name are supplied' do
+      let(:user) { create(:user) }
+
+      it 'approves the order' do
+        order.contents.approve(user: user, name: 'Jordan')
+        expect(order.approver).to eq(user)
+        expect(order.approver_name).to eq('Jordan')
+        expect(order.approved_at).to be_present
+        expect(order.approved?).to be_truthy
+      end
+    end
+
+    context 'when neither a user nor a name are supplied' do
+      it 'raises' do
+        expect {
+          order.contents.approve
+        }.to raise_error(ArgumentError, 'user or name must be specified')
+      end
     end
   end
 end
