@@ -1,6 +1,8 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Image, type: :model, active_storage: true do
+require 'rails_helper'
+
+RSpec.describe Spree::Image, type: :model, active_storage: true do
   context 'validation' do
     let(:spree_image) { Spree::Image.new }
     let(:image_file) { File.open(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg') }
