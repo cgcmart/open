@@ -1,7 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
+
+require 'rails_helper'
 
 module Spree
-  describe Exchange, type: :model do
+  RSpec.describe Exchange, type: :model do
     let(:order) { Spree::Order.new }
 
     let(:return_item_1) { build(:exchange_return_item) }
@@ -30,12 +32,14 @@ module Spree
     end
 
     describe '#perform!' do
-      subject { exchange.perform! }
-
-      let(:return_item) { create(:exchange_return_item) }
+      let(:return_item) { create(:exchange_return_item, inventory_unit: inventory_unit) }
       let(:return_items) { [return_item] }
-      let(:order) { return_item.return_authorization.order }
 
+      let(:inventory_unit) { create(:inventory_unit, order: order, line_item: line_item) }
+      let(:order) { create(:shipped_order, line_items_count: 1) }
+      let(:line_item) { order.line_items.first }
+
+      subject { exchange.perform! }
       before { return_item.exchange_variant.stock_items.first.adjust_count_on_hand(20) }
 
       it 'creates shipments for the order with the return items exchange inventory units' do
@@ -50,7 +54,7 @@ module Spree
 
       context 'when it cannot create shipments for all items' do
         before do
-          StockItem.where(variant_id: return_item.exchange_variant_id).destroy_all
+          StockItem.where(variant_id: return_item.exchange_variant_id).each(&:really_destroy!)
         end
 
         it 'raises an UnableToCreateShipments error' do
@@ -67,10 +71,6 @@ module Spree
 
     describe '.param_key' do # for dom_id
       it { expect(Exchange.param_key).to eq 'spree_exchange' }
-    end
-
-    describe '.model_name' do # for dom_id
-      it { expect(Exchange.model_name).to eq Spree::Exchange }
     end
   end
 end
