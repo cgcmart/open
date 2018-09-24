@@ -1,14 +1,13 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::FulfilmentChanger do
-  subject { shipment_splitter.run! }
+require 'rails_helper'
 
+RSpec.describe Spree::FulfilmentChanger do
   let(:variant) { create(:variant) }
 
   let(:order) do
     create(
       :completed_order_with_totals,
-      without_line_items: true,
       line_items_attributes: [
         {
           quantity: current_shipment_inventory_unit_count,
@@ -24,14 +23,14 @@ describe Spree::FulfilmentChanger do
 
   let(:shipment_splitter) do
     described_class.new(
-      current_stock_location: current_shipment.stock_location,
-      desired_stock_location: desired_shipment.stock_location,
       current_shipment:       current_shipment,
       desired_shipment:       desired_shipment,
       variant:                variant,
       quantity:               quantity
     )
   end
+
+  subject { shipment_splitter.run! }
 
   before do
     order && desired_shipment
@@ -58,6 +57,15 @@ describe Spree::FulfilmentChanger do
     it 'recalculates shipping costs for the new shipment' do
       expect(desired_shipment).to receive(:refresh_rates)
       subject
+    end
+
+    it 'updates order totals' do
+      original_total = order.total
+      original_shipment_total = order.shipment_total
+
+      expect { subject }.
+        to change { order.total }.from(original_total).to(original_total + original_shipment_total).
+        and change { order.shipment_total }.by(original_shipment_total)
     end
 
     context 'when transferring to another stock location' do
