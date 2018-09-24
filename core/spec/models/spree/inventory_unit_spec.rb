@@ -1,34 +1,19 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::InventoryUnit, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::InventoryUnit, type: :model do
   let(:stock_location) { create(:stock_location_with_items) }
   let(:stock_item) { stock_location.stock_items.order(:id).first }
+  let(:line_item) { create(:line_item, variant: stock_item.variant) }
 
-  describe 'scopes' do
-    let!(:inventory_unit_1) { create(:inventory_unit, state: 'on_hand') }
-    let!(:inventory_unit_2) { create(:inventory_unit, state: 'backordered') }
-    let!(:inventory_unit_3) { create(:inventory_unit, state: 'shipped') }
-    let!(:inventory_unit_4) { create(:inventory_unit, state: 'returned') }
+  describe ".cancelable" do
+    let!(:pending_unit) { create(:inventory_unit, pending: true) }
+    let!(:non_pending_unit) { create(:inventory_unit, pending: false) }
 
-    describe '.backordered' do
-      it { expect(Spree::InventoryUnit.backordered).to eq([inventory_unit_2]) }
-    end
+    subject { described_class.cancelable }
 
-    describe '.on_hand' do
-      it { expect(Spree::InventoryUnit.on_hand).to eq([inventory_unit_1]) }
-    end
-
-    describe '.on_hand_or_backordered' do
-      it { expect(Spree::InventoryUnit.on_hand_or_backordered).to match_array([inventory_unit_1, inventory_unit_2]) }
-    end
-
-    describe '.shipped' do
-      it { expect(Spree::InventoryUnit.shipped).to eq([inventory_unit_3]) }
-    end
-
-    describe '.returned' do
-      it { expect(Spree::InventoryUnit.returned).to eq([inventory_unit_4]) }
-    end
+    it { is_expected.to contain_exactly(non_pending_unit) }
   end
 
   context '#backordered_for_stock_item' do
@@ -53,6 +38,8 @@ describe Spree::InventoryUnit, type: :model do
     let!(:unit) do
       unit = shipment.inventory_units.first
       unit.state = 'backordered'
+      unit.variant_id = stock_item.variant.id
+      unit.line_item = line_item
       unit.tap(&:save!)
     end
 
@@ -60,10 +47,10 @@ describe Spree::InventoryUnit, type: :model do
       stock_item.set_count_on_hand(-2)
     end
 
-    # Regression for #3066
+    # Regression for https://github.com/spree/spree/issues/3066
     it 'returns modifiable objects' do
       units = Spree::InventoryUnit.backordered_for_stock_item(stock_item)
-      expect { units.first.save! }.not_to raise_error
+      units.first.save!
     end
 
     it "finds inventory units from its stock location when the unit's variant matches the stock item's variant" do
@@ -73,7 +60,8 @@ describe Spree::InventoryUnit, type: :model do
     it "does not find inventory units that aren't backordered" do
       on_hand_unit = shipment.inventory_units.build
       on_hand_unit.state = 'on_hand'
-      on_hand_unit.variant_id = 1
+      on_hand_unit.line_item = line_item
+      on_hand_unit.variant = stock_item.variant
       on_hand_unit.save!
 
       expect(Spree::InventoryUnit.backordered_for_stock_item(stock_item)).not_to include(on_hand_unit)
@@ -82,6 +70,7 @@ describe Spree::InventoryUnit, type: :model do
     it "does not find inventory units that don't match the stock item's variant" do
       other_variant_unit = shipment.inventory_units.build
       other_variant_unit.state = 'backordered'
+      other_variant_unit.line_item = line_item
       other_variant_unit.variant = create(:variant)
       other_variant_unit.save!
 
@@ -117,7 +106,7 @@ describe Spree::InventoryUnit, type: :model do
         unit = other_shipment.inventory_units.build
         unit.state = 'backordered'
         unit.variant_id = stock_item.variant.id
-        unit.order_id = other_order.id
+        unit.line_item = line_item
         unit.tap(&:save!)
       end
 
@@ -127,10 +116,24 @@ describe Spree::InventoryUnit, type: :model do
     end
   end
 
+  context "variants discarded" do
+    let!(:unit) { create(:inventory_unit) }
+
+    it "can still fetch variant" do
+      unit.variant.discard
+      expect(unit.reload.variant).to be_a Spree::Variant
+    end
+
+    it "can still fetch variants by eager loading (remove default_scope)" do
+      skip "find a way to remove default scope when eager loading associations"
+      unit.variant.discard
+      expect(Spree::InventoryUnit.joins(:variant).includes(:variant).first.variant).to be_a Spree::Variant
+    end
+  end
+
   context '#finalize_units!' do
     let!(:stock_location) { create(:stock_location) }
     let(:variant) { create(:variant) }
-    let (:shipment) { create(:shipment) }
     let(:inventory_units) do
       [
         create(:inventory_unit, variant: variant),
@@ -138,18 +141,14 @@ describe Spree::InventoryUnit, type: :model do
       ]
     end
 
-    before do
-      shipment.inventory_units = inventory_units
-    end
-
-    it 'creates a stock movement' do
-      expect { shipment.inventory_units.finalize_units! }.
-        to change { shipment.inventory_units.where(pending: false).count }.by 2
+    it 'should create a stock movement' do
+      Spree::InventoryUnit.finalize_units!(inventory_units)
+      expect(inventory_units.any?(&:pending)).to be false
     end
   end
 
   describe '#current_or_new_return_item' do
-    before { allow(inventory_unit).to receive_messages(pre_tax_amount: 100.0) }
+    before { allow(inventory_unit).to receive_messages(pre_tax_total: 100.0) }
 
     subject { inventory_unit.current_or_new_return_item }
 
@@ -180,15 +179,17 @@ describe Spree::InventoryUnit, type: :model do
   end
 
   describe '#additional_tax_total' do
-    subject do
-      build(:inventory_unit, line_item: line_item)
-    end
-
     let(:quantity) { 2 }
     let(:line_item_additional_tax_total) { 10.00 }
     let(:line_item) do
-      build(:line_item,         quantity: quantity,
-                                additional_tax_total: line_item_additional_tax_total)
+      build(:line_item, {
+        quantity: quantity,
+        additional_tax_total: line_item_additional_tax_total
+      })
+    end
+
+    subject do
+      build(:inventory_unit, line_item: line_item)
     end
 
     it 'is the correct amount' do
@@ -197,15 +198,17 @@ describe Spree::InventoryUnit, type: :model do
   end
 
   describe '#included_tax_total' do
-    subject do
-      build(:inventory_unit, line_item: line_item)
-    end
-
     let(:quantity) { 2 }
     let(:line_item_included_tax_total) { 10.00 }
     let(:line_item) do
-      build(:line_item,         quantity: quantity,
-                                included_tax_total: line_item_included_tax_total)
+      build(:line_item, {
+        quantity: quantity,
+        included_tax_total: line_item_included_tax_total
+      })
+    end
+
+    subject do
+      build(:inventory_unit, line_item: line_item)
     end
 
     it 'is the correct amount' do
@@ -213,37 +216,59 @@ describe Spree::InventoryUnit, type: :model do
     end
   end
 
-  describe '#additional_tax_total' do
-    subject do
-      build(:inventory_unit, line_item: line_item)
+  describe "#exchange_requested?" do
+    subject { inventory_unit.exchange_requested? }
+
+    context "return item contains inventory unit and was for an exchange" do
+      let(:exchange_return_item) { create(:exchange_return_item) }
+      let(:inventory_unit) { exchange_return_item.inventory_unit }
+      it { is_expected.to eq true }
     end
 
-    let(:quantity) { 2 }
-    let(:line_item_additional_tax_total) { 10.00 }
-    let(:line_item) do
-      build(:line_item,         quantity: quantity,
-                                additional_tax_total: line_item_additional_tax_total)
-    end
-
-    it 'is the correct amount' do
-      expect(subject.additional_tax_total).to eq line_item_additional_tax_total / quantity
+    context "return item does not contain inventory unit" do
+      let(:inventory_unit) { create(:inventory_unit) }
+      it { is_expected.to eq false }
     end
   end
 
-  describe '#included_tax_total' do
-    subject do
-      build(:inventory_unit, line_item: line_item)
+  context "destroy prevention" do
+    it "can be destroyed when on hand" do
+      inventory_unit = create(:inventory_unit, state: "on_hand")
+      expect(inventory_unit.destroy).to be_truthy
+      expect { inventory_unit.reload }.to raise_error(ActiveRecord::RecordNotFound)
     end
 
-    let(:quantity) { 2 }
-    let(:line_item_included_tax_total) { 10.00 }
-    let(:line_item) do
-      build(:line_item,         quantity: quantity,
-                                included_tax_total: line_item_included_tax_total)
+    it "can be destroyed when backordered" do
+      inventory_unit = create(:inventory_unit, state: "backordered")
+      expect(inventory_unit.destroy).to be_truthy
+      expect { inventory_unit.reload }.to raise_error(ActiveRecord::RecordNotFound)
     end
 
-    it 'is the correct amount' do
-      expect(subject.included_tax_total).to eq line_item_included_tax_total / quantity
+    it "cannot be destroyed when shipped" do
+      inventory_unit = create(:inventory_unit, state: "shipped")
+      expect(inventory_unit.destroy).to eq false
+      expect(inventory_unit.errors.full_messages.join).to match /Cannot destroy/
+      expect { inventory_unit.reload }.not_to raise_error
+    end
+
+    it "cannot be destroyed when returned" do
+      inventory_unit = create(:inventory_unit, state: "returned")
+      expect(inventory_unit.destroy).to eq false
+      expect(inventory_unit.errors.full_messages.join).to match /Cannot destroy/
+      expect { inventory_unit.reload }.not_to raise_error
+    end
+
+    it "can be destroyed if its shipment is ready" do
+      inventory_unit = create(:order_ready_to_ship).inventory_units.first
+      expect(inventory_unit.destroy).to be_truthy
+      expect { inventory_unit.reload }.to raise_error(ActiveRecord::RecordNotFound)
+    end
+
+    it "cannot be destroyed if its shipment is shipped" do
+      inventory_unit = create(:shipped_order).inventory_units.first
+      expect(inventory_unit.destroy).to eq false
+      expect(inventory_unit.errors.full_messages.join).to match /Cannot destroy/
+      expect { inventory_unit.reload }.not_to raise_error
     end
   end
 end
