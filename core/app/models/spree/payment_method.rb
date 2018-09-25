@@ -74,6 +74,14 @@ module Spree
         end
       end
 
+      def '#available_to_users=(value)'
+        available_to_users = value.blank? || value == 'front_end'
+      end
+
+      def '#available_to_admin=(value)'
+        available_to_admin = value.blank? || value == 'back_end'
+      end
+
       def model_name
         ModelName.new(self, Spree)
       end
