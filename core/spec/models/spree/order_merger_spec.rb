@@ -1,9 +1,12 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-# Regression tests for #2179
+require 'rails_helper'
+
+# Regression tests for https://github.com/spree/spree/issues/2179
 module Spree
-  describe OrderMerger, type: :model do
+  RSpec.describe OrderMerger, type: :model do
     let(:variant) { create(:variant) }
+    let!(:store) { create(:store, default: true) }
     let(:order_1) { Spree::Order.create }
     let(:order_2) { Spree::Order.create }
     let(:user) { stub_model(Spree::LegacyUser, email: 'spree@example.com') }
@@ -42,6 +45,26 @@ module Spree
       end
     end
 
+    context 'merging together two orders with multiple currencies line items' do
+      let(:order_2) { Spree::Order.create(currency: 'JPY') }
+      let(:variant_2) { create(:variant) }
+
+      before do
+        Spree::Price.create(variant: variant_2, amount: 10, currency: 'JPY')
+        order_1.contents.add(variant, 1)
+        order_2.contents.add(variant_2.reload, 1)
+      end
+
+      it 'rejects other order line items' do
+        subject.merge!(order_2, user)
+        expect(order_1.line_items.count).to eq(1)
+
+        line_item = order_1.line_items.first
+        expect(line_item.quantity).to eq(1)
+        expect(line_item.variant_id).to eq(variant.id)
+      end
+    end
+
     context 'merging using extension-specific line_item_comparison_hooks' do
       before do
         Spree::Order.register_line_item_comparison_hook(:foos_match)
@@ -50,7 +73,7 @@ module Spree
 
       after do
         # reset to avoid test pollution
-        Rails.application.config.spree.line_item_comparison_hooks = Set.new
+        Spree::Order.line_item_comparison_hooks = Set.new
       end
 
       context '2 equal line items' do
@@ -103,7 +126,9 @@ module Spree
 
       specify do
         subject.merge!(order_2)
-        line_items = order_1.line_items.reload
+
+         # Both in memory and in DB line items
+        expect(order_1.line_items.length).to eq(2)
         expect(line_items.count).to eq(2)
 
         expect(order_1.item_count).to eq 2
@@ -123,10 +148,9 @@ module Spree
         order_2.contents.add(variant_2, 1)
       end
 
-      it 'creates errors with invalid line items' do
-        # we cannot use .destroy here as it will be halted by
-        # :ensure_no_line_items callback
+      it 'should create errors with invalid line items' do
         variant_2.really_destroy!
+        order_2.line_items.to_a.first.reload # so that it registers as invalid
         subject.merge!(order_2)
         expect(order_1.errors.full_messages).not_to be_empty
       end
