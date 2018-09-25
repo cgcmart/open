@@ -1,7 +1,9 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Preference, type: :model do
-  it 'requires a key' do
+require 'rails_helper'
+
+RSpec.describe Spree::Preference, type: :model do
+  it 'should require a key' do
     @preference = Spree::Preference.new
     @preference.key = :test
     @preference.value = true
