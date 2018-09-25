@@ -141,8 +141,6 @@ RSpec.describe Spree::Order, type: :model do
     it 'update and persist totals' do
       expect(shipment).to receive :update_amounts
       expect(order.updater).to receive :update
-
-      order.set_shipments_cost
     end
   end
 
@@ -540,7 +538,6 @@ RSpec.describe Spree::Order, type: :model do
       order.update_column(:payment_state, 'balance_due')
       order.payment_state = 'paid'
       expect(order.state_changes).to be_empty
-      order.state_changed('payment')
       state_change = order.state_changes.find_by(name: 'payment')
       expect(state_change.previous_state).to eq('balance_due')
       expect(state_change.next_state).to eq('paid')
@@ -548,8 +545,6 @@ RSpec.describe Spree::Order, type: :model do
 
     it 'does not do anything if state does not change' do
       order.update_column(:payment_state, 'balance_due')
-      expect(order.state_changes).to be_empty
-      order.state_changed('payment')
       expect(order.state_changes).to be_empty
     end
   end
@@ -767,13 +762,6 @@ RSpec.describe Spree::Order, type: :model do
       it 'does not generate new number' do
         order.generate_order_number
         expect(order.number).to eq '123'
-      end
-    end
-
-    context "passing options" do
-      it 'is deprecated' do
-        expect(Spree::Deprecation).to receive(:warn)
-        order.generate_order_number(length: 2)
       end
     end
   end
