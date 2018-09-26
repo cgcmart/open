@@ -908,4 +908,31 @@ RSpec.describe Spree::Variant, type: :model do
       end
     end
   end
+
+  context '#backordered?' do
+    let!(:variant) { create(:variant) }
+
+    it 'returns true when out of stock and backorderable' do
+      expect(variant.backordered?).to eq(true)
+    end
+
+    it 'returns false when out of stock and not backorderable' do
+      variant.stock_items.first.update(backorderable: false)
+      expect(variant.backordered?).to eq(false)
+    end
+
+    it 'returns false when there is available item in stock' do
+      variant.stock_items.first.update(count_on_hand: 10)
+      expect(variant.backordered?).to eq(false)
+    end
+  end
+
+  describe '#ensure_no_line_items' do
+    let!(:line_item) { create(:line_item, variant: variant) }
+
+    it 'adds error on product destroy' do
+      expect(variant.destroy).to eq false
+      expect(variant.errors[:base]).to include I18n.t('activerecord.errors.models.spree/variant.attributes.base.cannot_destroy_if_attached_to_line_items')
+    end
+  end
 end
