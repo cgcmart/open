@@ -672,5 +672,65 @@ RSpec.describe Spree::Product, type: :model do
         expect(product.sku).to eq 'FOO'
       end
     end
-  end  
+  end
+
+  context 'acts_as_taggable' do
+    let(:product) { create(:product) }
+
+    it 'adds tags' do
+      product.tag_list.add('awesome')
+      expect(product.tag_list).to include('awesome')
+    end
+
+    it 'removes tags' do
+      product.tag_list.remove('awesome')
+      expect(product.tag_list).not_to include('awesome')
+    end
+  end
+
+  context '#brand' do
+    let(:taxonomy) { create(:taxonomy, name: I18n.t('spree.taxonomy_brands_name')) }
+    let(:product) { create(:product, taxons: [taxonomy.taxons.first]) }
+
+    it 'fetches Brand Taxon' do
+      expect(product.brand).to eql(taxonomy.taxons.first)
+    end
+  end
+
+  context '#category' do
+    let(:taxonomy) { create(:taxonomy, name: I18n.t('spree.taxonomy_categories_name')) }
+    let(:product) { create(:product, taxons: [taxonomy.taxons.first]) }
+
+    it 'fetches Category Taxon' do
+      expect(product.category).to eql(taxonomy.taxons.first)
+    end
+  end
+
+  context '#backordered?' do
+    let!(:product) { create(:product) }
+
+    it 'returns true when out of stock and backorderable' do
+      expect(product.backordered?).to eq(true)
+    end
+
+    it 'returns false when out of stock and not backorderable' do
+      product.stock_items.first.update(backorderable: false)
+      expect(product.backordered?).to eq(false)
+    end
+
+    it 'returns false when there is available item in stock' do
+      product.stock_items.first.update(count_on_hand: 10)
+      expect(product.backordered?).to eq(false)
+    end
+  end
+
+  describe '#ensure_no_line_items' do
+    let(:product) { create(:product) }
+    let!(:line_item) { create(:line_item, variant: product.master) }
+
+    it 'adds error on product destroy' do
+      expect(product.destroy).to eq false
+      expect(product.errors[:base]).to include I18n.t('activerecord.errors.models.spree/product.attributes.base.cannot_destroy_if_attached_to_line_items')
+    end
+  end
 end
