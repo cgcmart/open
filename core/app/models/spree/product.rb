@@ -11,8 +11,6 @@ module Spree
     include ActsAsTaggable
     friendly_id :slug_candidates, use: :history
 
-    acts_as_paranoid
-
     include Discard::Model
     self.discard_column = :deleted_at
 
@@ -222,15 +220,22 @@ module Spree
       where conditions.inject(:or)
     end
 
-    # Suitable for displaying only variants that has at least one option value.
-    # There may be scenarios where an option type is removed and along with it
-    # all option values. At that point all variants associated with only those
-    # values should not be displayed to frontend users. Otherwise it breaks the
-    # idea of having variants
-    def variants_and_option_values(current_currency = nil)
-      variants.includes(:option_values).active(current_currency).select do |variant|
-        variant.option_values.any?
-      end
+    # Groups all of the option values that are associated to the product's variants, grouped by
+    # option type.
+    #
+    # @param variant_scope [ActiveRecord_Associations_CollectionProxy] scope to filter the variants
+    # used to determine the applied option_types
+    # @return [Hash<Spree::OptionType, Array<Spree::OptionValue>>] all option types and option values
+    # associated with the products variants grouped by option type
+    def variant_option_values_by_option_type(variant_scope = nil)
+      option_value_scope = Spree::OptionValuesVariant.joins(:variant)
+        .where(spree_variants: { product_id: id })
+      option_value_scope = option_value_scope.merge(variant_scope) if variant_scope
+      option_value_ids = option_value_scope.distinct.pluck(:option_value_id)
+      Spree::OptionValue.where(id: option_value_ids).
+        includes(:option_type).
+        order("#{Spree::OptionType.table_name}.position, #{Spree::OptionValue.table_name}.position").
+        group_by(&:option_type)
     end
 
     def empty_option_values?
@@ -273,6 +278,21 @@ module Spree
       variant_property_rules.find do |rule|
         rule.matches_option_value_ids?(option_value_ids)
       end
+    end
+
+    # Master variant may be deleted (i.e. when the product is deleted)
+    # which would make AR's default finder return nil.
+    # This is a stopgap for that little problem.
+    def master
+      super || variants_including_master.with_deleted.find_by(is_master: true)
+    end
+
+    def brand
+      taxons.joins(:taxonomy).find_by(spree_taxonomies: { name: Spree.t(:taxonomy_brands_name) })
+    end
+
+    def category
+      taxons.joins(:taxonomy).find_by(spree_taxonomies: { name: Spree.t(:taxonomy_categories_name) })
     end
 
     private
@@ -353,17 +373,19 @@ module Spree
 
         taxonomy_ids_to_touch = taxons_to_touch.map(&:taxonomy_id).flatten.uniq
         Spree::Taxonomy.where(id: taxonomy_ids_to_touch).update_all(updated_at: Time.current)
+      end
+    end
+
+    def ensure_no_line_items
+      if line_items.any?
+        errors.add(:base, :cannot_destroy_if_attached_to_line_items)
+        throw(:abort)
+      end
     end
 
     def remove_taxon(taxon)
       removed_classifications = classifications.where(taxon: taxon)
       removed_classifications.each &:remove_from_list
-    end
-
-    def discontinue_on_must_be_later_than_available_on
-      if discontinue_on < available_on
-        errors.add(:discontinue_on, :invalid_date_range)
-      end
     end
   end
 end
