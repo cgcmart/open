@@ -8,7 +8,7 @@ module Spree
 
     def create_refunds(reimbursement, payments, unpaid_amount, simulate, reimbursement_list = [])
       payments = sorted_eligible_refund_payments(payments)
-      payments.map do |payment|
+      payments.each do |payment|
         break if unpaid_amount <= 0
         next unless payment.can_credit?
 
@@ -44,21 +44,22 @@ module Spree
     # If you have multiple methods of crediting a customer, overwrite this method
     # Must return an array of objects the respond to #description, #display_amount
     def create_credit(reimbursement, unpaid_amount, simulate)
-      creditable = create_creditable(reimbursement, unpaid_amount)
+      category = Spree::StoreCreditCategory.default_reimbursement_category(category_options(reimbursement))
+      creditable = Spree::StoreCredit.new(store_credit_params(category, reimbursement, unpaid_amount))
       credit = reimbursement.credits.build(creditable: creditable, amount: unpaid_amount)
       simulate ? credit.readonly! : credit.save!
       credit
     end
 
-    def create_creditable(reimbursement, unpaid_amount)
-      Spree::Reimbursement::Credit.default_creditable_class.new(
+    def store_credit_params(category, reimbursement, unpaid_amount)
+      {
         user: reimbursement.order.user,
         amount: unpaid_amount,
-        category: Spree::StoreCreditCategory.reimbursement_category(reimbursement),
+        category: category,
         created_by: Spree::StoreCredit.default_created_by,
         memo: "Refund for uncreditable payments on order #{reimbursement.order.number}",
         currency: reimbursement.order.currency
-      )
+      }
     end
 
     def sorted_eligible_refund_payments(payments)
