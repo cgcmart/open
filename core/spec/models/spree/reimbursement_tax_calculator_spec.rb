@@ -1,15 +1,17 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::ReimbursementTaxCalculator, type: :model do
-  subject do
-    Spree::ReimbursementTaxCalculator.call(reimbursement)
-  end
+require 'rails_helper'
 
+RSpec.describe Spree::ReimbursementTaxCalculator, type: :model do
   let!(:tax_rate) { nil }
 
   let(:reimbursement) { create(:reimbursement, return_items_count: 1) }
   let(:return_item) { reimbursement.return_items.first }
   let(:line_item) { return_item.inventory_unit.line_item }
+
+  subject do
+    Spree::ReimbursementTaxCalculator.call(reimbursement)
+  end
 
   context 'without taxes' do
     let!(:tax_rate) { nil }
@@ -23,14 +25,8 @@ describe Spree::ReimbursementTaxCalculator, type: :model do
   end
 
   context 'with additional tax' do
-    let!(:tax_rate) do
-      create :tax_rate,
-             name: 'Sales Tax',
-             amount: 0.10,
-             included_in_price: false,
-             tax_category: create(:tax_category),
-             zone: create(:zone_with_country, default_tax: true)
-    end
+    let!(:tax_rate) { create(:tax_rate, name: 'Sales Tax', amount: 0.10, included_in_price: false, zone: tax_zone) }
+    let(:tax_zone) { create(:zone, :with_country) }
 
     it 'sets additional_tax_total on the return items' do
       subject
@@ -42,13 +38,8 @@ describe Spree::ReimbursementTaxCalculator, type: :model do
   end
 
   context 'with included tax' do
-    let!(:tax_rate) do
-      create :tax_rate,
-             name: 'VAT Tax',
-             amount: 0.10,
-             included_in_price: true,
-             tax_category: create(:tax_category),
-             zone: create(:zone_with_country, default_tax: true)
+    let!(:tax_rate) { create(:tax_rate, name: 'VAT Tax', amount: 0.10, included_in_price: true, zone: tax_zone) }
+    let(:tax_zone) { create(:zone, with_country) }
     end
 
     it 'sets included_tax_total on the return items' do
