@@ -34,19 +34,10 @@ RSpec.describe Spree::Adjustment, type: :model do
   end
 
   context '#currency' do
-    let(:order) { Spree::Order.new currency: 'JPY' }
+    let(:order) { Spree::Order.new currency: 'EUR' }
 
     it 'returns the adjustables currency' do
-      expect(adjustment.currency).to eq 'JPY'
-    end
-
-    context 'adjustable is nil' do
-      before do
-        adjustment.adjustable = nil
-      end
-      it 'uses the global currency of USD' do
-        expect(adjustment.currency).to eq 'USD'
-      end
+      expect(adjustment.currency).to eq 'EUR'
     end
   end
 
