@@ -1,24 +1,19 @@
-require 'spec_helper'
-describe 'StoreCreditCategory' do
-  describe 'callbacks' do
-    context 'store credit category is not used in store credit' do
-      let!(:store_credit_category) { create(:store_credit_category) }
+# frozen_string_literal: true
 
-      it 'can delete store credit category' do
-        expect { store_credit_category.destroy }.to change(Spree::StoreCreditCategory, :count).by(-1)
-      end
+require 'rails_helper'
+
+RSpec.describe Spree::StoreCreditCategory, type: :model do
+  describe "#non_expiring?" do
+    let(:store_credit_category) { build(:store_credit_category, name: category_name) }
+
+    context "non-expiring type store credit" do
+      let(:category_name) { "Non-expiring" }
+      it { expect(store_credit_category).to be_non_expiring }
     end
 
-    context 'store credit category is used in store credit' do
-      let!(:store_credit_category) { create(:store_credit_category) }
-      let!(:store_credit) { create(:store_credit, category_id: store_credit_category.id) }
-
-      it 'can not delete store credit category' do
-        store_credit_category.destroy
-        expect(store_credit_category.errors[:base]).to include(
-          I18n.t('activerecord.errors.models.spree/store_credit_category.attributes.base.cannot_destroy_if_used_in_store_credit')
-        )
-      end
+    context "expiring type store credit" do
+      let(:category_name) { "Expiring" }
+      it { expect(store_credit_category).not_to be_non_expiring }
     end
   end
 end
