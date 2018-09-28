@@ -18,22 +18,22 @@ ShippingTotalManager.prototype.calculateShipmentTotal = function () {
   $.each(checked, function (idx, shippingMethod) {
     this.sum += this.parseCurrencyToFloat($(shippingMethod).data('cost'))
   }.bind(this))
-  return this.readjustSummarySection(this.parseCurrencyToFloat(this.orderTotal.html()), this.sum, this.parseCurrencyToFloat(this.shipmentTotal.html()))
+  this.readjustSummarySection(this.parseCurrencyToFloat(this.orderTotal.html()), this.sum, this.parseCurrencyToFloat(this.shipmentTotal.html()))
 }
 
 ShippingTotalManager.prototype.parseCurrencyToFloat = function (input) {
-  return accounting.unformat(input, this.formatOptions.decimal)
+  accounting.unformat(input, this.formatOptions.decimal)
 }
 
 ShippingTotalManager.prototype.readjustSummarySection = function (orderTotal, newShipmentTotal, oldShipmentTotal) {
   var newOrderTotal = orderTotal + (newShipmentTotal - oldShipmentTotal)
   this.shipmentTotal.html(accounting.formatMoney(newShipmentTotal, this.formatOptions))
-  return this.orderTotal.html(accounting.formatMoney(newOrderTotal, this.formatOptions))
+  this.orderTotal.html(accounting.formatMoney(newOrderTotal, this.formatOptions))
 }
 
 ShippingTotalManager.prototype.bindEvent = function () {
   this.shippingMethods.change(function () {
-    return this.calculateShipmentTotal()
+    this.calculateShipmentTotal()
   }.bind(this))
 }
 
@@ -43,5 +43,5 @@ Spree.ready(function ($) {
     shipmentTotal: $('[data-hook="shipping-total"]'),
     shippingMethods: $('input[data-behavior="shipping-method-selector"]')
   }
-  return new ShippingTotalManager(input).bindEvent()
+  new ShippingTotalManager(input).bindEvent()
 })
