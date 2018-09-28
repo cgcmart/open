@@ -32,7 +32,7 @@ Spree.ready(function ($) {
 
 Spree.fetch_cart = function (CartLinkUrl) {
   Spree.ajax({
-    url: CartLinkUrl || Spree.pathFor('cart_link'),
+    url: cartLinkUrl || Spree.pathFor('cart_link'),
     success: function (data) {
       $('#link-to-cart').html(data)
     }
