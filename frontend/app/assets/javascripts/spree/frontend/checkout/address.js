@@ -95,7 +95,7 @@ Spree.ready(function ($) {
     }
 
     function getCountryId (region) {
-      return $('#' + region + 'country select').val()
+      $('#' + region + 'country select').val()
     }
   }
   Spree.onAddress()
