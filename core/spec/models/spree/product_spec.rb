@@ -487,18 +487,20 @@ RSpec.describe Spree::Product, type: :model do
 
     # Regression test for https://github.com/spree/spree/issues/4416
     context '#possible_promotions' do
-      let!(:promotion) do
-        create(:promotion, advertise: true, starts_at: 1.day.ago)
-      end
-      let!(:rule) do
-        Spree::Promotion::Rules::Product.create(
-          promotion: promotion,
-          products: [product]
-        )
+      let!(:possible_promotion) { create(:promotion, advertise: true, starts_at: 1.day.ago) }
+      let!(:unadvertised_promotion) { create(:promotion, advertise: false, starts_at: 1.day.ago) }
+      let!(:inactive_promotion) { create(:promotion, advertise: true, starts_at: 1.day.since) }
+
+      before do
+        product.promotion_rules.create!(promotion: possible_promotion)
+        product.promotion_rules.create!(promotion: unadvertised_promotion)
+        product.promotion_rules.create!(promotion: inactive_promotion)
       end
 
       it 'lists the promotion as a possible promotion' do
-        expect(product.possible_promotions).to include(promotion)
+        expect(product.possible_promotions).to include(possible_promotion)
+        expect(product.possible_promotions).not_to include(unadvertised_promotion)
+        expect(product.possible_promotions).not_to include(inactive_promotion)
       end
     end
   end
