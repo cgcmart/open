@@ -1,11 +1,15 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::Store, type: :model do
+require 'rails_helper'
+
+RSpec.describe Spree::Store, type: :model do
+  it { is_expected.to respond_to(:cart_tax_country_iso) }
+
   describe '.by_url' do
     let!(:store)    { create(:store, url: "website1.com\nwww.subdomain.com") }
     let!(:store_2)  { create(:store, url: 'freethewhales.com') }
 
-    it 'finds stores by url' do
+    it 'should find stores by url' do
       by_domain = Spree::Store.by_url('www.subdomain.com')
 
       expect(by_domain).to include(store)
@@ -13,63 +17,104 @@ describe Spree::Store, type: :model do
     end
   end
 
-  describe '.current' do
-    # there is a default store created with the test_app rake task.
-    let!(:store_1) { Spree::Store.first || create(:store) }
+  describe '.default' do
+    it "should ensure saved store becomes default if one doesn't exist yet" do
+      expect(Spree::Store.where(default: true).count).to eq(0)
+      store = build(:store)
+      expect(store.default).not_to be true
 
-    let!(:store_2) { create(:store, default: false, url: 'www.subdomain.com') }
+      store.save!
 
-    it 'returns default when no domain' do
-      expect(subject.class.current).to eql(store_1)
+      expect(store.default).to be true
     end
 
-    it 'returns store for domain' do
-      expect(subject.class.current('spreecommerce.com')).to eql(store_1)
-      expect(subject.class.current('www.subdomain.com')).to eql(store_2)
+    it "should ensure there is only one default" do
+      orig_default_store = create(:store, default: true)
+      expect(orig_default_store.reload.default).to be true
+
+      new_default_store = create(:store, default: true)
+
+      expect(Spree::Store.where(default: true).count).to eq(1)
+
+      [orig_default_store, new_default_store].each(&:reload)
+
+      expect(new_default_store.default).to be true
+      expect(orig_default_store.default).not_to be true
     end
   end
 
-  describe '.default' do
-    context 'when a default store is already present' do
-      let!(:store)    { create(:store) }
-      let!(:store_2)  { create(:store, default: true) }
-
-      it 'returns the already existing default store' do
-        expect(Spree::Store.default).to eq(store_2)
-      end
-
-      it "ensures there is a default if one doesn't exist yet" do
-        expect(store_2.default).to be true
-      end
-
-      it 'ensures there is only one default' do
-        [store, store_2].each(&:reload)
-
-        expect(Spree::Store.where(default: true).count).to eq(1)
-        expect(store_2.default).to be true
-        expect(store.default).not_to be true
-      end
-
-      context 'when store is not saved' do
-        before do
-          store.default = true
-          store.code = nil
-          store.save
-        end
-
-        it 'ensure old default location still default' do
-          [store, store_2].each(&:reload)
-          expect(store.default).to be false
-          expect(store_2.default).to be true
-        end
+  describe '#default_cart_tax_location' do
+    subject { described_class.new(cart_tax_country_iso: cart_tax_country_iso) }
+    context "when there is no cart_tax_country_iso set" do
+      let(:cart_tax_country_iso) { '' }
+      it "responds with an empty default_cart_tax_location" do
+        expect(subject.default_cart_tax_location).to be_empty
       end
     end
 
-    context 'when a default store is not present' do
-      it 'builds a new default store' do
-        expect(Spree::Store.default.class).to eq(Spree::Store)
-        expect(Spree::Store.default.persisted?).to eq(false)
-        expect(Spree::Store.default.default).to be(true)
+    context "when there is a cart_tax_country_iso set" do
+      let(:country) { create(:country, iso: "DE") }
+      let(:cart_tax_country_iso) { country.iso }
+
+      it "responds with a default_cart_tax_location with that country" do
+        expect(subject.default_cart_tax_location).to eq(Spree::Tax::TaxLocation.new(country: country))
+      end
+    end
+  end
+
+  describe '#available_locales' do
+    let(:store) { described_class.new(available_locales: locales) }
+    subject { store.available_locales }
+
+    context 'with available_locales: []' do
+      let(:locales) { [] }
+
+      it "returns all available locales" do
+        expect(subject).to eq([:en])
+      end
+
+      it "serializes as nil" do
+        expect(store[:available_locales]).to be nil
+      end
+    end
+
+    context 'with available_locales: [:en]' do
+      let(:locales) { [:en] }
+
+      it "returns [:en]" do
+        expect(subject).to eq([:en])
+      end
+
+      it "serializes correctly" do
+        expect(store[:available_locales]).to eq("en")
+      end
+    end
+
+    context 'with available_locales: [:en, :fr]' do
+      let(:locales) { [:en, :fr] }
+
+      it "returns [:fr]" do
+        expect(subject).to eq([:en, :fr])
+      end
+
+      it "serializes correctly" do
+        expect(store[:available_locales]).to eq("en,fr")
+      end
+    end
+
+    context 'with available_locales: [:fr]' do
+      let(:locales) { [:fr] }
+
+      it "returns [:fr]" do
+        expect(subject).to eq([:fr])
+      end
+    end
+
+    context 'with available_locales: ["fr"]' do
+      let(:locales) { ["fr"] }
+
+      it "returns symbols [:fr]" do
+        expect(subject).to eq([:fr])
       end
     end
   end
