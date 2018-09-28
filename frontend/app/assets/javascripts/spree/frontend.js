@@ -5,4 +5,5 @@
 //= require spree/frontend/checkout
 //= require spree/frontend/checkout/address
 //= require spree/frontend/checkout/payment
+//= require spree/frontend/locale_selector
 //= require spree/frontend/product
