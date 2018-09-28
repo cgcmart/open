@@ -1,67 +1,89 @@
-require 'spec_helper'
+# frozen_string_literal: true
 
-describe Spree::LegacyUser, type: :model do # rubocop:disable RSpec/MultipleDescribes
+require 'rails_helper'
+
+RSpec.describe Spree::LegacyUser, type: :model do # rubocop:disable RSpec/MultipleDescribes
   # Regression test for #2844 + #3346
   context '#last_incomplete_order' do
-    let!(:user) { create(:user) }
-    let!(:order) { create(:order, bill_address: create(:address), ship_address: create(:address)) }
-    let(:current_store) { create :store }
 
-    let(:order_1) { create(:order, created_at: 1.day.ago, user: user, created_by: user, store: current_store) }
-    let(:order_2) { create(:order, user: user, created_by: user, store: current_store) }
-    let(:order_3) { create(:order, user: user, created_by: create(:user), store: current_store) }
+    it "excludes orders that are not frontend_viewable" do
+      create(:order, user: user, frontend_viewable: false)
+      expect(user.last_incomplete_spree_order).to eq nil
+    end
 
-    it 'returns correct order' do
-      Timecop.scale(3600) do
-        order_1
-        order_2
-        order_3
+    it "can include orders that are not frontend viewable" do
+      order = create(:order, user: user, frontend_viewable: false)
+      expect(user.last_incomplete_spree_order(only_frontend_viewable: false)).to eq order
+    end
 
-        expect(user.last_incomplete_spree_order(current_store)).to eq order_3
+    it "can scope to a store" do
+      store = create(:store)
+      store_1_order = create(:order, user: user, store: store)
+      create(:order, user: user, store: create(:store))
+      expect(user.last_incomplete_spree_order(store: store)).to eq store_1_order
+    end
+
+    it "excludes completed orders" do
+      create(:completed_order_with_totals, user: user, created_by: user)
+      expect(user.last_incomplete_spree_order).to eq nil
+    end
+
+    it "excludes orders created prior to the user's last completed order" do
+      create(:order, user: user, created_by: user, created_at: 1.second.ago)
+      create(:completed_order_with_totals, user: user, created_by: user)
+      expect(user.last_incomplete_spree_order).to eq nil
+    end
+
+    context "with completable_order_created_cutoff set" do
+      before do
+        Spree::Config.completable_order_created_cutoff_days = 1
       end
+
+      it "excludes orders updated outside of the cutoff date" do
+        create(:order, user: user, created_by: user, created_at: 3.days.ago, updated_at: 2.days.ago)
+        expect(user.last_incomplete_spree_order).to eq nil
+      end
+    end
+
+    context "with completable_order_created_cutoff set" do
+      before do
+        Spree::Config.completable_order_updated_cutoff_days = 1
+      end
+
+      it "excludes orders updated outside of the cutoff date" do
+        create(:order, user: user, created_by: user, created_at: 3.days.ago, updated_at: 2.days.ago)
+        expect(user.last_incomplete_spree_order).to eq nil
+      end
+    end
+
+    it "chooses the most recently created incomplete order" do
+      create(:order, user: user, created_at: 1.second.ago)
+      order_2 = create(:order, user: user)
+      expect(user.last_incomplete_spree_order).to eq order_2
     end
 
     context 'persists order address' do
-      it 'copies over order addresses' do
-        expect do
-          user.persist_order_address(order)
-        end.to change { Spree::Address.count }.by(2)
+      let(:bill_address) { create(:address) }
+      let(:ship_address) { create(:address) }
+      let(:order) { create(:order, user: user, bill_address: bill_address, ship_address: ship_address) }
 
-        expect(user.bill_address).to eq order.bill_address
-        expect(user.ship_address).to eq order.ship_address
-      end
-
-      it 'doesnt create new addresses if user has already' do
-        user.update_column(:bill_address_id, create(:address).id)
-        user.update_column(:ship_address_id, create(:address).id)
+      it "doesn't create new addresses" do
+        user.user_addresses.create(address: bill_address)
+        user.user_addresses.create(address: ship_address)
         user.reload
 
-        expect do
+        expect {
           user.persist_order_address(order)
-        end.not_to change { Spree::Address.count }
+        }.not_to change { Spree::Address.count }
       end
 
-      it 'set both bill and ship address id on subject' do
+      it "associates both the bill and ship address to the user" do
         user.persist_order_address(order)
+        user.save!
+        user.user_addresses.reload
 
-        expect(user.bill_address_id).not_to be_blank
-        expect(user.ship_address_id).not_to be_blank
-      end
-    end
-
-    context 'payment source' do
-      let(:payment_method) { create(:credit_card_payment_method) }
-      let!(:cc) do
-        create(:credit_card, user_id: user.id, payment_method: payment_method, gateway_customer_profile_id: '2342343')
-      end
-
-      it 'has payment sources' do
-        expect(user.payment_sources.first.gateway_customer_profile_id).not_to be_empty
-      end
-
-      it 'drops payment source' do
-        user.drop_payment_source cc
-        expect(cc.gateway_customer_profile_id).to be_nil
+        expect(user.user_addresses.find_first_by_address_values(order.bill_address.attributes)).to_not be_nil
+        expect(user.user_addresses.find_first_by_address_values(order.ship_address.attributes)).to_not be_nil
       end
     end
   end
@@ -74,12 +96,12 @@ describe Spree.user_class, type: :model do
     let(:orders) { Array.new(order_count, double(total: order_value)) }
 
     before do
-      allow(orders).to receive(:sum).with(:total).and_return(orders.sum(&:total))
+      allow(orders).to receive(:pluck).with(:total).and_return(orders.map(&:total))
       allow(orders).to receive(:count).and_return(orders.length)
     end
 
     def load_orders
-      allow(subject).to receive(:orders).and_return(double(complete: orders))
+      allow(subject).to receive(:spree_orders).and_return(double(complete: orders))
     end
 
     describe '#lifetime_value' do
@@ -107,7 +129,7 @@ describe Spree.user_class, type: :model do
     describe '#order_count' do
       before { load_orders }
       it 'returns the count of completed orders for the user' do
-        expect(subject.order_count).to eq order_count
+        expect(subject.order_count).to eq BigDecimal(order_count)
       end
     end
 
@@ -145,13 +167,13 @@ describe Spree.user_class, type: :model do
     end
 
     context 'user has several associated store credits' do
-      subject { store_credit.user }
-
       let(:user) { create(:user) }
       let(:amount) { 120.25 }
       let(:additional_amount) { 55.75 }
       let(:store_credit) { create(:store_credit, user: user, amount: amount, amount_used: 0.0) }
       let!(:additional_store_credit) { create(:store_credit, user: user, amount: additional_amount, amount_used: 0.0) }
+
+      subject { store_credit.user }
 
       context 'part of the store credit has been used' do
         let(:amount_used) { 35.00 }
@@ -164,14 +186,13 @@ describe Spree.user_class, type: :model do
           before { additional_store_credit.update_attributes(amount_authorized: authorized_amount) }
 
           it 'returns sum of amounts minus used amount and authorized amount' do
-            available_store_credit = amount + additional_amount - amount_used - authorized_amount
-            expect(subject.total_available_store_credit.to_f).to eq available_store_credit
+            expect(subject.total_available_store_credit.to_f).to eq(amount + additional_amount - amount_used - authorized_amount)
           end
         end
 
         context 'there are no authorized amounts on any of the store credits' do
           it 'returns sum of amounts minus used amount' do
-            expect(subject.total_available_store_credit.to_f).to eq (amount + additional_amount - amount_used)
+            expect(subject.total_available_store_credit.to_f).to eq(amount + additional_amount - amount_used)
           end
         end
       end
@@ -183,20 +204,20 @@ describe Spree.user_class, type: :model do
           before { additional_store_credit.update_attributes(amount_authorized: authorized_amount) }
 
           it 'returns sum of amounts minus authorized amount' do
-            expect(subject.total_available_store_credit.to_f).to eq (amount + additional_amount - authorized_amount)
+            expect(subject.total_available_store_credit.to_f).to eq(amount + additional_amount - authorized_amount)
           end
         end
 
         context 'there are no authorized amounts on any of the store credits' do
           it 'returns sum of amounts' do
-            expect(subject.total_available_store_credit.to_f).to eq (amount + additional_amount)
+            expect(subject.total_available_store_credit.to_f).to eq(amount + additional_amount)
           end
         end
       end
 
       context 'all store credits have never been used or authorized' do
         it 'returns sum of amounts' do
-          expect(subject.total_available_store_credit.to_f).to eq (amount + additional_amount)
+          expect(subject.total_available_store_credit.to_f).to eq(amount + additional_amount)
         end
       end
     end
