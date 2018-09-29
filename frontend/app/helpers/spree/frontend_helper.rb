@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-require 'spree/store_helper'
-require 'spree/checkout_helper'
+require 'core/app/helpers/spree/checkout_helper'
 
 module Spree
   module FrontendHelper
+    include CheckoutHelper
+
     def body_class
       @body_class ||= content_for?(:sidebar) ? 'two-col' : 'one-col'
       @body_class
