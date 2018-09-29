@@ -1,13 +1,14 @@
+# frozen_string_literal: true
+
 module Spree
   class TaxonsController < Spree::StoreController
-    helper 'spree/products'
+    helper 'spree/products', 'spree/taxon_filters'
+
+    before_action :load_taxon, only: [:show]
 
     respond_to :html
 
     def show
-      @taxon = Taxon.friendly.find(params[:id])
-      return unless @taxon
-
       @searcher = build_searcher(params.merge(taxon: @taxon.id, include_images: true))
       @products = @searcher.retrieve_products
       @taxonomies = Spree::Taxonomy.includes(root: :children)
@@ -15,8 +16,16 @@ module Spree
 
     private
 
+    def load_taxon
+      @taxon = Spree::Taxon.find_by!(permalink: params[:id])
+    end
+
     def accurate_title
-      @taxon.try(:seo_title) || super
+      if @taxon
+        @taxon.seo_title
+      else
+        super
+      end
     end
   end
 end
