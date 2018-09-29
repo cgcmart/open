@@ -6,7 +6,7 @@ module Spree
 
     respond_to :html
 
-    before_action :check_authorization
+    before_action :store_token
     before_action :assign_order_with_lock, only: :update
     around_action :lock_order, only: :update
     before_action :apply_coupon_code, only: :update
