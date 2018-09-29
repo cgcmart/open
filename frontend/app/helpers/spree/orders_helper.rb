@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Spree
   module OrdersHelper
     def order_just_completed?(order)
