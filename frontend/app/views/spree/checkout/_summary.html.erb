@@ -1,9 +1,9 @@
-<h3><%= Spree.t(:order_summary) %></h3>
+<h3><%= t('spree.order_summary') %></h3>
 
-<table class="table" data-hook="order_summary">
+<table data-hook="order_summary">
   <tbody>
     <tr data-hook="item_total">
-      <td><strong><%= Spree.t(:item_total) %>:</strong></td>
+      <td><strong><%= t('spree.item_total') %>:</strong></td>
       <td><strong><%= order.display_item_total.to_html %></strong></td>
     </tr>
 
@@ -27,11 +27,10 @@
       <% end %>
     </tbody>
 
-    <% if order.passed_checkout_step?("address") && order.shipments.any? %>
+    <% if order.passed_checkout_step?("delivery") && order.shipments.any? %>
       <tr data-hook="shipping_total">
-        <td><%= Spree.t(:shipping_total) %>:</td>
-        <% shipping_total = Spree::Money.new(order.shipments.to_a.sum(&:cost), currency: order.currency) %>
-        <td data-hook='shipping-total' data-currency='<%= Money::Currency.find(order.currency).symbol %>' thousands-separator='<%= shipping_total.thousands_separator %>' decimal-mark='<%= shipping_total.decimal_mark %>'><%= shipping_total.to_html %></td>
+        <td><%= t('spree.shipping_total') %>:</td>
+        <td><%= Spree::Money.new(order.shipments.to_a.sum(&:cost), currency: order.currency).to_html %></td>
       </tr>
 
       <% if order.shipment_adjustments.nonzero.exists? %>
@@ -58,16 +57,20 @@
       </tbody>
     <% end %>
 
+    <% if order.total_applicable_store_credit > 0.0 %>
+      <tr data-hook="checkout-summary-store-credit">
+        <td><%= t('spree.store_credit.store_credit') %>:</td>
+        <td><%= order.display_total_applicable_store_credit.to_html %></td>
+      </tr>
+    <% end %>
+
     <tr data-hook="order_total">
       <td><strong><%= Spree.t(:order_total) %>:</strong></td>
       <td><strong><span id='summary-order-total' class="lead text-primary" data-currency=<%= Money::Currency.find(order.currency).symbol %>><%= order.display_total.to_html %></span></strong></td>
     </tr>
-
-    <% if order.using_store_credit? %>
-      <tr data-hook="order_details_store_credit">
-        <td><strong><%= Spree.t(:store_credit_name) %>:</strong></td>
-        <td><span id='summary-store-credit'><%= order.display_total_applied_store_credit.to_html %></span></td>
-      </tr>
-    <% end %>
   </tbody>
 </table>
+
+<% if order.state == 'payment' %>
+  <%= render 'coupon_code', order: order %>
+<% end %>
