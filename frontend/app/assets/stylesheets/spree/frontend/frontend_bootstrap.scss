@@ -11,6 +11,34 @@
 @import "bootstrap";
 @import 'font-awesome';
 
+@media (max-width: $screen-xs-max) {
+  .col-xs-12 {
+    margin-bottom: $grid-gutter-width / 4
+  }
+
+  .col-margin-bottom {
+    .col-xs-12, .col-xs-6 {
+      margin-bottom: $grid-gutter-width / 4
+    }
+  }
+}
+
+@media (max-width: $screen-md-max) {
+  .col-sm-12 {
+    margin-bottom: $grid-gutter-width / 4
+  }
+
+  .col-margin-bottom {
+    .col-sm-12, .col-sm-6 {
+      margin-bottom: $grid-gutter-width / 4
+    }
+  }
+}
+
+.label {
+  padding: .2em .6em;
+}
+
 // -- Spree Custom Header ---------------------
 #spree-header {
   background-color: $brand-primary;
