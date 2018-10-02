@@ -1,14 +1,8 @@
 //Add your custom bootstrap variables here, see https://github.com/twbs/bootstrap-sass/blob/master/assets/stylesheets/bootstrap/_variables.scss for full list of variables.
 
-//= depend_on_asset "fontawesome-webfont.eot"
-//= depend_on_asset "fontawesome-webfont.woff"
-//= depend_on_asset "fontawesome-webfont.ttf"
-//= depend_on_asset "fontawesome-webfont.svg"
-
 @import "bootstrap-sprockets";
 @import "variables";
 @import "bootstrap";
-@import 'font-awesome';
 
 @media (max-width: $screen-xs-max) {
   .col-xs-12 {
