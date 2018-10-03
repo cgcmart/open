@@ -13,25 +13,35 @@
       <%= form_for @order, url: update_cart_path, html: {id: 'update-cart'} do |order_form| %>
         <div data-hook="inside_cart_form">
 
-          <div data-hook="cart_items">
-            <%= render 'form', order_form: order_form %>
+          <div data-hook="cart_items" class="table-responsive">
+            <%= render partial: 'form', locals: { order_form: order_form } %>
           </div>
 
-          <div class="links columns sixteen alpha omega" data-hook="cart_buttons">
-            <%= order_form.text_field :coupon_code, size: 10, placeholder: t('spree.coupon_code') %>
-            <%= button_tag class: 'primary', id: 'update-button' do %>
-              <%= t('spree.update') %>
-            <% end %>
-            <%= button_tag class: 'button checkout primary', id: 'checkout-link', name: 'checkout' do %>
-              <%= t('spree.checkout') %>
-            <% end %>
+          <div class="links col-md-3 navbar-form pull-right text-right" data-hook="cart_buttons">
+            <div class="form-group">
+              <%= button_tag class: 'btn btn-primary', id: 'update-button' do %>
+                <%= t("spree.update') %>
+              <% end %>
+              <%= button_tag class: 'btn btn-lg btn-success', id: 'checkout-link', name: 'checkout' do %>
+                <%= t('spree.checkout') %>
+              <% end %>
+            </div>
           </div>
 
+          <% if Spree::Frontend::Config[:coupon_codes_enabled] %>
+            <div class='col-md-6 form-inline pull-right' data-hook='coupon_code'>
+              <label>
+                <%= order_form.label :coupon_code %>
+                <%= order_form.text_field :coupon_code, size: '30', class: 'form-control' %>
+                <%= button_tag Spree.t(:coupon_code_apply), class: 'btn btn-default' %>
+              </label>
+            </div>
+          <% end %>
         </div>
       <% end %>
     </div>
 
-    <div id="empty-cart" data-hook>
+    <div id="empty-cart" class="col-md-3 pull-left" data-hook>
       <%= form_tag empty_cart_path, method: :put do %>
         <p id="clear_cart_link" data-hook>
         <%= submit_tag t('spree.empty_cart'), class: 'button gray' %>
@@ -42,3 +52,8 @@
     </div>
   <% end %>
 </div>
+
+<script>
+  Spree.current_order_id = "<%= @order.number %>"
+  Spree.current_order_token = "<%= @order.token %>"
+</script>
