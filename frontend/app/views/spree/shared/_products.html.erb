@@ -27,6 +27,7 @@
   </div>
 <% end %>
 
+<hr />
 <% if pagenated_products.respond_to?(:total_pages) %>
   <%= paginate products, theme: 'twitter-bootstrap-3' %>
 <% end %>
