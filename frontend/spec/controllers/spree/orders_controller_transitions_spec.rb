@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 Spree::Order.class_eval do
@@ -6,7 +8,7 @@ end
 
 module Spree
   describe OrdersController, type: :controller do
-    # Regression test for #2004
+    # Regression test for https://github.com/spree/spree/issues/2004
     context 'with a transition callback on first state' do
       let(:order) { Spree::Order.new }
 
@@ -23,7 +25,7 @@ module Spree
       it 'correctly calls the transition callback' do
         expect(order.did_transition).to be_nil
         order.line_items << FactoryBot.create(:line_item)
-        spree_put :update, { checkout: 'checkout' }, order_id: 1
+        put :update, params: { checkout: 'checkout' }
         expect(order.did_transition).to be true
       end
     end
