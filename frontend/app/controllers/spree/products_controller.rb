@@ -47,5 +47,15 @@ module Spree
     def load_taxon
       @taxon = Spree::Taxon.find(params[:taxon]) if params[:taxon].present?
     end
+
+    def redirect_if_legacy_path
+      # If an old id or a numeric id was used to find the record,
+      # we should do a 301 redirect that uses the current friendly id.
+      if params[:id] != @product.friendly_id
+        params[:id] = @product.friendly_id
+        params.permit!
+        redirect_to url_for(params), status: :moved_permanently
+      end
+    end
   end
 end
