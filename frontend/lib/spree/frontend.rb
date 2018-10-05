@@ -6,7 +6,6 @@ require 'bootstrap-sass'
 require 'canonical-rails'
 require 'jquery-rails'
 require 'sass-rails'
-require 'responders'
 
 require 'spree/core'
 require 'spree/api'
