@@ -6,9 +6,9 @@ module Spree
       helper 'spree/products'
 
       before_action :load_data, except: :index
-      create.before :create_before
       update.before :update_before
       helper_method :clone_object_url
+      before_action :split_params, only: [:create, :update]
 
       def show
         redirect_to action: :edit
@@ -20,12 +20,6 @@ module Spree
       end
 
       def update
-        if params[:product][:taxon_ids].present?
-          params[:product][:taxon_ids] = params[:product][:taxon_ids].split(',')
-        end
-        if params[:product][:option_type_ids].present?
-          params[:product][:option_type_ids] = params[:product][:option_type_ids].split(',')
-        end
         if updating_variant_property_rules?
           params[:product][:variant_property_rules_attributes].each do |_index, param_attrs|
             param_attrs[:option_value_ids] = param_attrs[:option_value_ids].split(',')
@@ -74,6 +68,15 @@ module Spree
 
       private
 
+      def split_params
+        if params[:product][:taxon_ids].present?
+          params[:product][:taxon_ids] = params[:product][:taxon_ids].split(',')
+        end
+        if params[:product][:option_type_ids].present?
+          params[:product][:option_type_ids] = params[:product][:option_type_ids].split(',')
+        end
+      end
+
       def find_resource
         Spree::Product.with_deleted.friendly.find(params[:id])
       end
@@ -107,13 +110,6 @@ module Spree
               includes(product_includes).
               page(params[:page]).
               per(Spree::Config[:admin_products_per_page])
-
-        @collection
-      end
-
-      def create_before
-        return if params[:product][:prototype_id].blank?
-        @prototype = Spree::Prototype.find(params[:product][:prototype_id])
       end
 
       def update_before
