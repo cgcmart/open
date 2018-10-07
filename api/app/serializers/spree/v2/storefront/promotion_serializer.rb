@@ -7,8 +7,6 @@ module Spree
         set_type   :promotion
 
         attributes :name, :description
-
-        belongs_to :order
       end
     end
   end
