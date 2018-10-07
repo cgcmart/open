@@ -1,9 +1,9 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Cart', type: :feature, inaccessible: true do
-  before { Timecop.scale(100) }
-
-  after { Timecop.return }
+  before { create(:store) }
 
   let!(:variant) { create(:variant) }
   let!(:product) { variant.product }
@@ -21,19 +21,20 @@ describe 'Cart', type: :feature, inaccessible: true do
 
   it 'prevents double clicking the remove button on cart', js: true do
     add_mug_to_cart
+
     # prevent form submit to verify button is disabled
     page.execute_script("$('#update-cart').submit(function(){return false;})")
 
     expect(page).not_to have_selector('button#update-button[disabled]')
-    page.find(:css, '.delete span').click
+    page.find(:css, '.delete img').click
     expect(page).to have_selector('button#update-button[disabled]')
   end
 
-  # Regression test for #2006
+  # Regression test for https://github.com/spree/spree/issues/2006
   it "does not error out with a 404 when GET'ing to /orders/populate" do
     visit '/orders/populate'
     within('.alert-error') do
-      expect(page).to have_content(Spree.t(:populate_get_error))
+      expect(page).to have_content(I18n.t('spree.populate_get_error'))
     end
   end
 
@@ -64,7 +65,7 @@ describe 'Cart', type: :feature, inaccessible: true do
     end
   end
 
-  # regression for #2276
+  # regression for https://github.com/spree/spree/issues/2276
   context 'product contains variants but no option values' do
     before { variant.option_values.destroy_all }
 
@@ -75,7 +76,7 @@ describe 'Cart', type: :feature, inaccessible: true do
     end
   end
 
-  it "has a surrounding element with data-hook='cart_container'" do
+  it "should hav a surrounding element with data-hook='cart_container'" do
     visit spree.cart_path
     expect(page).to have_selector("div[data-hook='cart_container']")
   end
