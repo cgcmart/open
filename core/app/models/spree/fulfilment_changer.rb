@@ -1,132 +1,119 @@
 # frozen_string_literal: true
 
 module Spree
-  # Service class to change fulfilment of inventory units of a particular variant
-  # to another shipment. The other shipment would typically have a different
-  # shipping method, stock location or delivery date, such that we actually change
-  # the planned fulfilment for the items in question.
-  #
-  # Can be used to merge shipments by moving all items to another shipment, because
-  # this class will delete any empty original shipment.
-  #
-  # @attr [Spree::Shipment] current_shipment The shipment we transfer units from
-  # @attr [Spree::Shipment] desired_shipment The shipment we want to move units onto
-  # @attr [Spree::StockLocation] current_stock_location The stock location of the current shipment
-  # @attr [Spree::StockLocation] desired_stock_location The stock location of the desired shipment
-  # @attr [Spree::Variant] variant We only move units that represent this variant
-  # @attr [Integer] quantity How many units we want to move
-  #
   class FulfilmentChanger
     include ActiveModel::Validations
 
-    attr_accessor :current_shipment, :desired_shipment
-    attr_reader :variant, :quantity, :current_stock_location, :desired_stock_location
-
-    def initialize(current_shipment:, desired_shipment:, variant:, quantity:)
-      @current_shipment = current_shipment
-      @desired_shipment = desired_shipment
-      @current_stock_location = current_shipment.stock_location
-      @desired_stock_location = desired_shipment.stock_location
-      @variant = variant
-      @quantity = quantity
-    end
-
     validates :quantity, numericality: { greater_than: 0 }
-    validate :current_shipment_not_already_shipped
-    validate :desired_shipment_different_from_current
     validates :desired_stock_location, presence: true
+    validate  :current_shipment_not_already_shipped
+    validate  :desired_shipment_different_from_current
     validate  :enough_stock_at_desired_location, if: :handle_stock_counts?
+
+    def initialize(params = {})
+      @current_stock_location = params[:current_stock_location]
+      @desired_stock_location = params[:desired_stock_location]
+      @current_shipment       = params[:current_shipment]
+      @desired_shipment       = params[:desired_shipment]
+      @variant                = params[:variant]
+      @quantity               = params[:quantity]
+      @available_quantity     = [
+        desired_stock_location.try(:count_on_hand, variant).to_i,
+        current_quantity
+      ].max
+    end
 
     def run!
       return false if invalid?
 
       desired_shipment.save! if desired_shipment.new_record?
 
-      # Retrieve how many on hand items we can take from desired stock location
-      available_quantity = [desired_shipment.stock_location.count_on_hand(variant), 0].max
-
-      new_on_hand_quantity = [available_quantity, quantity].min
-      unstock_quantity = desired_shipment.stock_location.backorderable?(variant) ? quantity : new_on_hand_quantity
-
-      ActiveRecord::Base.transaction do
-        if handle_stock_counts?
-          # We only run this query if we need it.
-          current_on_hand_quantity = [current_shipment.inventory_units.pre_shipment.size, quantity].min
-
-          # Restock things we will not fulfil from the current shipment anymore
-          current_stock_location.restock(variant, current_on_hand_quantity, current_shipment)
-          # Unstock what we will fulfil with the new shipment
-          desired_stock_location.unstock(variant, unstock_quantity, desired_shipment)
-        end
-
-        # These two statements are the heart of this class. We change the number
-        # of inventory units requested from one shipment to the other.
-        # We order by state, because `'backordered' < 'on_hand'`.
-        current_shipment.
-          inventory_units.
-          where(variant: variant).
-          order(state: :asc).
-          limit(new_on_hand_quantity).
-          update_all(shipment_id: desired_shipment.id, state: :on_hand)
-
-        current_shipment.
-          inventory_units.
-          where(variant: variant).
-          order(state: :asc).
-          limit(quantity - new_on_hand_quantity).
-          update_all(shipment_id: desired_shipment.id, state: :backordered)
-      end
-
-      # We modified the inventory units at the database level for speed reasons.
-      # The downside of that is that we need to reload the associations.
-      current_shipment.inventory_units.reload
-      desired_shipment.inventory_units.reload
-
-      # If the current shipment now has no inventory units left, we won't need it any longer.
-      if current_shipment.inventory_units.length.zero?
-        current_shipment.destroy!
-      else
-        # The current shipment has changed, so we need to make sure that shipping rates
-        # have the correct amount.
-        current_shipment.refresh_rates
-      end
-
-      # The desired shipment has also change, so we need to make sure shipping rates
-      # are up-to-date, too.
-      desired_shipment.refresh_rates
-
-      # In order to reflect the changes in the order totals
-      desired_shipment.order.reload
-      desired_shipment.order.recalculate
+      handle_stock
+      reload_shipment_inventory_units
+      after_process_shipments
 
       true
     end
 
     private
 
-    # We don't need to handle stock counts for incomplete orders. Also, if
-    # the new shipment and the desired shipment will ship from the same stock location,
-    # unstocking and restocking will not be necessary.
+    attr_reader :variant, :quantity, :current_stock_location, :desired_stock_location,
+      :current_shipment, :desired_shipment, :available_quantity
+
+    def handle_stock
+      ActiveRecord::Base.transaction do
+        if handle_stock_counts?
+          current_stock_location.restock(variant, current_on_hand_quantity, current_shipment)
+          desired_stock_location.unstock(variant, unstock_quantity, desired_shipment)
+        end
+
+        update_current_shipment_inventory_units(new_on_hand_quantity, :on_hand)
+        update_current_shipment_inventory_units(quantity - new_on_hand_quantity, :backordered)
+      end
+    end
+
+    def after_process_shipments
+      if current_shipment.inventory_units.length.zero?
+        current_shipment.destroy!
+      else
+        current_shipment.refresh_rates
+      end
+
+      desired_shipment.refresh_rates
+
+      desired_shipment.order.reload
+      desired_shipment.order.update_with_updater!
+    end
+
+    def new_on_hand_quantity
+      [available_quantity, quantity].min
+    end
+
+    def unstock_quantity
+      desired_stock_location.backorderable?(variant) ? quantity : new_on_hand_quantity
+    end
+
+    def current_on_hand_quantity
+      [current_shipment.inventory_units.on_hand_or_backordered.size, quantity].min
+    end
+
+    def update_current_shipment_inventory_units(quantity, state)
+      current_shipment.
+        inventory_units.
+        where(variant: variant).
+        order(state: :asc).
+        limit(quantity).
+        update_all(shipment_id: desired_shipment.id, state: state)
+    end
+
+    def reload_shipment_inventory_units
+      [current_shipment, desired_shipment].each { |shipment| shipment.inventory_units.reload }
+    end
+
+    def current_quantity
+      desired_stock_location == current_stock_location ? quantity : 0
+    end
+
     def handle_stock_counts?
       current_shipment.order.completed? && current_stock_location != desired_stock_location
     end
 
     def current_shipment_not_already_shipped
-      if current_shipment.shipped?
-        errors.add(:current_shipment, :has_already_been_shipped)
-      end
+      return unless current_shipment.shipped?
+
+      errors.add(:current_shipment, :has_already_been_shipped)
     end
 
     def enough_stock_at_desired_location
-      unless Spree::Stock::Quantifier.new(variant, desired_stock_location).can_supply?(quantity)
-        errors.add(:desired_shipment, :not_enough_stock_at_desired_location)
-      end
+      return if Spree::Stock::Quantifier.new(variant, desired_stock_location).can_supply?(quantity)
+
+      errors.add(:desired_shipment, :not_enough_stock_at_desired_location)
     end
 
     def desired_shipment_different_from_current
-      if desired_shipment.id == current_shipment.id
-        errors.add(:desired_shipment, :can_not_transfer_within_same_shipment)
-      end
+      return unless desired_shipment.id == current_shipment.id
+
+      errors.add(:desired_shipment, :can_not_transfer_within_same_shipment)
     end
   end
 end
