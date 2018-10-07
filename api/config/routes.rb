@@ -153,6 +153,12 @@ Spree::Core::Engine.routes.draw do
           patch  :set_quantity
         end
 
+        resource :checkout, controller: :checkout do
+          patch :next
+          patch :advance
+          patch :complete
+        end
+
         resources :products, only: %i[index show]
         resources :taxons, only: %i[index show]
       end
