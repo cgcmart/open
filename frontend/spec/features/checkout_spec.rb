@@ -447,6 +447,36 @@ describe 'Checkout', type: :feature, inaccessible: true do
     end
   end
 
+  # Regression test for #7734
+  context 'if multiple coupon promotions applied' do
+    let(:promotion) { Spree::Promotion.create(name: 'Order Promotion', code: 'o_promotion') }
+    let(:calculator) { Spree::Calculator::FlatPercentItemTotal.create(preferred_flat_percent: '90') }
+    let(:action) { Spree::Promotion::Actions::CreateAdjustment.create(calculator: calculator) }
+
+    let(:promotion_2) { Spree::Promotion.create(name: 'Line Item Promotion', code: 'li_promotion') }
+    let(:calculator_2) { Spree::Calculator::FlatRate.create(preferred_amount: '1000') }
+    let(:action_2) { Spree::Promotion::Actions::CreateItemAdjustments.create(calculator: calculator_2) }
+
+    before do
+      promotion.actions << action
+      promotion_2.actions << action_2
+
+      add_mug_to_cart
+    end
+
+    it "totals aren't negative" do
+      fill_in 'Coupon Code', with: promotion.code
+      click_on 'Apply'
+
+      fill_in 'Coupon Code', with: promotion_2.code
+      click_on 'Apply'
+
+      expect(page).to have_content(promotion.name)
+      expect(page).to have_content(promotion_2.name)
+      expect(Spree::Order.last.total.to_f).to eq 0.0
+    end
+  end
+
   context 'Coupon promotion', js: true do
     let!(:promotion) { Spree::Promotion.create(name: 'Huhuhu', code: 'huhu') }
     let!(:calculator) { Spree::Calculator::FlatPercentItemTotal.create(preferred_flat_percent: '10') }
@@ -488,6 +518,54 @@ describe 'Checkout', type: :feature, inaccessible: true do
       it 'advances just fine' do
         click_on 'Save and Continue'
         expect(page).to have_current_path(spree.checkout_state_path('confirm'))
+      end
+    end
+  end
+
+  context 'the promotion makes order free (downgrade it total to 0.0)' do
+      let(:promotion2) { Spree::Promotion.create(name: 'test-7450', code: 'test-7450') }
+      let(:calculator2) do
+        Spree::Calculator::FlatRate.create(preferences: { currency: 'USD', amount: BigDecimal.new('99999') })
+      end
+      let(:action2) { Spree::Promotion::Actions::CreateItemAdjustments.create(calculator: calculator2) }
+
+      before { promotion2.actions << action2 }
+
+      context 'user choose to pay by check' do
+        it 'move user to complete checkout step' do
+          fill_in 'Coupon Code', with: promotion2.code
+          click_on 'Save and Continue'
+
+          expect(page).to have_content(promotion2.name)
+          expect(Spree::Order.last.total.to_f).to eq(0)
+          expect(page).to have_current_path(spree.order_path(Spree::Order.last))
+        end
+      end
+
+      context 'user choose to pay by card' do
+        let(:bogus) { create(:credit_card_payment_method) }
+
+        before do
+          order = Spree::Order.last
+          allow(order).to receive_messages(available_payment_methods: [credit_cart_payment])
+          allow_any_instance_of(Spree::CheckoutController).to receive_messages(current_order: order)
+
+          visit spree.checkout_state_path(:payment)
+        end
+
+        it 'move user to confirmation checkout step' do
+          fill_in 'Name on card', with: 'Spree Commerce'
+          fill_in 'Card Number', with: '4111111111111111'
+          fill_in 'card_expiry', with: '04 / 20'
+          fill_in 'Card Code', with: '123'
+
+          fill_in 'Coupon Code', with: promotion2.code
+          click_on 'Save and Continue'
+
+          expect(page).to have_content(promotion2.name)
+          expect(Spree::Order.last.total.to_f).to eq(0)
+          expect(page).to have_current_path(spree.checkout_state_path('confirm'))
+        end
       end
     end
   end
