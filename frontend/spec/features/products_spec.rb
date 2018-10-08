@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'Visiting Products', type: :feature, inaccessible: true do
@@ -49,6 +51,21 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     end
   end
 
+  # Regression spec for Spree [PR#7442](https://github.com/spree/spree/pull/7442)
+  context "when generating product links" do
+    let(:product) { Spree::Product.available.first }
+
+    it "should not use the *_url helper to generate the product links" do
+      visit spree.root_path
+      expect(page).not_to have_xpath(".//a[@href='#{spree.product_url(product, host: current_host)}']")
+    end
+
+    it "should use *_path helper to generate the product links" do
+     visit spree.root_path
+     expect(page).to have_xpath(".//a[@href='#{spree.product_path(product)}']")
+    end
+  end
+
   describe 'meta tags and title' do
     let(:jersey) { Spree::Product.find_by(name: 'Ruby on Rails Baseball Jersey') }
     let(:metas) { { meta_description: 'Brand new Ruby on Rails Jersey', meta_title: 'Ruby on Rails Baseball Jersey Buy High Quality Geek Apparel', meta_keywords: 'ror, jersey, ruby' } }
@@ -92,6 +109,18 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     end
   end
 
+  describe 'schema.org markup' do
+    let(:product) { Spree::Product.available.first }
+
+    it 'has correct schema.org/Offer attributes' do
+      expect(page).to have_css("#product_#{product.id} [itemprop='price'][content='19.99']")
+      expect(page).to have_css("#product_#{product.id} [itemprop='priceCurrency'][content='USD']")
+      click_link product.name
+      expect(page).to have_css("[itemprop='price'][content='19.99']")
+      expect(page).to have_css("[itemprop='priceCurrency'][content='USD']")
+    end
+  end
+
   context 'using Russian Rubles as a currency' do
     before do
       Spree::Config[:currency] = 'RUB'
@@ -103,7 +132,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
       product.tap(&:save)
     end
 
-    # Regression tests for #2737
+    # Regression tests for https://github.com/spree/spree/issues/2737
     context 'uses руб as the currency symbol' do
       it 'on products page' do
         visit spree.root_path
@@ -153,29 +182,23 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
   context 'a product with variants' do
     let(:product) { Spree::Product.find_by(name: 'Ruby on Rails Baseball Jersey') }
     let(:option_value) { create(:option_value) }
-    let!(:variant) { build(:variant, price: 5.59, product: product, option_values: []) }
+    let!(:variant) { product.variants.create!(price: 5.59) }
 
     before do
       # Need to have two images to trigger the error
-      image = File.open(File.expand_path('../../fixtures/thinking-cat.jpg', __FILE__))
-
+      image = File.open(File.expand_path('../fixtures/thinking-cat.jpg', __dir__))
       product.images.create!(attachment: image)
       product.images.create!(attachment: image)
 
       product.option_types << option_value.option_type
       variant.option_values << option_value
-      variant.save!
-    end
-
-    it 'is displayed' do
-      expect { click_link product.name }.not_to raise_error
     end
 
     it 'displays price of first variant listed', js: true do
       click_link product.name
       within('#product-price') do
         expect(page).to have_content variant.price
-        expect(page).not_to have_content Spree.t(:out_of_stock)
+        expect(page).not_to have_content I18n.t('spree.out_of_stock')
       end
     end
 
@@ -184,7 +207,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
 
       click_link product.name
       within('#product-price') do
-        expect(page).not_to have_content Spree.t(:out_of_stock)
+        expect(page).not_to have_content I18n.t('spree.out_of_stock')
       end
     end
 
@@ -193,7 +216,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
 
       click_link product.name
       within('[data-hook=product_price]') do
-        expect(page).not_to have_content Spree.t(:add_to_cart)
+        expect(page).not_to have_content I18n.t('spree.add_to_cart')
       end
     end
   end
@@ -204,7 +227,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     let(:variant2) { create(:variant, product: product, price: 10.99) }
 
     before do
-      image = File.open(File.expand_path('../../fixtures/thinking-cat.jpg', __FILE__))
+      image = File.open(File.expand_path('../fixtures/thinking-cat.jpg', __dir__))
       variant1.images.create!(attachment: image)
       variant2.images.create!(attachment: image)
     end
@@ -225,14 +248,14 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     it 'does display out of stock for master product' do
       click_link product.name
       within('#product-price') do
-        expect(page).to have_content Spree.t(:out_of_stock)
+        expect(page).to have_content I18n.t('spree.out_of_stock')
       end
     end
 
     it "doesn't display cart form if master is out of stock" do
       click_link product.name
       within('[data-hook=product_price]') do
-        expect(page).not_to have_content Spree.t(:add_to_cart)
+        expect(page).not_to have_content I18n.t('spree.add_to_cart')
       end
     end
   end
