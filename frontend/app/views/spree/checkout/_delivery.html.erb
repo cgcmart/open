@@ -42,7 +42,7 @@
             <% ship_form.object.shipping_rates.each do |rate| %>
               <li class="shipping-method">
                 <label>
-                  <%= ship_form.radio_button :selected_shipping_rate_id, rate.id %>
+                  <%= ship_form.radio_button :selected_shipping_rate_id, rate.id, data: { behavior: 'shipping-method-selector', cost: rate.display_cost } %>
                   <span class="rate-name"><%= rate.name %></span>
                   <span class="rate-cost"><%= rate.display_cost %></span>
                 </label>
@@ -102,3 +102,5 @@
 <div class="form-buttons" data-hook="buttons">
   <%= submit_tag t('spree.save_and_continue'), class: 'continue button primary' %>
 </div>
+
+<%= javascript_include_tag 'spree/frontend/checkout/shipment' %>
