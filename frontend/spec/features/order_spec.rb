@@ -1,22 +1,23 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 
 describe 'orders', type: :feature do
-  let(:order) { OrderWalkthrough.up_to(:complete) }
+  let(:order) { Spree::TestingSupport::OrderWalkthrough.up_to(:complete) }
   let(:user) { create(:user) }
 
   before do
     order.update_attribute(:user_id, user.id)
-    order.shipments.destroy_all
     allow_any_instance_of(Spree::OrdersController).to receive_messages(try_spree_current_user: user)
   end
 
   it 'can visit an order' do
     # Regression test for current_user call on orders/show
-    expect { visit spree.order_path(order) }.not_to raise_error
+    visit spree.order_path(order)
   end
 
   it 'displays line item price' do
-    # Regression test for #2772
+    # Regression test for https://github.com/spree/spree/issues/2772
     line_item = order.line_items.first
     line_item.target_shipment = create(:shipment)
     line_item.price = 19.00
@@ -46,7 +47,7 @@ describe 'orders', type: :feature do
     end
   end
 
-  # Regression test for #2282
+  # Regression test for https://github.com/spree/spree/issues/2282
   context 'can support a credit card with blank information' do
     before do
       credit_card = create(:credit_card)
@@ -58,9 +59,7 @@ describe 'orders', type: :feature do
 
     specify do
       visit spree.order_path(order)
-      within '.payment-info' do
-        expect { find('img') }.to raise_error(Capybara::ElementNotFound)
-      end
+      expect(find('.payment-info')).to have_no_css('img')
     end
   end
 
@@ -68,7 +67,7 @@ describe 'orders', type: :feature do
     visit spree.order_path(order)
 
     within '#order_summary' do
-      expect(page).to have_content("#{Spree.t(:order)} #{order.number}")
+      expect(page).to have_content("#{I18n.t('spree.order')} #{order.number}")
     end
   end
 
