@@ -1,5 +1,8 @@
+# frozen_string_literal: true
+
 shared_context 'custom products' do
   before do
+    create(:store)
     taxonomy = FactoryBot.create(:taxonomy, name: 'Categories')
     root = taxonomy.root
     clothing_taxon = FactoryBot.create(:taxon, name: 'Clothing', parent_id: root.id)
