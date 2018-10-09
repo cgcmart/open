@@ -2,7 +2,7 @@
 
 module Spree
   class Image < Asset
-    include ActiveStorage
+    include Configuration::ActiveStorage
     include Rails.application.routes.url_helpers
 
     def styles
