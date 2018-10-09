@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 shared_context 'product prototype' do
   def build_option_type_with_values(name, values)
     ot = FactoryBot.create(:option_type, name: name)
