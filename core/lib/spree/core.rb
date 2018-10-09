@@ -9,7 +9,6 @@ require 'kaminari/activerecord'
 require 'mail'
 require 'mini_magick'
 require 'monetize'
-require 'paperclip'
 require 'ransack'
 require 'state_machines-activerecord'
 
