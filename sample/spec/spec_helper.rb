@@ -12,7 +12,6 @@ DummyApp.setup(
 )
 
 require 'rspec/rails'
-require 'database_cleaner'
 
 RSpec.configure do |config|
   config.color = true
@@ -24,16 +23,15 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.before(:each) do
-    DatabaseCleaner.clean_with(:truncation)
-  end
-
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, comment the following line or assign false
   # instead of true.
   config.use_transactional_fixtures = false
 
-  config.example_status_persistence_file_path = "./spec/examples.txt"
+  config.filter_run_including :active_storage
+  config.run_all_when_everything_filtered = true
+
+  config.include FactoryBot::Syntax::Methods
 
   config.order = :random
   Kernel.srand config.seed
