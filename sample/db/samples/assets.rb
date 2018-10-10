@@ -30,13 +30,6 @@ unless ENV['SKIP_SAMPLE_IMAGES']
     "#{name}.#{type}"
   end
 
-  def attach_paperclip_image(variant, name, type)
-    if variant.images.where(attachment_file_name: file_name(name, type)).none?
-      image = image(name, type)
-      variant.images.create!(attachment: image)
-    end
-  end
-
   def attach_active_storage_image(variant, name, type)
     if variant.images.with_attached_attachment.where(active_storage_blobs: { filename: file_name(name, type) }).none?
       image = image(name, type)
@@ -186,13 +179,8 @@ unless ENV['SKIP_SAMPLE_IMAGES']
   products[:ror_baseball_jersey].variants.each do |variant|
     color = variant.option_value('tshirt-color').downcase
 
-    if Rails.application.config.use_paperclip
-      attach_paperclip_image(variant, "ror_baseball_jersey_#{color}", 'png')
-      attach_paperclip_image(variant, "ror_baseball_jersey_back_#{color}", 'png')
-    else
-      attach_active_storage_image(variant, "ror_baseball_jersey_#{color}", 'png')
-      attach_active_storage_image(variant, "ror_baseball_jersey_back_#{color}", 'png')
-    end
+    attach_active_storage_image(variant, "ror_baseball_jersey_#{color}", 'png')
+    attach_active_storage_image(variant, "ror_baseball_jersey_back_#{color}", 'png')
   end
 
   images.each do |variant, attachments|
