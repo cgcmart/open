@@ -27,6 +27,8 @@ RSpec.configure do |config|
   # examples within a transaction, comment the following line or assign false
   # instead of true.
   config.use_transactional_fixtures = false
+  
+  config.example_status_persistence_file_path = "./spec/examples.txt"
 
   config.filter_run_including :active_storage
   config.run_all_when_everything_filtered = true
