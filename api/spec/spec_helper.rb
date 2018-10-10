@@ -69,13 +69,8 @@ RSpec.configure do |config|
 
   config.example_status_persistence_file_path = "./spec/examples.txt"
 
-  # Config for running specs while have transition period from Paperclip to ActiveStorage
-  if Rails.application.config.use_paperclip
-    config.filter_run_excluding :active_storage
-  else
-    config.filter_run_including :active_storage
-    config.run_all_when_everything_filtered = true
-  end
+  config.filter_run_including :active_storage
+  config.run_all_when_everything_filtered = true
 
   config.order = :random
   Kernel.srand config.seed
