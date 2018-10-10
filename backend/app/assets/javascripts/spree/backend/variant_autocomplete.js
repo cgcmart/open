@@ -1,11 +1,11 @@
 (function() {
-  var variantTemplate = HandlebarsTemplates["variants/autocomplete"];
+  var variantTemplate = HandlebarsTemplates["variants/autocomplete"]
 
   var formatVariantResult = function(variant) {
     return variantTemplate({
       variant: variant
-    });
-  };
+    })
+  }
 
   $.fn.variantAutocomplete = function(searchOptions) {
     if (searchOptions == null) {
@@ -18,7 +18,7 @@
         Spree.ajax({
           url: Spree.routes.variants_api + "/" + element.val(),
           success: callback
-        });
+        })
       },
       ajax: {
         url: Spree.routes.variants_api,
@@ -35,26 +35,27 @@
               product_name_or_sku_cont: term
             },
             token: Spree.api_key
-          };
+          }
           return _.extend(searchData, searchOptions);
         },
 
         results: function(data, page) {
-          window.variants = data["variants"];
+          window.variants = data["variants"]
           return {
             results: data["variants"]
-          };
+          }
         }
       },
 
       formatResult: formatVariantResult,
       formatSelection: function(variant, container, escapeMarkup) {
+        // eslint-disable-next-line no-extra-boolean-cast
         if (variant.options_text) {
-          return Select2.util.escapeMarkup(variant.name + " (" + variant.options_text + ")");
+          return Select2.util.escapeMarkup(variant.name + " (" + variant.options_text + ")")
         } else {
-          return Select2.util.escapeMarkup(variant.name);
+          return Select2.util.escapeMarkup(variant.name)
         }
       }
-    });
-  };
-})();
+    })
+  }
+})()
