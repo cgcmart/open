@@ -12,7 +12,7 @@ ENV['RAILS_ENV'] ||= 'test'
 require 'spree_frontend'
 require 'spree/testing_support/dummy_app'
 DummyApp.setup(
-  gem_root: File.expand_path('..', __dir__),
+  gem_root: File.expand_path('../../', __FILE__),
   lib_name: 'spree_frontend'
 )
 
@@ -37,7 +37,6 @@ require 'spree/testing_support/order_walkthrough'
 require 'spree/testing_support/caching'
 
 require 'capybara-screenshot/rspec'
-
 Capybara.save_path = ENV['CIRCLE_ARTIFACTS'] if ENV['CIRCLE_ARTIFACTS']
 Capybara.default_max_wait_time = ENV['DEFAULT_MAX_WAIT_TIME'].to_f if ENV['DEFAULT_MAX_WAIT_TIME'].present?
 
@@ -55,8 +54,8 @@ RSpec.configure do |config|
   config.mock_with :rspec do |c|
     c.syntax = :expect
   end
-
-  config.fixture_path = File.join(__dir__, "fixtures")
+  
+  config.fixture_path = File.join(__dir__, 'fixtures')
 
   # If you're not using ActiveRecord, or you'd prefer not to run each of your
   # examples within a transaction, comment the following line or assign false
@@ -72,14 +71,12 @@ RSpec.configure do |config|
     end
   end
 
-  # Ensure DB is clean, so that transaction isolated specs see
-  # pristine state.
   config.before(:suite) do
-   DatabaseCleaner.clean_with :truncation
+    DatabaseCleaner.strategy = :truncation
   end
 
-  config.before(:each) do
-     Rails.cache.clear
+  config.before do
+    Rails.cache.clear
     reset_spree_preferences
   end
 
