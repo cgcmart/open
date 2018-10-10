@@ -21,6 +21,14 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  config.filter_run_including :active_storage
+  config.run_all_when_everything_filtered = true
+
+  # If you're not using ActiveRecord, or you'd prefer not to run each of your
+  # examples within a transaction, comment the following line or assign false
+  # instead of true.
+  config.use_transactional_fixtures = true
+
   config.before :each do
     reset_spree_preferences
   end
