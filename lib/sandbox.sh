@@ -27,7 +27,8 @@ bundle exec rails new sandbox --database="$RAILSDB" \
   --skip-rc \
   --skip-spring \
   --skip-test \
-  --skip-yarn
+  --skip-yarn \
+  --skip-coffee
 
 if [ ! -d "sandbox" ]; then
   echo 'sandbox rails application failed'
@@ -36,14 +37,29 @@ fi
 
 cd ./sandbox
 
+if [ "$SPREE_AUTH_DEVISE_PATH" != "" ]; then
+  SPREE_AUTH_DEVISE_GEM="gem 'spree_auth_devise', path: '$SPREE_AUTH_DEVISE_PATH'"
+else
+  SPREE_AUTH_DEVISE_GEM="gem 'spree_auth_devise', github: 'spree/spree_auth_devise', branch: 'master'"
+fi
+
+if [ "$SPREE_GATEWAY_PATH" != "" ]; then
+  SPREE_GATEWAY_GEM="gem 'spree_gateway', path: '$SPREE_GATEWAY_PATH'"
+else
+  SPREE_GATEWAY_GEM="gem 'spree_gateway', github: 'spree/spree_gateway', branch: 'master'"
+fi
+
 cat <<RUBY >> Gemfile
 gem 'spree', path: '..'
-gem 'spree_auth_devise', github: 'spree/spree_auth_devise', branch: 'master'
+$SPREE_AUTH_DEVISE_GEM
+$SPREE_GATEWAY_GEM
+gem 'rails-i18n'
+gem 'spree_i18n'
 
 group :test, :development do
-  gem 'bullet'
-  gem 'pry-byebug'
-  gem 'rack-mini-profiler'
+  platforms :mri do
+    gem 'pry-byebug'
+  end
 end
 RUBY
 
