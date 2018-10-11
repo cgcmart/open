@@ -6,23 +6,23 @@ $.fn.taxonAutocomplete = function () {
       multiple: true,
       initSelection: function (element, callback) {
         var ids = element.val(),
-            count = ids.split(",").length;
+            count = ids.split(',').length
 
         Spree.ajax({
-          type: "GET",
-          url: Spree.routes.taxons_search,
+          type: 'GET',
+          url: Spree.routes.taxons_api,
           data: {
             ids: ids,
             per_page: count,
             without_children: true
           },
           success: function (data) {
-            callback(data['taxons']);
+            callback(data['taxons'])
           }
-        });
+        })
       },
       ajax: {
-        url: Spree.routes.taxons_search,
+        url: Spree.routes.taxons_api,
         datatype: 'json',
         data: function (term, page) {
           return {
@@ -33,25 +33,25 @@ $.fn.taxonAutocomplete = function () {
               name_cont: term
             },
             token: Spree.api_key
-          };
+          }
         },
         results: function (data, page) {
-          var more = page < data.pages;
+          var more = page < data.pages
           return {
             results: data['taxons'],
             more: more
-          };
+          }
         }
       },
       formatResult: function (taxon, container, query, escapeMarkup) {
-        return escapeMarkup(taxon.pretty_name);
+        return escapeMarkup(taxon.pretty_name)
       },
       formatSelection: function (taxon, container, escapeMarkup) {
-        return escapeMarkup(taxon.pretty_name);
+        return escapeMarkup(taxon.pretty_name)
       }
-    });
-};
+    })
+}
 
 Spree.ready(function () {
-  $('#product_taxon_ids, .taxon_picker').taxonAutocomplete();
-});
+  $('#product_taxon_ids, .taxon_picker').taxonAutocomplete()
+})
