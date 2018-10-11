@@ -3,9 +3,9 @@
 Spree.ready(function() {
   'use strict'
 
-  // eslint-disable-next-line camelcase, no-unused-vars
   _.each(document.querySelectorAll('.js-addresses-form'), function(el) {
     var countrySelect = el.querySelector('.js-country_id')
+    // eslint-disable-next-line camelcase, no-unused-vars
     var model = new Backbone.Model({
       country_id: countrySelect.value
     })
