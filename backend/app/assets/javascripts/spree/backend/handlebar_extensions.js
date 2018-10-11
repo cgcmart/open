@@ -21,6 +21,10 @@ Handlebars.registerHelper('concat', function() {
   return Array.prototype.slice.call(arguments, 0, -1).join('')
 })
 
+Handlebars.registerHelper('edit_product_url', function (productId) {
+  return Spree.routes.edit_product(productId)
+})
+
 Handlebars.registerHelper('format_money', function(amount, currency) {
   return Spree.formatMoney(amount, currency)
 })
