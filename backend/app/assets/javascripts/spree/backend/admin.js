@@ -41,13 +41,13 @@ Spree.ready(function() {
 $.fn.visible = function(cond) { this[cond ? 'show' : 'hide' ]() }
 
 // Apply to individual radio button that makes another element visible when checked
-// eslint-disable-next-line camelcase
 $.fn.radioControlsVisibilityOfElement = function(dependentElementSelector){
   if(!this.get(0)){ return  }
   var showValue = this.get(0).value
   var radioGroup = $("input[name='" + this.get(0).name + "']")
   radioGroup.each(function(){
     $(this).click(function(){
+      // eslint-disable-next-line eqeqeq
       $(dependentElementSelector).visible(this.checked && this.value == showValue)
     })
     if(this.checked){ this.click() }
@@ -132,6 +132,7 @@ Spree.ready(function(){
       data: {
         token: Spree.api_key
       },
+      // eslint-disable-next-line camelcase
       url: Spree.routes.checkouts_api + '/' + window.order_number + '/advance'
     }).done(function() {
       window.location.reload()
