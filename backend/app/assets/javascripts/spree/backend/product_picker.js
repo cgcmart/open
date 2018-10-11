@@ -1,29 +1,29 @@
 $.fn.productAutocomplete = function (options) {
-  'use strict';
+  'use strict'
 
   // Default options
   options = options || {}
   var multiple = typeof(options['multiple']) !== 'undefined' ? options['multiple'] : true
 
   function formatProduct(product) {
-    return Select2.util.escapeMarkup(product.name);
+    return Select2.util.escapeMarkup(product.name)
   }
 
   this.select2({
     minimumInputLength: 3,
     multiple: multiple,
     initSelection: function (element, callback) {
-      $.get(Spree.routes.admin_product_search, {
+      $.get(Spree.routes.products_api, {
         ids: element.val().split(','),
         token: Spree.api_key
       }, function (data) {
-        callback(multiple ? data.products : data.products[0]);
-      });
+        callback(multiple ? data.products : data.products[0])
+      })
     },
     ajax: {
-      url: Spree.routes.admin_product_search,
+      url: Spree.routes.product_api,
       datatype: 'json',
-      params: { "headers": { "X-Spree-Token": Spree.api_key } },
+      cache: true,
       data: function (term, page) {
         return {
           q: {
@@ -33,21 +33,21 @@ $.fn.productAutocomplete = function (options) {
           },
           token: Spree.api_key,
           page: page
-        };
+        }
       },
       results: function (data, page) {
-        var products = data.products ? data.products : [];
+        var products = data.products ? data.products : []
         return {
           results: products,
           more: (data.current_page * data.per_page) < data.total_count
-        };
+        }
       }
     },
     formatResult: formatProduct,
     formatSelection: formatProduct
-  });
-};
+  })
+}
 
 Spree.ready(function () {
-  $('.product_picker').productAutocomplete();
-});
+  $('.product_picker').productAutocomplete()
+})
