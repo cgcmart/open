@@ -1,4 +1,3 @@
-// eslint-disable-next-line camelcase, no-unused-vars
 Spree.Views.StateSelect = Backbone.View.extend({
   initialize: function() {
     this.states = {} // null object
