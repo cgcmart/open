@@ -6,7 +6,7 @@ module Spree
       helper 'spree/admin/payments'
 
       before_action :initialize_order_events
-      before_action :load_order, only: [:edit, :update, :complete, :advance, :cancel, :resume, :approve, :resend, :unfinalize_adjustments, :finalize_adjustments, :cart, :confirm]
+      before_action :load_order, only: [:edit, :update, :complete, :advance, :cancel, :resume, :approve, :resend, :unfinalize_adjustments, :finalize_adjustments, :cart, :confirm, :store, :set_store]
       around_action :lock_order, only: [:update, :advance, :complete, :confirm, :cancel, :resume, :approve, :resend]
 
       rescue_from Spree::Order::InsufficientStock, with: :insufficient_stock_error
@@ -89,6 +89,10 @@ module Spree
         end
       end
 
+      def store
+        @stores = Spree::Store.all
+      end
+
       def advance
         if @order.completed?
           flash[:notice] = t('spree.order_already_completed')
@@ -163,6 +167,16 @@ module Spree
         flash[:success] = t('spree.all_adjustments_finalized')
 
         respond_with(@order) { |format| format.html { redirect_to(spree.admin_order_adjustments_path(@order)) } }
+      end
+
+      def set_store
+        if @order.update_attributes(store_id: params[:order][:store_id])
+          flash[:success] = flash_message_for(@order, :successfully_updated)
+        else
+          flash[:error] = @order.errors.full_messages.join(', ')
+        end
+
+        redirect_to store_admin_order_url(@order)
       end
 
       private
