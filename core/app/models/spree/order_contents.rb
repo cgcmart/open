@@ -23,21 +23,5 @@ module Spree
     def update_cart(params)
       Spree::Cart::Update.call(order: order, params: params).value
     end
-
-    def advance
-      while @order.next; end
-    end
-
-    def approve(user: nil, name: nil)
-      if user.blank? && name.blank?
-        raise ArgumentError, 'user or name must be specified'
-      end
-
-      order.update_attributes!(
-        approver: user,
-        approver_name: name,
-        approved_at: Time.current
-      )
-    end
   end
 end
