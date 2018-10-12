@@ -1098,6 +1098,7 @@ en:
       other: 'Subtotal (%{count} items)'
     categories: Categories
     category: Category
+    channel: Channel
     charged: Charged
     check: Check
     checkout: Checkout
