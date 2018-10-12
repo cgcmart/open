@@ -73,7 +73,19 @@ RSpec.describe Spree::Admin::OrdersController, type: :controller do
       end
     end
 
-    # Test for #3346
+    describe '#store' do
+      subject do
+        spree_get :store, id: cart_order.number
+      end
+
+      let(:cart_order) { create(:order_with_line_items) }
+
+      it 'displays a page with stores select tag' do
+        expect(subject).to render_template :store
+      end
+    end
+
+    # Test for https://github.com/spree/spree/issues/3346
     context '#new' do
       let(:user) { create(:user) }
       before do
@@ -94,7 +106,7 @@ RSpec.describe Spree::Admin::OrdersController, type: :controller do
         get :new
       end
 
-      it 'should associate the order with a store' do
+      it 'associates the order with a store' do
         expect(Spree::Core::Importer::Order).to receive(:import)
           .with(user, hash_including(store_id: controller.current_store.id))
           .and_return(order)
@@ -113,13 +125,14 @@ RSpec.describe Spree::Admin::OrdersController, type: :controller do
         end
       end
 
-      it 'should redirect to cart' do
+      it 'redirects to cart' do
         get :new
         expect(response).to redirect_to(spree.cart_admin_order_path(Spree::Order.last))
       end
     end
 
-    # Regression test for #3684
+    # Regression test for https://github.com/spree/spree/issues/3684
+    # Rendering a form should under no circumstance mutate the order
     describe '#edit' do
       it 'does not refresh rates if the order is completed' do
         allow(order).to receive_messages completed?: true
@@ -150,7 +163,7 @@ RSpec.describe Spree::Admin::OrdersController, type: :controller do
         context 'when order_bill_address_used is false' do
           before { Spree::Config[:order_bill_address_used] = false }
 
-          it 'should redirect to the customer details page' do
+          it 'redirects to the customer details page' do
             get :edit, params: { id: order.number }
             expect(response).to redirect_to(spree.edit_admin_order_customer_path(order))
           end
