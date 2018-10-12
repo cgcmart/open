@@ -80,6 +80,10 @@
                 <%= label_tag :q_line_items_variant_id_in, t('spree.variant') %>
                 <%= f.text_field :line_items_variant_id_in, class: "variant_autocomplete fullwidth" %>
               </div>
+              <div class="field">
+                <%= label_tag :q_promotions_id_in, t('spree.promotion') %>
+                <%= f.select :promotions_id_in, Spree::Promotion.applied.pluck(:name, :id), { include_blank: true }, class: 'select2 js-filterable' %>
+              </div>
             </div>
           </div>
         </div>
@@ -92,14 +96,25 @@
             </div>
           <% end %>
 
+          <div class="field channel">
+            <%= label_tag :q_channel_eq, t('spree.channel') %>
+            <%= f.select :channel_eq, Spree::Order.distinct.pluck(:channel), { include_blank: true }, class: 'select2 js-filterable' %>
+          </div>
+
           <div class="field checkbox">
             <label>
               <%= f.check_box :completed_at_not_null, {checked: @show_only_completed}, '1', '0' %>
               <%= t('spree.show_only_complete_orders') %>
             </label>
           </div>
-        </div>
 
+          <div class="field checkbox">
+            <%= label_tag 'q_considered_risky_eq' do %>
+              <%= f.check_box :considered_risky_eq, {checked: (params[:q][:considered_risky_eq] == '1')}, '1', '' %>
+              <%= t('spree.show_only_considered_risky') %>
+            <% end %>
+          </div>
+        </div>
       </div>
 
       <div class="clearfix"></div>
