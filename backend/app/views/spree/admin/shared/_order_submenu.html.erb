@@ -6,6 +6,12 @@
       </li>
     <% end %>
 
+    <% if (@order.shipments.count == 0 || @order.shipped_shipments.count == 0) %>
+      <li class="<%= "active" if current == "store" %> data-hook='admin_order_tabs_store_details'>
+        <%= link_to t('spree.store'), spree.store_admin_order_url(@order) %>
+      </li>
+    <% end %>
+
     <% if checkout_steps.include?("address") %>
       <li class="<%= "active" if (current == "Customer Details") %>" data-hook='admin_order_tabs_customer_details'>
         <% if can?(:update, @order) %>
