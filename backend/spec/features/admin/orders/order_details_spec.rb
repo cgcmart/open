@@ -7,7 +7,8 @@ describe 'Order Details', type: :feature, js: true do
 
   let!(:stock_location) { create(:stock_location_with_items) }
   let!(:product) { create(:product, name: 'spree t-shirt', price: 20.00) }
-  let(:order) { create(:order, state: 'complete', completed_at: '2011-02-01 12:36:15', number: 'R100') }
+  let!(:store) { create(:store) }
+  let(:order) { create(:order, state: 'complete', completed_at: '2011-02-01 12:36:15', number: 'R100', store_id: store.id) }
   let(:state) { create(:state) }
   let(:line_item) { order.line_items.first }
 
@@ -23,6 +24,26 @@ describe 'Order Details', type: :feature, js: true do
   context 'as Admin' do
     stub_authorization!
 
+    context 'store edit page' do
+      let!(:new_store) { create(:store) }
+
+      before do
+        product.master.stock_items.first.update_column(:count_on_hand, 100)
+        visit spree.store_admin_order_path(order)
+      end
+
+      it 'displays select with current order store name' do
+        expect(page).to have_content(store.name)
+      end
+
+      it 'after selecting a store assings a new store to order' do
+        select2_search new_store.name, from: 'Store'
+        find('[name=button]').click
+
+        expect(page).to have_content(new_store.name)
+      end
+    end
+
     context 'cart edit page' do
       let(:track_inventory) { true }
       let(:backorderable) { true }
@@ -34,7 +55,7 @@ describe 'Order Details', type: :feature, js: true do
         visit spree.cart_admin_order_path(order)
       end
 
-      it 'should allow me to edit order details' do
+      it 'allows me to edit order details' do
         expect(page).to have_content('spree t-shirt')
         expect(page).to have_content('$40.00')
 
@@ -189,7 +210,7 @@ describe 'Order Details', type: :feature, js: true do
         it 'should warn you if you have not selected a location or shipment'
 
         context 'there is enough stock at the other location' do
-          it 'should allow me to make a split' do
+          it 'allows me to make a split' do
             expect(order.shipments.count).to eq(1)
             expect(order.shipments.first.inventory_units_for(product.master).count).to eq(2)
 
@@ -206,7 +227,7 @@ describe 'Order Details', type: :feature, js: true do
             expect(order.shipments.last.inventory_units_for(product.master).count).to eq(1)
           end
 
-          it 'should allow me to make a transfer via splitting off all stock' do
+          it 'allows me to make a transfer via splitting off all stock' do
             visit spree.edit_admin_order_path(order)
 
             expect(order.shipments.first.stock_location.id).to eq(stock_location.id)
@@ -222,7 +243,7 @@ describe 'Order Details', type: :feature, js: true do
             expect(order.shipments.first.stock_location.id).to eq(stock_location2.id)
           end
 
-          it 'should not allow me to split more than I had in the original shipment' do
+          it 'does not allow me to split more than I had in the original shipment' do
             visit spree.edit_admin_order_path(order)
 
             expect(order.shipments.first.stock_location.id).to eq(stock_location.id)
@@ -238,7 +259,7 @@ describe 'Order Details', type: :feature, js: true do
             expect(order.shipments.first.stock_location.id).to eq(stock_location2.id)
           end
 
-          it 'should not allow less than or equal to zero qty' do
+          it 'does not allow less than or equal to zero qty' do
             visit spree.edit_admin_order_path(order)
 
             expect(order.shipments.first.stock_location.id).to eq(stock_location.id)
@@ -265,7 +286,7 @@ describe 'Order Details', type: :feature, js: true do
           end
 
           context 'A shipment has shipped' do
-            it 'should not show or let me back to the cart page, nor show the shipment edit buttons' do
+            it 'does not show or let me back to the cart page, nor show the shipment edit buttons' do
               order = create(:order, state: 'payment')
               order.shipments.create!(stock_location_id: stock_location.id, state: 'shipped')
 
@@ -281,7 +302,7 @@ describe 'Order Details', type: :feature, js: true do
 
         context 'there is not enough stock at the other location' do
           context 'and it cannot backorder' do
-            it 'should not allow me to split stock' do
+            it 'does not allow me to split stock' do
               product.master.stock_items.last.update_column(:backorderable, false)
               product.master.stock_items.last.update_column(:count_on_hand, 0)
 
@@ -299,7 +320,7 @@ describe 'Order Details', type: :feature, js: true do
           end
 
           context 'but it can backorder' do
-            it 'should allow me to split and backorder the stock' do
+            it 'does allow me to split and backorder the stock' do
               product.master.stock_items.last.update_column(:count_on_hand, 0)
               product.master.stock_items.last.update_column(:backorderable, true)
 
@@ -318,7 +339,7 @@ describe 'Order Details', type: :feature, js: true do
         end
 
         context 'multiple items in cart' do
-          it 'should have no problem splitting if multiple items are in the from shipment' do
+          it 'has no problem splitting if multiple items are in the from shipment' do
             Spree::Cart::AddItem.call(order: order, variant: create(:variant), quantity: 2)
             order.reload
 
@@ -362,7 +383,7 @@ describe 'Order Details', type: :feature, js: true do
       context 'splitting to shipment' do
         let!(:shipment2) { order.shipments.create(stock_location_id: stock_location2.id) }
 
-        it 'should delete the old shipment if enough are split off' do
+        it 'deletes the old shipment if enough are split off' do
           expect(order.shipments.count).to eq(2)
 
           visit spree.edit_admin_order_path(order)
@@ -381,7 +402,7 @@ describe 'Order Details', type: :feature, js: true do
         context 'receiving shipment can not backorder' do
           before { product.master.stock_items.last.update_column(:backorderable, false) }
 
-          it 'should not allow a split if the receiving shipment qty plus the incoming is greater than the count_on_hand' do
+          it 'does not allow a split if the receiving shipment qty plus the incoming is greater than the count_on_hand' do
             expect(order.shipments.count).to eq(2)
 
             visit spree.edit_admin_order_path(order)
@@ -405,7 +426,7 @@ describe 'Order Details', type: :feature, js: true do
             expect(order.shipments.last.inventory_units_for(product.master).count).to eq(1)
           end
 
-          it 'should not allow a shipment to split stock to itself' do
+          it 'does not allow a shipment to split stock to itself' do
             visit spree.edit_admin_order_path(order)
             within('tr', text: line_item.sku) { click_icon 'arrows-h' }
             click_on 'Choose location'
@@ -415,7 +436,7 @@ describe 'Order Details', type: :feature, js: true do
             end
           end
 
-          it 'should split fine if more than one line_item is in the receiving shipment' do
+          it 'splits fine if more than one line_item is in the receiving shipment' do
             variant2 = create(:variant)
             Spree::Cart::AddItem.call(order: order, variant: variant2, quantity: 2, options: { shipment: @shipment2 })
             order.reload
@@ -437,7 +458,7 @@ describe 'Order Details', type: :feature, js: true do
         end
 
         context 'receiving shipment can backorder' do
-          it 'should add more to the backorder' do
+          it 'adds more to the backorder' do
             shipment1.inventory_units.update_all(state: :on_hand)
             product.master.stock_items.last.update_column(:backorderable, true)
             product.master.stock_items.last.update_column(:count_on_hand, 0)
@@ -488,6 +509,21 @@ describe 'Order Details', type: :feature, js: true do
         end
       end
     end
+
+    context 'display order summary' do
+      before do
+        visit spree.cart_admin_order_path(order)
+      end
+
+      it 'contains elements' do
+        within('.additional-info') do
+          expect(page).to have_content('complete')
+          expect(page).to have_content('spree')
+          expect(page).to have_content('backorder')
+          expect(page).to have_content('balance due')
+        end
+      end
+    end
   end
 
   context 'with only read permissions' do
@@ -499,7 +535,7 @@ describe 'Order Details', type: :feature, js: true do
       can [:admin, :index, :read, :edit], Spree::Order
     end
 
-    it 'should not display forbidden links' do
+    it 'does not display forbidden links' do
       visit spree.edit_admin_order_path(order)
 
       expect(page).not_to have_button('cancel')
