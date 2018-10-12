@@ -2,9 +2,6 @@
 
 Spree::Core::Engine.routes.draw do
   namespace :admin do
-    get '/search/users', to: 'search#users', as: :search_users
-    get '/search/products', to: 'search#products', as: :search_products
-
     put '/locale/set', to: 'locale#set', defaults: { format: :json }, as: :set_locale
 
     resources :promotions do
@@ -90,6 +87,8 @@ Spree::Core::Engine.routes.draw do
         put :approve
         put :cancel
         put :resume
+        get :store
+        put :set_store
       end
 
       resource :customer, controller: 'orders/customer_details'
