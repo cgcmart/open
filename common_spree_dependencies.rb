@@ -10,7 +10,7 @@ gemspec require: false
 rails_version = ENV['RAILS_VERSION'] || '~> 5.2.0'
 gem 'rails', rails_version, require: false
 
-gem 'sass-rails'
+gem 'sassc-rails'
 gem 'doorkeeper'
 
 platforms :ruby do
