@@ -14,8 +14,11 @@ module Spree
     validates :zipcode, presence: true, if: :require_zipcode?
     validates :phone, presence: true, if: :require_phone?
 
-    validate :state_validate
+    validate :state_validate, :postal_code_validate
     validate :validate_state_matches_country
+
+    delegate :name, :iso3, to: :country, prefix: true
+    delegate :abbr, to: :state, prefix: true, allow_nil: true
 
     alias_attribute :first_name, :firstname
     alias_attribute :last_name, :lastname
