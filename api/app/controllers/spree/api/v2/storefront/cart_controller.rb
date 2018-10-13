@@ -29,9 +29,18 @@ module Spree
               spree_authorize! :update, spree_current_order, order_token
               spree_authorize! :show, variant
 
-              dependencies[:add_item_to_cart].call(order: spree_current_order, variant: variant, quantity: params[:quantity])
+              result = dependencies[:add_item_to_cart].call(
+                order: spree_current_order,
+                variant: variant,
+                quantity: params[:quantity],
+                options: params[:options]
+              )
 
-              render_serialized_payload serialized_current_order, 200
+              if result.success?
+                render_serialized_payload serialized_current_order, 200
+              else
+                render_error_payload(result.error)
+              end
             end
           end
 
@@ -68,7 +77,7 @@ module Spree
             if result.success?
               render_serialized_payload serialized_current_order, 200
             else
-              render json: { error: result.value }, status: 422
+              render_error_payload(result.error)
             end
           end
 
@@ -80,6 +89,19 @@ module Spree
             render_serialized_payload serialized_current_order, 200
           end
 
+          def apply_coupon_code
+            spree_authorize! :update, spree_current_order, order_token
+
+            spree_current_order.coupon_code = params[:coupon_code]
+            result = dependencies[:coupon_handler].new(spree_current_order).apply
+
+            if result.error.blank?
+              render_serialized_payload serialized_current_order, 200
+            else
+              render_error_payload(result.error)
+            end
+          end
+
           private
 
           def dependencies
@@ -88,7 +110,8 @@ module Spree
               add_item_to_cart:      Spree::Cart::AddItem,
               remove_item_from_cart: Spree::Cart::RemoveLineItem,
               cart_serializer:       Spree::V2::Storefront::CartSerializer,
-              set_item_quantity:     Spree::Cart::SetQuantity
+              set_item_quantity:     Spree::Cart::SetQuantity,
+              coupon_handler:        Spree::PromotionHandler::Coupon
             }
           end
 
