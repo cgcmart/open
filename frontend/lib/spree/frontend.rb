@@ -5,7 +5,6 @@ require 'sprockets/rails'
 require 'bootstrap-sass'
 require 'canonical-rails'
 require 'jquery-rails'
-require 'sass-rails'
 
 require 'spree/core'
 require 'spree/api'
