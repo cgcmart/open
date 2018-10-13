@@ -25,5 +25,4 @@ Gem::Specification.new do |s|
   s.add_dependency 'kaminari-activerecord', '~> 1.1'
   s.add_dependency 'fast_jsonapi', '~> 1.3.0'
   s.add_dependency 'doorkeeper'
-  s.add_dependency 'responders'
 end
