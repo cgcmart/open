@@ -14,10 +14,9 @@ gem 'sassc-rails'
 gem 'doorkeeper'
 
 platforms :ruby do
-  gem 'mysql2', '~> 0.5.0', require: false
+  gem 'mysql2', require: false
   gem 'pg', '~> 1.0', require: false
   gem 'sqlite3', require: false
-  gem 'fast_sqlite', require: false
 end
 
 platforms :jruby do
