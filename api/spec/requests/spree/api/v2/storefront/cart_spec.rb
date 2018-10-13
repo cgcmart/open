@@ -12,6 +12,7 @@ describe 'API V2 Storefront Cart Spec', type: :request do
 
   shared_examples 'returns valid cart JSON' do
     it 'returns a valid cart JSON response' do
+      order.reload
       expect(json_response['data']).to have_id(order.id.to_s)
       expect(json_response['data']).to have_type('cart')
       expect(json_response['data']).to have_attribute(:number).with_value(order.number)
@@ -98,10 +99,20 @@ describe 'API V2 Storefront Cart Spec', type: :request do
 
   describe 'cart#add_item' do
     let(:variant) { create(:variant) }
+    let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
+
+    shared_examples 'adds item' do
+      it 'with success' do
+        expect(response.status).to eq(200)
+        expect(order.line_items.count).to eq(1)
+        expect(order.line_items.first.variant).to eq(variant)
+        expect(order.line_items.first.quantity).to eq(5)
+        expect(json_response['included']).to include(have_type('variant').and have_id(variant.id.to_s))
+      end
+    end
 
     context 'without existing order' do
       it 'returns error' do
-        headers = { 'Authorization' => "Bearer #{token.token}" }
         post '/api/v2/storefront/cart/add_item', params: { variant_id: variant.id, quantity: 5 }, headers: headers
 
         expect(response.status).to eq(404)
@@ -111,44 +122,59 @@ describe 'API V2 Storefront Cart Spec', type: :request do
     context 'with existing order' do
       let!(:order) { create(:order, user: user, store: store, currency: currency) }
 
-      it 'adds item to cart' do
-        headers = { 'Authorization' => "Bearer #{token.token}" }
+      before do
         post '/api/v2/storefront/cart/add_item', params: { variant_id: variant.id, quantity: 5 }, headers: headers
-
-        expect(response.status).to eq(200)
-        expect(order.line_items.count).to eq(1)
-        expect(order.line_items.first.variant).to eq(variant)
-        expect(order.line_items.first.quantity).to eq(5)
-
-        expect(json_response['data']).to have_id(order.id.to_s)
-        expect(json_response['data']).to have_type('cart')
-        expect(json_response['data']).to have_attribute(:number).with_value(order.number)
-        expect(json_response['data']).to have_attribute(:state).with_value('cart')
-        expect(json_response['data']).to have_relationships(:user, :line_items, :variants)
-        expect(json_response['included']).to include(have_type('variant').and have_id(variant.id.to_s))
       end
+
+      it_behaves_like 'adds item'
+
+      it_behaves_like 'returns valid cart JSON'
     end
 
     context 'with existing guest order' do
       let(:custom_token) { 'custom_token' }
       let!(:order) { create(:order, token: custom_token, store: store, currency: currency) }
 
-      it 'adds item to cart' do
-        headers = { 'Authorization' => "Bearer #{token.token}" }
+      before do
         post '/api/v2/storefront/cart/add_item', params: { variant_id: variant.id, quantity: 5, order_token: custom_token }, headers: headers
+      end
 
-        expect(response.status).to eq(200)
+      it_behaves_like 'adds item'
 
-        expect(order.line_items.count).to eq(1)
-        expect(order.line_items.first.variant).to eq(variant)
-        expect(order.line_items.first.quantity).to eq(5)
+      it_behaves_like 'returns valid cart JSON'
+    end
 
-        expect(json_response['data']).to have_id(order.id.to_s)
-        expect(json_response['data']).to have_type('cart')
-        expect(json_response['data']).to have_attribute(:number).with_value(order.number)
-        expect(json_response['data']).to have_attribute(:state).with_value('cart')
-        expect(json_response['data']).to have_relationships(:user, :line_items, :variants)
-        expect(json_response['included']).to include(have_type('variant').and have_id(variant.id.to_s))
+    context 'with options' do
+      let!(:order) { create(:order, user: user, store: store, currency: currency) }
+      let(:options) { { cost_price: 1.99 } }
+
+      before do
+        Spree::PermittedAttributes.line_item_attributes << :cost_price
+
+        post '/api/v2/storefront/cart/add_item', params: { variant_id: variant.id, quantity: 5, options: options }, headers: headers
+      end
+
+      it_behaves_like 'adds item'
+
+      it_behaves_like 'returns valid cart JSON'
+
+      it 'sets custom attributes values' do
+        expect(order.line_items.first.cost_price).to eq(1.99)
+      end
+    end
+
+    context 'with quantity unnavailble' do
+      let!(:order) { create(:order, user: user, store: store, currency: currency) }
+      let(:variant) { create(:variant) }
+
+      before do
+        variant.stock_items.first.update(backorderable: false)
+        post '/api/v2/storefront/cart/add_item', params: { variant_id: variant.id, quantity: 11 }, headers: headers
+      end
+
+      it 'returns 422 when there is not enough stock' do
+        expect(response.status).to eq(422)
+        expect(json_response[:error]).to eq("Quantity selected of \"#{variant.name} (#{variant.options_text})\" is not available.")
       end
     end
   end
@@ -256,7 +282,7 @@ describe 'API V2 Storefront Cart Spec', type: :request do
         patch '/api/v2/storefront/cart/set_quantity', params: { order: order, line_item_id: line_item.id, quantity: 5, user: user }, headers: headers
 
         expect(response.status).to eq(422)
-        expect(json_response[:error]).to eq('Insufficient stock quantity available')
+        expect(json_response[:error]).to eq("Quantity selected of \"#{line_item.name}\" is not available.")
       end
     end
 
@@ -337,6 +363,62 @@ describe 'API V2 Storefront Cart Spec', type: :request do
         it 'includes the same currency' do
           get '/api/v2/storefront/cart', headers: headers
           expect(json_response['data']).to have_attribute(:currency).with_value('EUR')
+        end
+      end
+    end
+  end
+
+  describe 'cart#apply_coupon_code' do
+    let!(:order) { create(:order, user: user, store: store, currency: currency) }
+    let!(:line_item) { create(:line_item, order: order) }
+    let!(:shipment) { create(:shipment, order: order) }
+    let!(:promotion) { Spree::Promotion.create(name: 'Free shipping', code: 'freeship') }
+    let(:coupon_code) { promotion.code }
+    let!(:promotion_action) { Spree::PromotionAction.create(promotion_id: promotion.id, type: 'Spree::Promotion::Actions::FreeShipping') }
+    let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
+
+    context 'with coupon code for free shipping' do
+      let(:adjustment_value) { -(shipment.cost.to_f) }
+
+      context 'applies coupon code correctly' do
+        before do
+          patch '/api/v2/storefront/cart/apply_coupon_code', params: { user: user, coupon_code: coupon_code }, headers: headers
+        end
+
+        it 'changes the adjustment total' do
+          expect(json_response['data']).to have_attribute(:adjustment_total).with_value(adjustment_value.to_s)
+        end
+
+        it 'includes the promotion in the response' do
+          expect(json_response['included']).to include(have_type('promotion').and have_id(promotion.id.to_s))
+        end
+
+        it_behaves_like 'returns valid cart JSON'
+      end
+
+      context 'does not apply the coupon code' do
+        before do
+          patch '/api/v2/storefront/cart/apply_coupon_code', params: { user: user, coupon_code: 'zxr' }, headers: headers
+        end
+
+        it 'returns 422 status with an error' do
+          expect(response.status).to eq(422)
+
+          expect(json_response[:error]).to eq("The coupon code you entered doesn't exist. Please try again.")
+        end
+      end
+    end
+
+    context 'without coupon code' do
+      context 'does not apply the coupon code' do
+        before do
+          patch '/api/v2/storefront/cart/apply_coupon_code', params: { user: user, coupon_code: '' }, headers: headers
+        end
+
+        it 'returns 422 status with an error' do
+          expect(response.status).to eq(422)
+
+          expect(json_response[:error]).to eq("The coupon code you entered doesn't exist. Please try again.")
         end
       end
     end
