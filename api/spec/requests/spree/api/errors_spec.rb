@@ -10,6 +10,9 @@ describe 'API Errors Spec', type: :request do
       expect(response).to eq('/api/prods.json')
       follow_redirect!
 
+      expect(response).to redirect_to('/api/404')
+      follow_redirect!
+
       expect(response.status).to eq 404
     end
   end
