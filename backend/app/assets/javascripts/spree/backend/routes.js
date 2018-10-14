@@ -9,22 +9,21 @@ Spree.routes.stock_locations_api = Spree.pathFor('api/stock_locations')
 Spree.routes.tags_api = Spree.pathFor('api/tags')
 Spree.routes.taxon_products_api = Spree.pathFor('api/taxons/products')
 Spree.routes.taxons_api = Spree.pathFor('api/taxons')
-Spree.routes.user_search = Spree.pathFor('admin/search/users')
-Spree.routes.variants_api = Spree.pathFor('api/variants')
 Spree.routes.users_api = Spree.pathFor('api/users')
+Spree.routes.variants_api = Spree.pathFor('api/variants')
 
 Spree.routes.edit_product = function (productId) {
   return Spree.adminPathFor('products/' + productId + '/edit')
 }
 
-Spree.routes.line_items_api = function(order_id) {
-  return Spree.pathFor('api/orders/' + order_id + '/line_items');
+Spree.routes.line_items_api = function(orderId) {
+  return Spree.pathFor('api/orders/' + orderId + '/line_items');
 }
 
-Spree.routes.payments_api = function(order_id) {
-  return Spree.pathFor('api/orders/' + order_id + '/payments');
+Spree.routes.payments_api = function(orderId) {
+  return Spree.pathFor('api/orders/' + orderId + '/payments');
 }
 
-Spree.routes.stock_items_api = function(stock_location_id) {
-  return Spree.pathFor('api/stock_locations/' + stock_location_id + '/stock_items');
+Spree.routes.stock_items_api = function(stockLocation_id) {
+  return Spree.pathFor('api/stock_locations/' + stockLocationId + '/stock_items');
 }
