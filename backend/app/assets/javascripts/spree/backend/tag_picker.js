@@ -1,8 +1,8 @@
 $.fn.tagAutocomplete = function () {
-  'use strict';
+  'use strict'
 
   function formatTag(tag) {
-    return Select2.util.escapeMarkup(tag.name);
+    return Select2.util.escapeMarkup(tag.name)
   }
 
   this.select2({
@@ -13,9 +13,9 @@ $.fn.tagAutocomplete = function () {
     tags: true,
     initSelection: function (element, callback) {
       var data = $(element.val().split(',')).map(function() {
-        return { name: this, id: this };
-      });
-      callback(data);
+        return { name: this, id: this }
+      })
+      callback(data)
     },
     ajax: {
       url: Spree.routes.tags_api,
@@ -30,23 +30,23 @@ $.fn.tagAutocomplete = function () {
       results: function (data) {
         return {
           results: data.tags.map(function(tag) {
-            return { name: tag.name, id: tag.name };
+            return { name: tag.name, id: tag.name }
           })
-        };
+        }
       }
     },
     createSearchChoice: function(term, data) {
       if ($(data).filter(function() {
-        return this.name.localeCompare(term)===0;
+        return this.name.localeCompare(term)===0
       }).length===0) {
-        return { id: term, name: term };
+        return { id: term, name: term }
       }
     },
     formatResult:    formatTag,
     formatSelection: formatTag
-  });
-};
+  })
+}
 
 $(document).ready(function () {
-  $('.tag_picker').tagAutocomplete();
-});
+  $('.tag_picker').tagAutocomplete()
+})
