@@ -1,9 +1,9 @@
 Spree.ready(function() {
   $(document).ajaxStart(function() {
-    $("#progress").show();
-  });
+    $("#progress").show()
+  })
 
   $(document).ajaxStop(function() {
-    $("#progress").hide();
-  });
-});
+    $("#progress").hide()
+  })
+})
