@@ -5,5 +5,5 @@ Spree.ready(function() {
     allowClear: true,
     dropdownAutoWidth: true,
     minimumResultsForSearch: 8
-  });
+  })
 })
