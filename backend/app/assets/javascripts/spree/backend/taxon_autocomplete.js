@@ -1,5 +1,5 @@
 $.fn.taxonAutocomplete = function () {
-  'use strict';
+  'use strict'
 
   this.select2({
       placeholder: Spree.translations.taxon_placeholder,
