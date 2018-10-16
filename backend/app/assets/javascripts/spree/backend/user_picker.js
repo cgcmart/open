@@ -1,5 +1,5 @@
 $.fn.userAutocomplete = function () {
-  'use strict';
+  'use strict'
 
   function formatUser(user) {
     return Select2.util.escapeMarkup(user.email);
@@ -15,9 +15,9 @@ $.fn.userAutocomplete = function () {
           ids: element.val()
         },
         success: function(data) {
-          callback(data.users);
+          callback(data.users)
         }
-      });
+      })
     },
     ajax: {
       url: Spree.routes.users_api,
@@ -31,20 +31,20 @@ $.fn.userAutocomplete = function () {
             addresses_firstname_start: term,
             addresses_lastname_start: term
           }
-        };
+        }
       },
       results: function (data) {
         return {
           results: data.users,
           more: data.current_page < data.pages
-        };
+        }
       }
     },
     formatResult: formatUser,
     formatSelection: formatUser
-  });
-};
+  })
+}
 
 Spree.ready(function () {
-  $('.user_picker').userAutocomplete();
-});
+  $('.user_picker').userAutocomplete()
+})
