@@ -1,10 +1,10 @@
 Spree.Models.ImageUpload = Backbone.Model.extend({
   initialize: function() {
-    var file = this.get("file");
+    var file = this.get("file")
     this.set({
       filename: file.name,
       size: file.size ? (file.size/1024|0) + 'K' : ''
-    });
+    })
   },
 
   defaults: function() {
@@ -27,25 +27,25 @@ Spree.Models.ImageUpload = Backbone.Model.extend({
 
   previewFile: function () {
     var file = this.get('file'),
-      that = this;
+      that = this
 
     if (FileReader && this.acceptedTypes[file.type] === true) {
-      var reader = new FileReader();
+      var reader = new FileReader()
       reader.onload = function (event) {
-        that.set({imgSrc: event.target.result});
-      };
+        that.set({imgSrc: event.target.result})
+      }
 
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(file)
     }
   },
 
   uploadFile: function () {
     var formData = new FormData(),
-      that = this;
+      that = this
 
-    formData.append('image[attachment]', this.get('file'));
-    formData.append('image[viewable_id]', this.get('variant_id'));
-    formData.append('upload_id', this.cid);
+    formData.append('image[attachment]', this.get('file'))
+    formData.append('image[viewable_id]', this.get('variant_id'))
+    formData.append('upload_id', this.cid)
 
     // send the image to the server
     Spree.ajax({
@@ -56,21 +56,21 @@ Spree.Models.ImageUpload = Backbone.Model.extend({
       processData: false,  // tell jQuery not to process the data
       contentType: false,  // tell jQuery not to set contentType
       xhr: function () {
-        var xhr = $.ajaxSettings.xhr();
+        var xhr = $.ajaxSettings.xhr()
         if (xhr.upload) {
           xhr.upload.onprogress = function (event) {
             if (event.lengthComputable) {
-              var complete = (event.loaded / event.total * 100 | 0);
+              var complete = (event.loaded / event.total * 100 | 0)
               that.set({progress: complete})
             }
-          };
+          }
         }
-        return xhr;
+        return xhr
       }
     }).done(function() {
       that.set({progress: 100})
     }).error(function(jqXHR, textStatus, errorThrown) {
-      that.set({serverError: true});
-    });
+      that.set({serverError: true})
+    })
   }
-});
+})
