@@ -1,8 +1,8 @@
 Spree.ready(function() {
   $('#new_image_link').click(function(event) {
-    event.preventDefault();
+    event.preventDefault()
 
-    $(this).hide();
-    $('#new_image').show();
-  });
-});
+    $(this).hide()
+    $('#new_image').show()
+  })
+})
