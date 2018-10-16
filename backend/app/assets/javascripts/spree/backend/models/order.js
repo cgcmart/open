@@ -5,7 +5,7 @@
 
 Spree.Models.Order = Backbone.Model.extend({
   urlRoot: Spree.routes.orders_api,
-  idAttribute: "number",
+  idAttribute: 'number',
 
   relations: {
     "line_items": Spree.Collections.LineItems,
@@ -19,20 +19,20 @@ Spree.Models.Order = Backbone.Model.extend({
       url: Spree.routes.checkouts_api + "/" + this.id + "/advance",
       type: 'PUT',
     };
-    _.extend(options, opts);
+    _.extend(options, opts)
     return this.fetch(options)
   }
-});
+})
 
 Spree.Models.Order.fetch = function(number, opts) {
-  var options = (opts || {});
+  var options = (opts || {})
   var model = new Spree.Models.Order({
     number: number,
     line_items: [],
     shipments: [],
     bill_address: {},
     ship_address: {},
-  });
-  model.fetch(options);
-  return model;
+  })
+  model.fetch(options)
+  return model
 }
