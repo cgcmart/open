@@ -5,8 +5,9 @@ require 'spec_helper'
 describe 'Product Variants', type: :feature do
   stub_authorization!
 
-  before(:each) do
-    visit spree.admin_path
+  before do
+    create(:product)
+    visit spree.admin_products_path
   end
 
   context 'editing variant option types', js: true do
