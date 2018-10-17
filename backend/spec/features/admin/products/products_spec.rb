@@ -25,7 +25,7 @@ describe 'Products', type: :feature do
           create(:product, name: 'zomg shirt', price: 5)
         end
 
-        it 'should list existing products with correct sorting by name' do
+        it 'lists existing products with correct sorting by name' do
           click_nav 'Products'
           # Name ASC
           within_row(1) { expect(page).to have_content('apache baseball cap') }
@@ -37,7 +37,7 @@ describe 'Products', type: :feature do
           within_row(2) { expect(page).to have_content('apache baseball cap') }
         end
 
-        it 'should list existing products with correct sorting by price' do
+        it 'lists existing products with correct sorting by price' do
           click_nav 'Products'
           # Name ASC (default)
           within_row(1) { expect(page).to have_content('apache baseball cap') }
@@ -53,10 +53,6 @@ describe 'Products', type: :feature do
       context 'currency displaying' do
         context 'using Russian Rubles' do
           before do
-            Spree::Config[:currency] = 'RUB'
-          end
-
-          let!(:product) do
             create(:product, name: 'Just a product', price: 19.99)
           end
 
@@ -90,7 +86,7 @@ describe 'Products', type: :feature do
     end
 
     context 'searching products' do
-      it 'should be able to search deleted products' do
+      it 'is able to search deleted products' do
         create(:product, name: 'apache baseball cap', deleted_at: '2011-01-06 18:21:13')
         create(:product, name: 'zomg shirt')
 
@@ -181,7 +177,7 @@ describe 'Products', type: :feature do
         hash
       end
 
-      before(:each) do
+      before do
         @option_type_prototype = prototype
         @property_prototype = create(:prototype, name: 'Random')
         @shipping_category = create(:shipping_category)
@@ -192,7 +188,7 @@ describe 'Products', type: :feature do
         end
       end
 
-      it 'should allow an admin to create a new product and variants from a prototype', js: true do
+      it 'allows an admin to create a new product and variants from a prototype', js: true do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
@@ -205,7 +201,7 @@ describe 'Products', type: :feature do
         expect(Spree::Product.last.variants.length).to eq(1)
       end
 
-      it 'should not display variants when prototype does not contain option types', js: true do
+      it 'does not display variants when prototype does not contain option types', js: true do
         select 'Random', from: 'Prototype'
 
         fill_in 'product_name', with: 'Baseball Cap'
@@ -213,7 +209,7 @@ describe 'Products', type: :feature do
         expect(page).not_to have_content('Variants')
       end
 
-      it 'should keep option values selected if validation fails', js: true do
+      it 'keeps option values selected if validation fails', js: true do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
@@ -228,13 +224,13 @@ describe 'Products', type: :feature do
     end
 
     context 'creating a new product' do
-      before(:each) do
+      before do
         @shipping_category = create(:shipping_category)
         click_nav 'Products'
         click_on 'New Product'
       end
 
-      it 'should allow an admin to create a new product', js: true do
+      it 'allows an admin to create a new product', js: true do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
@@ -246,7 +242,7 @@ describe 'Products', type: :feature do
         expect(page).to have_content('successfully updated!')
       end
 
-      it 'should show validation errors', js: false do
+      it 'shows validation errors', js: false do
         fill_in 'product_name', with: 'Baseball Cap'
         fill_in 'product_sku', with: 'B100'
         fill_in 'product_price', with: '100'
@@ -281,7 +277,7 @@ describe 'Products', type: :feature do
                                           })
         end
 
-        it 'should show localized price value on validation errors', js: true do
+        it 'shows localized price value on validation errors', js: true do
           fill_in 'Name', with: ' '
           select @shipping_category.name, from: 'product_shipping_category_id'
           fill_in 'product_price', with: '19,99'
@@ -304,7 +300,7 @@ describe 'Products', type: :feature do
     end
 
     context 'cloning a product', js: true do
-      it 'should allow an admin to clone a product' do
+      it 'allows an admin to clone a product' do
         create(:product)
 
         click_nav 'Products'
@@ -316,7 +312,7 @@ describe 'Products', type: :feature do
       end
 
       context 'cloning a deleted product' do
-        it 'should allow an admin to clone a deleted product' do
+        it 'allows an admin to clone a deleted product' do
           create(:product, name: 'apache baseball cap')
 
           click_nav 'Products'
@@ -342,12 +338,12 @@ describe 'Products', type: :feature do
         FactoryBot.create(:prototype, name: 'Size', option_types: [size])
       end
 
-      before(:each) do
+      before do
         @option_type_prototype = prototype
         @property_prototype = create(:prototype, name: 'Random')
       end
 
-      it 'should parse correctly available_on' do
+      it 'parsed correctly available_on' do
         visit spree.admin_product_path(product)
         fill_in 'product_available_on', with: '2012/12/25'
         click_button 'Update'
@@ -355,7 +351,7 @@ describe 'Products', type: :feature do
         expect(Spree::Product.last.available_on).to eq('Tue, 25 Dec 2012 00:00:00 UTC +00:00')
       end
 
-      it 'should add option_types when selecting a prototype', js: true do
+      it 'adds option_types when selecting a prototype', js: true do
         visit spree.admin_product_path(product)
         click_link 'Product Properties'
         click_link 'Select From Prototype'
@@ -407,7 +403,7 @@ describe 'Products', type: :feature do
     end
     let!(:product) { create(:product) }
 
-    it 'should only display accessible links on index' do
+    it 'onlies display accessible links on index' do
       visit spree.admin_products_path
       expect(page).to have_link('Products')
       expect(page).not_to have_link('Option Types')
@@ -419,7 +415,7 @@ describe 'Products', type: :feature do
       expect(page).not_to have_css('a.delete-resource')
     end
 
-    it 'should only display accessible links on edit' do
+    it 'onlies display accessible links on edit' do
       visit spree.admin_product_path(product)
 
       # product tabs should be hidden
