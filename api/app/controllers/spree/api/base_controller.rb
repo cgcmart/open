@@ -8,6 +8,7 @@ module Spree
       protect_from_forgery unless: -> { request.format.json? || request.format.xml? }
       self.responder = Spree::Api::Responders::AppResponder
       respond_to :json
+      protect_from_forgery unless: -> { request.format.json? }
 
       include CanCan::ControllerAdditions
       include Spree::Core::ControllerHelpers::Store
