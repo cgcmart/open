@@ -1,12 +1,12 @@
 Spree.Views.Calculators.Tiered = Backbone.View.extend({
   initialize: function() {
-    this.calculatorName = this.$('.js-tiers').data('calculator');
-    this.tierFieldsTemplate = HandlebarsTemplates["promotions/calculators/fields/" + this.calculatorName];
-    this.originalTiers = this.$('.js-tiers').data('original-tiers');
-    this.formPrefix = this.$('.js-tiers').data('form-prefix');
+    this.calculatorName = this.$('.js-tiers').data('calculator')
+    this.tierFieldsTemplate = HandlebarsTemplates["promotions/calculators/fields/" + this.calculatorName]
+    this.originalTiers = this.$('.js-tiers').data('original-tiers')
+    this.formPrefix = this.$('.js-tiers').data('form-prefix')
 
     for (var base in this.originalTiers) {
-      var value = this.originalTiers[base];
+      var value = this.originalTiers[base]
       this.$('.js-tiers').append(
         this.tierFieldsTemplate({
           baseField: {
@@ -17,7 +17,7 @@ Spree.Views.Calculators.Tiered = Backbone.View.extend({
             value: value
           }
         })
-      );
+      )
     }
   },
 
@@ -28,11 +28,11 @@ Spree.Views.Calculators.Tiered = Backbone.View.extend({
   },
 
   tierInputName: function(base) {
-    return this.formPrefix + "[calculator_attributes][preferred_tiers][" + base + "]";
+    return this.formPrefix + "[calculator_attributes][preferred_tiers][" + base + "]"
   },
 
   onAdd: function(event) {
-    event.preventDefault();
+    event.preventDefault()
     this.$('.js-tiers').append(
       this.tierFieldsTemplate({
         valueField: {
@@ -43,12 +43,12 @@ Spree.Views.Calculators.Tiered = Backbone.View.extend({
   },
 
   onRemove: function(event) {
-    event.preventDefault();
-    $(event.target).parents('.tier').remove();
+    event.preventDefault()
+    $(event.target).parents('.tier').remove()
   },
 
   onChange: function(event) {
-    var valueInput = $(event.target).parents('.tier').find('.js-value-input');
-    valueInput.attr('name', this.tierInputName($(event.target).val()));
+    var valueInput = $(event.target).parents('.tier').find('.js-value-input')
+    valueInput.attr('name', this.tierInputName($(event.target).val()))
   }
-});
+})
