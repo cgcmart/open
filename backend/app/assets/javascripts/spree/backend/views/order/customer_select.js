@@ -1,6 +1,6 @@
 Spree.Views.Order.CustomerSelect = Backbone.View.extend({
   initialize: function() {
-    this.render();
+    this.render()
   },
 
   events: {
@@ -8,12 +8,12 @@ Spree.Views.Order.CustomerSelect = Backbone.View.extend({
   },
 
   onSelect: function(e) {
-    var customer = e.choice;
+    var customer = e.choice
     this.trigger("select", customer)
   },
 
   render: function() {
-    var customerTemplate = HandlebarsTemplates['orders/customer_details/autocomplete'];
+    var customerTemplate = HandlebarsTemplates['orders/customer_details/autocomplete']
 
     var formatCustomerResult = function(customer) {
       return customerTemplate({
@@ -48,8 +48,8 @@ Spree.Views.Order.CustomerSelect = Backbone.View.extend({
       },
       formatResult: formatCustomerResult,
       formatSelection: function (customer) {
-        return Select2.util.escapeMarkup(customer.email);
+        return Select2.util.escapeMarkup(customer.email)
       }
     })
   }
-});
+})
