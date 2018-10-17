@@ -42,7 +42,7 @@ describe 'Orders Listing', type: :feature, js: true do
       end
     end
 
-    it 'should be able to sort the orders listing' do
+    it 'is able to sort the orders listing' do
       # default is completed_at desc
       within_row(1) { expect(page).to have_content('R100') }
       within_row(2) { expect(page).to have_content('R200') }
@@ -100,7 +100,7 @@ describe 'Orders Listing', type: :feature, js: true do
         within('table#listing_orders') { expect(page).not_to have_content('R100') }
       end
 
-      it "should be able to filter on variant_id" do
+      it "is able to filter on variant_id" do
         click_on "Filter Results"
         select2_search @order1.products.first.sku, from: I18n.t('spree.variant')
         click_on 'Filter Results'
@@ -123,7 +123,7 @@ describe 'Orders Listing', type: :feature, js: true do
         end
 
         # Regression test for https://github.com/spree/spree/issues/4004
-        it 'should be able to go from page to page for incomplete orders' do
+        it 'is able to go from page to page for incomplete orders' do
           10.times { Spree::Order.create! email: 'incomplete@example.com' }
           click_on 'Filter Results'
           uncheck 'q_completed_at_not_null'
@@ -136,7 +136,7 @@ describe 'Orders Listing', type: :feature, js: true do
         end
       end
 
-      it 'should be able to search orders using only completed at input' do
+      it 'is able to search orders using only completed at input' do
         click_on "Filter Results"
         fill_in 'q_created_at_gt', with: Date.current
         click_on 'Filter Results'
@@ -147,7 +147,7 @@ describe 'Orders Listing', type: :feature, js: true do
       end
 
       context 'filter on promotions' do
-        before(:each) do
+        before do
           @order1.order_promotions.build(
             promotion: promotion,
             promotion_code: promotion_code
