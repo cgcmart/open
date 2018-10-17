@@ -23,7 +23,7 @@ RSpec.describe 'New Order', type: :feature do
   it 'does check if you have a billing address before letting you add shipments' do
     click_on 'Shipments'
     expect(page).to have_content 'Please fill in customer info'
-    expect(current_path).to eql(spree.edit_admin_order_customer_path(Spree::Order.last))
+    expect(page).to have_current_path(spree.edit_admin_order_customer_path(Spree::Order.last))
   end
 
   it 'default line item quantity is 1', js: true do
@@ -48,12 +48,12 @@ RSpec.describe 'New Order', type: :feature do
     click_on 'Payments'
     click_on 'Update'
 
-    expect(current_path).to eql(spree.admin_order_payments_path(Spree::Order.last))
+    expect(page).to have_current_path(spree.admin_order_payments_path(Spree::Order.last))
 
     click_on 'Confirm'
     click_on 'Complete Order'
 
-    expect(current_path).to eql(spree.edit_admin_order_path(Spree::Order.last))
+    expect(page).to have_current_path(spree.edit_admin_order_path(Spree::Order.last))
 
     click_on 'Payments'
     click_icon 'capture'
