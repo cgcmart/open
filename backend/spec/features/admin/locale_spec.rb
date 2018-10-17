@@ -28,7 +28,7 @@ describe 'setting locale', type: :feature do
     ActionView::Base.raise_on_missing_translations = true
   end
 
-  it 'should be in french' do
+  it 'is in french' do
     visit spree.admin_path
     expect(page).to have_content('Ordres')
   end
