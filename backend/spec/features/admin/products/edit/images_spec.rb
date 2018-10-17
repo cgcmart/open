@@ -53,7 +53,7 @@ describe 'Product Images', type: :feature, js: true do
     end
   end
 
-  it 'should not see variant column when product has no variants' do
+  it 'does not see variant column when product has no variants' do
     product = create(:product)
     product.images.create!(attachment: File.open(file_path))
     visit spree.admin_product_images_path(product)
