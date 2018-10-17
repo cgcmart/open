@@ -18,7 +18,7 @@ describe 'Product Taxons', type: :feature do
 
     let(:product) { create(:product) }
 
-    it 'should allow an admin to manage display order (taxons)' do
+    it 'allows an admin to manage display order (taxons)' do
       taxon_1 = create(:taxon)
       taxon_2 = create(:taxon, name: 'Clothing')
       product.taxons << taxon_1
