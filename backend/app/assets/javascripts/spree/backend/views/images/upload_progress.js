@@ -5,9 +5,9 @@ Spree.Views.Images.UploadProgress = Backbone.View.extend({
   template: HandlebarsTemplates["products/upload_progress"],
 
   initialize: function() {
-    this.listenTo(this.model, 'change:progress', this.updateProgressBar);
-    this.listenTo(this.model, 'change', this.render);
-    this.listenTo(this.model, 'destroy', this.remove);
+    this.listenTo(this.model, 'change:progress', this.updateProgressBar)
+    this.listenTo(this.model, 'change', this.render)
+    this.listenTo(this.model, 'destroy', this.remove)
   },
 
   events: {
@@ -24,25 +24,25 @@ Spree.Views.Images.UploadProgress = Backbone.View.extend({
 
   render: function() {
     // Skip progress bar update for better performance
-    var changedAttrs = Object.keys(this.model.changed);
-    if(changedAttrs.length === 1 && changedAttrs[0] == 'progress') return this;
+    var changedAttrs = Object.keys(this.model.changed)
+    if(changedAttrs.length === 1 && changedAttrs[0] == 'progress') return this
 
-    this.el.innerHTML = this.template(this.model.toJSON());
-    this.updateProgressBar();
-    return this;
+    this.el.innerHTML = this.template(this.model.toJSON())
+    this.updateProgressBar()
+    return this
   },
 
   updateProgressBar: function() {
-    var progressBar = this.el.querySelector('.progress-bar');
-    var percent = this.model.get('progress');
-    progressBar.setAttribute('aria-valuenow', percent);
-    progressBar.style.width = percent + '%';
-    progressBar.innerHTML = percent + '%';
-    return this;
+    var progressBar = this.el.querySelector('.progress-bar')
+    var percent = this.model.get('progress')
+    progressBar.setAttribute('aria-valuenow', percent)
+    progressBar.style.width = percent + '%'
+    progressBar.innerHTML = percent + '%'
+    return this
   },
 
   // Remove the item, destroy the model
   clear: function() {
-    this.model.destroy();
+    this.model.destroy()
   }
-});
+})
