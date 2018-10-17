@@ -154,7 +154,7 @@ RSpec.describe Spree::Admin::OrdersController, type: :controller do
         context 'when order_bill_address_used is true' do
           before { Spree::Config[:order_bill_address_used] = true }
 
-          it 'should redirect to the customer details page' do
+          it 'redirects to the customer details page' do
             get :edit, params: { id: order.number }
             expect(response).to redirect_to(spree.edit_admin_order_customer_path(order))
           end
