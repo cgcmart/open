@@ -5,7 +5,7 @@ require 'spec_helper'
 describe 'Adjustments Promotions', type: :feature do
   stub_authorization!
 
-  before(:each) do
+  before do
     create(:promotion_with_item_adjustment,
            name: '$10 off',
            path: 'test',
@@ -24,7 +24,7 @@ describe 'Adjustments Promotions', type: :feature do
 
   context 'admin adding a promotion' do
     context 'successfully' do
-      it 'should create a new adjustment', js: true do
+      it 'creates a new adjustment', js: true do
         fill_in 'coupon_code', with: '10_off'
         click_button 'Add Coupon Code'
         expect(page).to have_content('$10 off')
@@ -33,7 +33,7 @@ describe 'Adjustments Promotions', type: :feature do
     end
 
     context 'for non-existing promotion' do
-      it 'should show an error message', js: true do
+      it 'shows an error message', js: true do
         fill_in 'coupon_code', with: 'does_not_exist'
         click_button 'Add Coupon Code'
         expect(page).to have_content("doesn't exist.")
@@ -41,7 +41,7 @@ describe 'Adjustments Promotions', type: :feature do
     end
 
     context 'for already applied promotion' do
-      it 'should show an error message', js: true do
+      it 'shows an error message', js: true do
         fill_in 'coupon_code', with: '10_off'
         click_button 'Add Coupon Code'
         expect(page).to have_content('-$10.00')
