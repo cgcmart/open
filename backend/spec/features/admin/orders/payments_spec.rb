@@ -43,7 +43,7 @@ describe 'Payments', type: :feature do
       end
     end
 
-    it 'should list all captures for a payment' do
+    it 'lists all captures for a payment' do
       capture_amount = order.outstanding_balance / 2 * 100
       payment.capture!(capture_amount)
 
