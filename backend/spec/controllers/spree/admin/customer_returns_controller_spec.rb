@@ -220,13 +220,13 @@ module Spree
 
         context 'missing stock location' do
           let(:stock_location_id) { '' }
-          it { expect{ subject }.to_not change { Spree::CustomerReturn.count } }
+          it { expect{ subject }.not_to change { Spree::CustomerReturn.count } }
           it { subject; expect(response).to render_template(:new) }
         end
 
         context 'missing reception status event' do
           let(:reception_status_event) { '' }
-          it { expect{ subject }.to_not change { Spree::CustomerReturn.count } }
+          it { expect{ subject }.not_to change { Spree::CustomerReturn.count } }
           it { subject; expect(response).to redirect_to spree.new_admin_order_customer_return_path(order) }
         end
       end
