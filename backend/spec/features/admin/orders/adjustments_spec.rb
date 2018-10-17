@@ -14,19 +14,19 @@ describe 'Adjustments', type: :feature do
   let(:tax_category) { create(:tax_category) }
   let(:variant) { create(:variant, tax_category: tax_category) }
 
-  let!(:adjustment) { order.adjustments.create!(order: order, label: 'Rebate', amount: 10) }
+  order.adjustments.create!(order: order, label: 'Rebate', amount: 10)
 
-  before(:each) do
+  before do
     order.recalculate
 
     visit spree.admin_path
-    click_link "Orders"
+    click_link 'Orders'
     within_row(1) { click_icon :edit }
-    click_link "Adjustments"
+    click_link 'Adjustments'
   end
 
   context 'admin managing adjustments' do
-    it 'should display the correct values for existing order adjustments' do
+    it 'displays the correct values for existing order adjustments' do
       within first('table tr', text: 'Tax') do
         expect(column_text(2)).to match(/TaxCategory - \d+ 20\.000%/)
         expect(column_text(3)).to eq("$2.00")
@@ -39,12 +39,12 @@ describe 'Adjustments', type: :feature do
   end
 
   context 'admin creating a new adjustment' do
-    before(:each) do
+    before do
       click_link 'New Adjustment'
     end
 
     context 'successfully' do
-      it 'should creates a new adjustment' do
+      it 'creates a new adjustment' do
         fill_in 'adjustment_amount', with: '10'
         fill_in 'adjustment_label', with: 'rebate'
         click_button 'Continue'
@@ -55,7 +55,7 @@ describe 'Adjustments', type: :feature do
     end
 
     context 'with validation errors' do
-      it 'should not create a new adjustment' do
+      it 'does not create a new adjustment' do
         fill_in 'adjustment_amount', with: ''
         fill_in 'adjustment_label', with: ''
         click_button 'Continue'
@@ -66,14 +66,14 @@ describe 'Adjustments', type: :feature do
   end
 
   context 'admin editing an adjustment' do
-    before(:each) do
+    before do
       within('table tr', text: 'Rebate') do
         click_icon :edit
       end
     end
 
     context 'successfully' do
-      it 'should update the adjustment' do
+      it 'updates the adjustment' do
         fill_in 'adjustment_amount', with: '99'
         fill_in 'adjustment_label', with: 'rebate 99'
         click_button 'Continue'
@@ -88,7 +88,7 @@ describe 'Adjustments', type: :feature do
     end
 
     context 'with validation errors' do
-      it 'should not update the adjustment' do
+      it 'does not update the adjustment' do
         fill_in 'adjustment_amount', with: ''
         fill_in 'adjustment_label', with: ''
         click_button 'Continue'
@@ -102,14 +102,14 @@ describe 'Adjustments', type: :feature do
     context 'when the adjustment is finalized' do
       let!(:adjustment) { super().tap(&:finalize!) }
 
-      it 'should not be possible' do
+      it 'is not possible' do
         within('table tr', text: 'Rebate') do
           expect(page).not_to have_css('.fa-trash')
         end
       end
     end
 
-    it 'should update the total', js: true do
+    it 'updates the total', js: true do
       accept_alert do
         within('table tr', text: 'Rebate') do
           click_icon(:trash)
