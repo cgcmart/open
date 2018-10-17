@@ -7,8 +7,6 @@ describe Spree::Admin::RefundsController do
 
   describe 'POST create' do
     context 'a Spree::Core::GatewayError is raised' do
-      let(:payment) { create(:payment) }
-
       subject do
         post :create, params: {
           refund: { amount: '50.0', refund_reason_id: '1' },
@@ -17,7 +15,9 @@ describe Spree::Admin::RefundsController do
         }
       end
 
-      before(:each) do
+      let(:payment) { create(:payment) }
+
+      before do
         def controller.create
           raise Spree::Core::GatewayError.new('An error has occurred')
         end
