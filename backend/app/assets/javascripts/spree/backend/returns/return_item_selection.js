@@ -22,7 +22,7 @@ Spree.ready(function() {
   }
 
   var formFields = $("[data-hook='admin_customer_return_form_fields'], \
-                     [data-hook='admin_return_authorization_form_fields']");
+                     [data-hook='admin_return_authorization_form_fields']")
 
   if(formFields.length > 0) {
     updateSuggestedAmount()
