@@ -39,8 +39,8 @@ Spree.Views.StateSelect = Backbone.View.extend({
   },
 
   render: function() {
-    this.$state_select.empty().hide().prop('disabled', true);
-    this.$state_input.hide().prop('disabled', true);
+    this.$state_select.empty().hide().prop('disabled', true)
+    this.$state_input.hide().prop('disabled', true)
 
     if (!this.model.get('country_id') || !this.states.fetched) {
       this.$state_select.show()
