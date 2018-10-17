@@ -6,7 +6,8 @@ module Spree
       helper 'spree/admin/navigation'
       layout '/spree/layouts/admin'
 
-      before_action :authorize_admin      
+      before_action :authorize_admin
+      before_action :generate_admin_api_key
 
       private
 
