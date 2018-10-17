@@ -207,7 +207,7 @@ describe 'Order Details', type: :feature, js: true do
         before { visit spree.edit_admin_order_path(order) }
         # can not properly implement until poltergeist supports checking alert text
         # see https://github.com/teampoltergeist/poltergeist/pull/516
-        it 'should warn you if you have not selected a location or shipment'
+        it 'warns you if you have not selected a location or shipment'
 
         context 'there is enough stock at the other location' do
           it 'allows me to make a split' do
@@ -569,7 +569,7 @@ describe 'Order Details', type: :feature, js: true do
         and_return(Spree.user_class.new)
     end
 
-    it 'should not display order tabs or edit buttons without ability' do
+    it 'does not display order tabs or edit buttons without ability' do
       visit spree.edit_admin_order_path(order)
 
       # Order Tabs
