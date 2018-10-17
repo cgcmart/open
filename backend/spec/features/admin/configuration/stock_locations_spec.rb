@@ -6,7 +6,7 @@ describe 'Stock Locations', type: :feature do
   stub_authorization!
   let!(:stock_location) { create(:stock_location) }
 
-  before(:each) do
+  before do
     create(:country)
     visit spree.admin_path
     click_link "Settings"
