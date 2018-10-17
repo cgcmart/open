@@ -3,8 +3,8 @@ Spree.Views.Cart.LineItemRow = Backbone.View.extend({
   className: 'line-item',
 
   initialize: function(options) {
-    this.listenTo(this.model, "change", this.render);
-    this.editing = options.editing || this.model.isNew();
+    this.listenTo(this.model, 'change', this.render)
+    this.editing = options.editing || this.model.isNew()
   },
 
   events: {
@@ -23,19 +23,19 @@ Spree.Views.Cart.LineItemRow = Backbone.View.extend({
   },
 
   onCancel: function(e) {
-    e.preventDefault();
+    e.preventDefault()
     if (this.model.isNew()) {
-      this.remove();
-      this.model.destroy();
+      this.remove()
+      this.model.destroy()
     } else {
-      this.editing = false;
-      this.render();
+      this.editing = false
+      this.render()
     }
   },
 
   validate: function () {
-    this.$('[name=quantity]').toggleClass('error', !this.$('[name=quantity]').val());
-    this.$('.select2-container').toggleClass('error', !this.$('[name=variant_id]').val());
+    this.$('[name=quantity]').toggleClass('error', !this.$('[name=quantity]').val())
+    this.$('.select2-container').toggleClass('error', !this.$('[name=variant_id]').val())
 
     return !this.$('.select2-container').hasClass('error') && !this.$('[name=quantity]').hasClass('error')
   },
@@ -43,7 +43,7 @@ Spree.Views.Cart.LineItemRow = Backbone.View.extend({
   onSave: function(e) {
     e.preventDefault()
     if(!this.validate()) {
-      return;
+      return
     }
     var attrs = {
       quantity: parseInt(this.$('input.line_item_quantity').val())
@@ -51,24 +51,24 @@ Spree.Views.Cart.LineItemRow = Backbone.View.extend({
     if (this.model.isNew()) {
       attrs['variant_id'] = this.$("[name=variant_id]").val()
     }
-    var model = this.model;
+    var model = this.model
     this.model.save(attrs, {
       patch: true,
       success: function() {
         model.order.advance()
       }
     });
-    this.editing = false;
-    this.render();
+    this.editing = false
+    this.render()
   },
 
   onDelete: function(e) {
     e.preventDefault()
     if(!confirm(Spree.translations.are_you_sure_delete)) {
-      return;
+      return
     }
     this.remove()
-    var model = this.model;
+    var model = this.model
     this.model.destroy({
       success: function() {
         model.order.advance()
@@ -82,8 +82,8 @@ Spree.Views.Cart.LineItemRow = Backbone.View.extend({
       editing: this.editing,
       isNew: this.model.isNew(),
       noCancel: this.model.isNew() && this.model.collection.length == 1
-    });
-    this.$el.html(html);
-    this.$("[name=variant_id]").variantAutocomplete({ suppliable_only: true });
+    })
+    this.$el.html(html)
+    this.$("[name=variant_id]").variantAutocomplete({ suppliable_only: true })
   }
-});
+})
