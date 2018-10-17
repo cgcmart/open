@@ -18,7 +18,7 @@ FactoryBot.define do
     currency 'USD'
 
     transient do
-      line_items_price { BigDecimal.new(10) }
+      line_items_price { BigDecimal(10) }
     end
 
     # TODO: Improve the name of order_with_totals factory.
