@@ -5,7 +5,7 @@ require 'spec_helper'
 describe 'Properties', type: :feature do
   stub_authorization!
 
-  before(:each) do
+  before do
     visit spree.admin_path
     click_nav 'Products'
   end
@@ -18,7 +18,7 @@ describe 'Properties', type: :feature do
     end
 
     context 'listing product properties' do
-      it 'should list the existing product properties' do
+      it 'lists the existing product properties' do
         within_row(1) do
           expect(column_text(1)).to eq('shirt size')
           expect(column_text(2)).to eq('size')
@@ -32,7 +32,7 @@ describe 'Properties', type: :feature do
     end
 
     context 'searching properties' do
-      it 'should list properties matching search query', js: true do
+      it 'lists properties matching search query', js: true do
         fill_in 'q_name_cont', with: 'size'
         click_button 'Search'
 
@@ -56,20 +56,20 @@ describe 'Properties', type: :feature do
   end
 
   context 'editing a property' do
-    before(:each) do
+    before do
       create(:property)
       click_link 'Property Types'
       within_row(1) { click_icon :edit }
     end
 
-    it 'should allow an admin to edit an existing product property' do
+    it 'allows an admin to edit an existing product property' do
       fill_in 'property_name', with: 'model 99'
       click_button 'Update'
       expect(page).to have_content('successfully updated!')
       expect(page).to have_content('model 99')
     end
 
-    it 'should show validation errors' do
+    it 'shows validation errors' do
       fill_in 'property_name', with: ''
       click_button 'Update'
       expect(page).to have_content("Name can't be blank")
