@@ -97,7 +97,7 @@ describe 'Customer Details', type: :feature, js: true do
       end
     end
 
-    it 'should be able to update customer details for an existing order' do
+    it 'is able to update customer details for an existing order' do
       order.ship_address = create(:address)
       order.save!
 
@@ -115,7 +115,7 @@ describe 'Customer Details', type: :feature, js: true do
       end
     end
 
-    it 'should show validation errors' do
+    it 'shows validation errors' do
       order.update_attributes!(ship_address_id: nil)
       click_link 'Customer'
       click_button 'Update'
