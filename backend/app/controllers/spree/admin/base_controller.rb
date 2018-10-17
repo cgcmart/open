@@ -7,7 +7,6 @@ module Spree
       layout '/spree/layouts/admin'
 
       before_action :authorize_admin
-      before_action :generate_admin_api_key
 
       private
 
