@@ -12,7 +12,7 @@ describe 'Zones', type: :feature do
   end
 
   context 'show' do
-    it 'should display existing zones' do
+    it 'displays existing zones' do
       create(:zone, name: 'eastern', description: 'zone is eastern')
       create(:zone, name: 'western', description: 'cool san fran')
       click_link 'Zones'
@@ -28,7 +28,7 @@ describe 'Zones', type: :feature do
   end
 
   context 'create' do
-    it 'should allow an admin to create a new zone' do
+    it 'allows an admin to create a new zone' do
       click_link 'Zones'
       click_link 'admin_new_zone_link'
       expect(page).to have_content('New Zone')
