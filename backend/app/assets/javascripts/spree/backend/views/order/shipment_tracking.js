@@ -10,37 +10,37 @@ Spree.Views.Order.ShipmentTracking = Backbone.View.extend({
   },
 
   initialize: function(options) {
-    this.render();
+    this.render()
   },
 
   onEdit: function(event) {
-    this.editing = true;
-    this.render();
+    this.editing = true
+    this.render()
   },
 
   onSave: function(event) {
-    this.editing = false;
+    this.editing = false
     this.model.save({
       tracking: this.$('input[type="text"]').val()
     }, {
       patch: true
-    });
-    this.render();
+    })
+    this.render()
 
-    return false;
+    return false
   },
 
   onCancel: function(event) {
-    this.editing = false;
-    this.render();
+    this.editing = false
+    this.render()
   },
 
   render: function() {
     var html = HandlebarsTemplates['orders/shipment_tracking']({
       editing: this.editing,
-      tracking: this.model.get("tracking"),
-    });
+      tracking: this.model.get('tracking'),
+    })
 
-    this.$el.html(html);
+    this.$el.html(html)
   }
-});
+})
