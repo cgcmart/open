@@ -6,7 +6,7 @@ describe 'Product Details', type: :feature do
   stub_authorization!
 
   context 'editing a product', js: true do
-    it 'should list the product details' do
+    it 'lists the product details' do
       create(:product, name: 'Bún thịt nướng', sku: 'A100',
                        description: 'lorem ipsum', available_on: '2013-08-14 01:02:03')
 
@@ -26,7 +26,7 @@ describe 'Product Details', type: :feature do
       expect(page).to have_field('product_sku', with: 'A100')
     end
 
-    it 'should handle slug changes' do
+    it 'handles slug changes' do
       create(:product, name: 'Bún thịt nướng', sku: 'A100',
               description: 'lorem ipsum', available_on: '2011-01-01 01:01:01')
 
