@@ -5,10 +5,6 @@ require 'spec_helper'
 describe 'Stock Management', type: :feature do
   stub_authorization!
 
-  before(:each) do
-    visit spree.admin_path
-  end
-
   context 'given a product with a variant and a stock location' do
     let!(:stock_location) { create(:stock_location, name: 'Default') }
     let!(:product) { create(:product, name: 'apache baseball cap', price: 10) }
