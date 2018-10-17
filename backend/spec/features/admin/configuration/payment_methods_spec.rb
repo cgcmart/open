@@ -15,7 +15,7 @@ describe 'Payment Methods', type: :feature do
       create(:check_payment_method)
     end
 
-    it 'should displays existing payment methods' do
+    it 'displays existing payment methods' do
       click_link 'Payments'
       expect(page).to have_link 'Payment Methods'
       within('table#listing_payment_methods') do
@@ -33,7 +33,7 @@ describe 'Payment Methods', type: :feature do
   end
 
   context 'admin creating a new payment method' do
-    it 'should be able to create a new payment method' do
+    it 'is able to create a new payment method' do
       click_link 'Payments'
       expect(page).to have_link 'Payment Methods'
       click_link 'admin_new_payment_methods_link'
@@ -57,7 +57,7 @@ describe 'Payment Methods', type: :feature do
       end
     end
 
-    it 'should be able to edit an existing payment method' do
+    it 'is able to edit an existing payment method' do
       fill_in 'payment_method_name', with: 'Payment 99'
       click_button 'Update'
       expect(page).to have_content('successfully updated!')
@@ -70,7 +70,7 @@ describe 'Payment Methods', type: :feature do
         visit current_path
       end
 
-      it 'should be able to change the associated stores' do
+      it 'is able to change the associated stores' do
         select 'Default Store', from: 'Stores'
         click_button 'Update'
         expect(page).to have_content('successfully updated!')
