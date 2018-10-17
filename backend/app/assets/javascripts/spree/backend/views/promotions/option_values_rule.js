@@ -7,9 +7,9 @@ Spree.Views.Promotions.OptionValuesRuleRow = Backbone.View.extend({
   },
 
   initialize: function(options) {
-    this.productId = options.productId;
-    this.values = options.values;
-    this.paramPrefix = options.paramPrefix;
+    this.productId = options.productId
+    this.values = options.values
+    this.paramPrefix = options.paramPrefix
   },
 
   render: function() {
@@ -21,38 +21,38 @@ Spree.Views.Promotions.OptionValuesRuleRow = Backbone.View.extend({
       })
     );
 
-    this.$('.js-promo-rule-option-value-product-select').productAutocomplete({multiple: false});
+    this.$('.js-promo-rule-option-value-product-select').productAutocomplete({multiple: false})
 
     // Note: This doesn't work. This always selects the first product select on the page.
     // optionValueAutocomplete also doesn't work, so this cancels out.
     this.$('.js-promo-rule-option-value-option-values-select').optionValueAutocomplete({productSelect: '.js-promo-rule-option-value-product-select'})
 
     if(this.productId == null) {
-      this.$('.js-promo-rule-option-value-option-values-select').prop('disabled', true);
+      this.$('.js-promo-rule-option-value-option-values-select').prop('disabled', true)
     }
   },
 
   onSelectProduct: function(e) {
-    this.productId = this.$('input.js-promo-rule-option-value-product-select').val();
-    this.render();
+    this.productId = this.$('input.js-promo-rule-option-value-product-select').val()
+    this.render()
   },
 
   onRemove: function(e) {
-    this.remove();
+    this.remove()
   },
-});
+})
 
 Spree.Views.Promotions.OptionValuesRule = Backbone.View.extend({
   initialize: function() {
     _.bindAll(this, 'addOptionValue')
-    this.$optionValues = this.$('.js-promo-rule-option-values');
-    this.paramPrefix = this.$('.param-prefix').data('param-prefix');
+    this.$optionValues = this.$('.js-promo-rule-option-values')
+    this.paramPrefix = this.$('.param-prefix').data('param-prefix')
 
     var originalOptionValues = this.$optionValues.data('original-option-values')
     if ($.isEmptyObject(originalOptionValues)) {
-      this.addOptionValue(null, null);
+      this.addOptionValue(null, null)
     } else {
-      $.each(originalOptionValues, this.addOptionValue);
+      $.each(originalOptionValues, this.addOptionValue)
     }
   },
 
@@ -65,15 +65,15 @@ Spree.Views.Promotions.OptionValuesRule = Backbone.View.extend({
       productId: product,
       values: values,
       paramPrefix: this.paramPrefix
-    });
+    })
 
-    this.$optionValues.append(row.el);
+    this.$optionValues.append(row.el)
 
-    row.render();
+    row.render()
   },
 
   onAdd: function(e) {
-    e.preventDefault();
-    this.addOptionValue(null, null);
+    e.preventDefault()
+    this.addOptionValue(null, null)
   },
-});
+})
