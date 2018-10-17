@@ -128,7 +128,7 @@ module Spree
     end
 
     def percentage_of_line_item
-      quantity / BigDecimal.new(line_item.quantity)
+      quantity / BigDecimal(line_item.quantity)
     end
 
     def current_return_item
