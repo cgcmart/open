@@ -10,36 +10,36 @@ Spree.Views.Order.ShippingMethod = Backbone.View.extend({
   },
 
   initialize: function(options) {
-    this.shippingMethodId = this.model.get('selected_shipping_rate').get('shipping_method_id');
-    this.shippingRates = new Backbone.Collection();
-    this.render();
+    this.shippingMethodId = this.model.get('selected_shipping_rate').get('shipping_method_id')
+    this.shippingRates = new Backbone.Collection()
+    this.render()
   },
 
   onEdit: function(event) {
-    this.editing = true;
-    this.shippingRates = this.model.estimatedRates();
-    this.listenTo(this.shippingRates, "sync", this.render);
-    this.render();
+    this.editing = true
+    this.shippingRates = this.model.estimatedRates()
+    this.listenTo(this.shippingRates, "sync", this.render)
+    this.render()
   },
 
   onSave: function(event) {
-    this.editing = false;
-    this.shippingMethodId = this.$('select').val();
-    this.shippingRates = new Backbone.Collection();
+    this.editing = false
+    this.shippingMethodId = this.$('select').val()
+    this.shippingRates = new Backbone.Collection()
     this.model.selectShippingMethodId(this.shippingMethodId, {
       success: function() {
-        window.location.reload();
+        window.location.reload()
       }
-    });
-    this.render();
+    })
+    this.render()
 
-    return false;
+    return false
   },
 
   onCancel: function(event) {
-    this.editing = false;
-    this.shippingRates = new Backbone.Collection();
-    this.render();
+    this.editing = false
+    this.shippingRates = new Backbone.Collection()
+    this.render()
   },
 
   render: function() {
@@ -49,9 +49,9 @@ Spree.Views.Order.ShippingMethod = Backbone.View.extend({
       shipment: this.model.toJSON(),
       selected_shipping_rate: this.model.get("selected_shipping_rate").toJSON(),
       shipping_rates: this.shippingRates.toJSON()
-    });
+    })
 
-    this.$el.html(html);
-    this.$('select').val(this.shippingMethodId);
+    this.$el.html(html)
+    this.$('select').val(this.shippingMethodId)
   }
 })
