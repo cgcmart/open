@@ -3,7 +3,7 @@ Spree.onCouponCodeApply = function(e) {
   var couponCodeField = $('#order_coupon_code')
   var couponCode = $.trim(couponCodeField.val())
   if (couponCode === '') {
-    return;
+    return
   }
   var couponStatus = $('#coupon_status')
   var successClass = 'success'
