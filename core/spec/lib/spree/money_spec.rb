@@ -128,9 +128,9 @@ RSpec.describe Spree::Money do
     end
   end
 
-  context 'symbol positioning' do
+  context 'format' do
     it 'passed in option' do
-      money = Spree::Money.new(10, symbol_position: :after, html: false)
+      money = described_class.new(10, format: '%n %u', html_wrap: false)
       expect(money.to_s).to eq('10.00 $')
     end
 
@@ -174,19 +174,19 @@ RSpec.describe Spree::Money do
 
     # Regression test for https://github.com/spree/spree/issues/2634
     it 'formats as plain by default' do
-      money = Spree::Money.new(10, symbol_position: :after)
+      money = Spree::Money.new(10, format: '%n %u')
       expect(money.to_s).to eq('10.00 €')
     end
 
     # rubocop:disable Style/AsciiComments
     it 'formats as HTML if asked (nicely) to' do
-      money = Spree::Money.new(10, symbol_position: :after)
+      money = Spree::Money.new(10, format: '%n %u')
       # The HTML'ified version of "10.00 €"
       expect(money.to_html).to eq('10.00&nbsp;&#x20AC;')
     end
 
     it 'formats as HTML with currency' do
-      money = Spree::Money.new(10, symbol_position: :after, with_currency: true)
+      money = Spree::Money.new(10, format: '%n %u', with_currency: true)
       # The HTML'ified version of "10.00 €"
       expect(money.to_html).to eq('10.00&nbsp;&#x20AC; <span class="currency">EUR</span>')
     end
