@@ -1,15 +1,15 @@
 Spree.ready(function ($) {
   Spree.addImageHandlers = function () {
     var thumbnails = $('#product-images ul.thumbnails');
-    $('#main-image').data('selectedThumb', $('#main-image img').attr('src'));
+    $('#main-image').data('selectedThumb', $('#main-image img').attr('src'))
     $('#main-image').data('selectedThumbAlt', $('#main-image img').attr('alt'))
     thumbnails.find('li').eq(0).addClass('selected')
 
     thumbnails.find('a').on('click', function (event) {
-      $('#main-image').data('selectedThumb', $(event.currentTarget).attr('href'));
-      $('#main-image').data('selectedThumbId', $(event.currentTarget).parent().attr('id'));
+      $('#main-image').data('selectedThumb', $(event.currentTarget).attr('href'))
+      $('#main-image').data('selectedThumbId', $(event.currentTarget).parent().attr('id'))
       $('#main-image').data('selectedThumbAlt', $(event.currentTarget).find('img').attr('alt'))
-      thumbnails.find('li').removeClass('selected');
+      thumbnails.find('li').removeClass('selected')
       $(event.currentTarget).parent('li').addClass('selected')
       return false
     })
@@ -26,7 +26,7 @@ Spree.ready(function ($) {
   }
 
   Spree.showVariantImages = function (variantId) {
-    $('li.vtmb').hide();
+    $('li.vtmb').hide()
     $('li.tmb-' + variantId).show()
     var currentThumb = $('#' + ($('#main-image')).data('selectedThumbId'))
 
@@ -39,10 +39,10 @@ Spree.ready(function ($) {
 
       var newImg = thumb.find('a').attr('href')
 
-      var newAlt = thumb.find('img').attr('alt');
+      var newAlt = thumb.find('img').attr('alt')
       $('#product-images ul.thumbnails li').removeClass('selected')
-      thumb.addClass('selected');
-      $('#main-image img').attr({ 'src': newImg, 'alt': newAlt });
+      thumb.addClass('selected')
+      $('#main-image img').attr({ 'src': newImg, 'alt': newAlt })
       $('#main-image').data({ 'selectedThumb': newImg, 'selectedThumbAlt': newAlt })
       $('#main-image').data('selectedThumbId', thumb.attr('id'))
     }
