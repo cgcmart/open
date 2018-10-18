@@ -50,25 +50,29 @@ module Spree
       quantity = params[:quantity].present? ? params[:quantity].to_i : 1
 
       # 2,147,483,647 is crazy. See issue https://github.com/spree/spree/issues/2695.
-      if !quantity.between?(1, 2_147_483_647)
-        @order.errors.add(:base, t('spree.please_enter_reasonable_quantity'))
-      end
-
-      begin
-          Spree::Cart::AddItem.call(order: order, variant: variant, quantity: quantity, options: options).value
+      if quantity.between?(1, 2_147_483_647)
+        begin
+          result = Spree::Cart::AddItem.call(order: order, variant: variant, quantity: quantity, options: options)
+          if result.failure?
+            error = result.value.errors.full_messages.join(', ')
+          else
+            order.update_line_item_prices!
+            order.create_tax_charge!
+            order.update_with_updater!
+          end
         rescue ActiveRecord::RecordInvalid => e
           error = e.record.errors.full_messages.join(', ')
         end
+      else
+        error = t('spree.please_enter_reasonable_quantity')
+      end
 
-      respond_with(@order) do |format|
-          format.html do
-          if @order.errors.any?
-            flash[:error] = @order.errors.full_messages.join(", ")
-            redirect_back_or_default(spree.root_path)
-            return
-          else
-            redirect_to cart_path
-          end
+      if error
+        flash[:error] = error
+        redirect_back_or_default(spree.root_path)
+      else
+        respond_with(order) do |format|
+          format.html { redirect_to(cart_path(variant_id: variant.id)) }
         end
       end
     end
