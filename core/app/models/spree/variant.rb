@@ -80,6 +80,12 @@ module Spree
       in_stock_variants
     end
 
+    # Returns a scope of Variants which are suppliable. This includes:
+    # * in_stock variants
+    # * backorderable variants
+    # * variants which do not track stock
+    #
+    # @return [ActiveRecord::Relation]
     def self.suppliable
       return all unless Spree::Config.track_inventory_levels
       arel_conditions = [
@@ -88,19 +94,6 @@ module Spree
         Spree::StockItem.arel_table[:backorderable].eq(true)
       ]
       joins(:stock_items).where(arel_conditions.inject(:or))
-    end
-
-    def self.eligible
-      where(is_master: false).or(where(
-          <<-SQL
-            #{Variant.quoted_table_name}.id IN (
-              SELECT MIN(#{Variant.quoted_table_name}.id) FROM #{Variant.quoted_table_name}
-              GROUP BY #{Variant.quoted_table_name}.product_id
-              HAVING COUNT(*) = 1
-            )
-          SQL
-        )
-      )
     end
 
     self.whitelisted_ransackable_associations = %w[option_values product prices default_price]
@@ -278,10 +271,6 @@ module Spree
       should_track_inventory?
     end
 
-    def display_image(fallback: true)
-      images.first || (fallback && product.variant_images.first) || Spree::Image.new
-    end
-
     def volume
       (width || 0) * (height || 0) * (depth || 0)
     end
@@ -306,6 +295,14 @@ module Spree
       product.variant_property_rules.map do |rule|
         rule.values if rule.applies_to_variant?(self)
       end.flatten.compact
+    end
+
+    # The gallery for the variant, which represents all the images
+    # associated with it
+    #
+    # @return [Spree::Gallery] the media for a variant
+    def gallery
+      @gallery ||= Spree::Config.variant_gallery_class.new(self)
     end
 
     private
