@@ -269,10 +269,6 @@ module Spree
       end
     end
 
-    def display_image
-      images.first || variant_images.first || Spree::Image.new
-    end
-
     def find_variant_property_rule(option_value_ids)
       variant_property_rules.find do |rule|
         rule.matches_option_value_ids?(option_value_ids)
@@ -292,6 +288,14 @@ module Spree
 
     def category
       taxons.joins(:taxonomy).find_by(spree_taxonomies: { name: Spree.t(:taxonomy_categories_name) })
+    end
+
+    # The gallery for the product, which represents all the images
+    # associated with it, including those on its variants
+    #
+    # @return [Spree::Gallery] the media for a variant
+    def gallery
+      @gallery ||= Spree::Config.product_gallery_class.new(self)
     end
 
     private
