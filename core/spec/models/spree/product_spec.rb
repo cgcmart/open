@@ -60,11 +60,11 @@ RSpec.describe Spree::Product, type: :model do
       subject { product.save! }
 
       shared_examples "a change occurred" do
-        it "should change updated_at" do
+        it "changes updated_at" do
           expect { subject }.to change{ product.updated_at }
         end
 
-        it "should touch taxons" do
+        it "touches taxons" do
           taxon = create(:taxon, product_ids: [product.id])
           taxon.update_columns(updated_at: 1.day.ago)
           product.taxons.reload
@@ -73,11 +73,11 @@ RSpec.describe Spree::Product, type: :model do
       end
 
       shared_examples "no change occurred" do
-        it "should not change updated_at" do
+        it "does not change updated_at" do
           expect { subject }.not_to change{ product.updated_at }
         end
 
-        it "should not touch taxons" do
+        it "does not touch taxons" do
           taxon = create(:taxon, products: [product])
           taxon.update_columns(updated_at: 1.day.ago)
           product.taxons.reload
@@ -144,7 +144,7 @@ RSpec.describe Spree::Product, type: :model do
       end
 
       context '#discard' do
-        it 'should set deleted_at value' do
+        it 'sets deleted_at value' do
           product.discard
           expect(product.deleted_at).not_to be_nil
           expect(product.variants_including_master).to all(be_discarded)
@@ -181,12 +181,12 @@ RSpec.describe Spree::Product, type: :model do
     end
 
     context '#available?' do
-      it 'should be available if date is in the past' do
+      it 'is available if date is in the past' do
         product.available_on = 1.day.ago
         expect(product).to be_available
       end
 
-      it 'should not be available if date is nil or in the future' do
+      it 'does not be available if date is nil or in the future' do
         product.available_on = nil
         expect(product).not_to be_available
 
@@ -194,7 +194,7 @@ RSpec.describe Spree::Product, type: :model do
         expect(product).not_to be_available
       end
 
-      it 'should not be available if soft-destroyed' do
+      it 'does not be available if soft-destroyed' do
         product.discard
         expect(product).not_to be_available
       end
@@ -453,7 +453,7 @@ RSpec.describe Spree::Product, type: :model do
   context 'properties' do
     let(:product) { create(:product) }
 
-    it 'should properly assign properties' do
+    it 'properly assigns properties' do
       product.set_property('the_prop', 'value1')
       expect(product.property('the_prop')).to eq('value1')
 
@@ -461,7 +461,7 @@ RSpec.describe Spree::Product, type: :model do
       expect(product.property('the_prop')).to eq('value2')
     end
 
-    it 'should not create duplicate properties when set_property is called' do
+    it 'does not create duplicate properties when set_property is called' do
       expect {
         product.set_property('the_prop', 'value2')
         product.save
@@ -477,7 +477,7 @@ RSpec.describe Spree::Product, type: :model do
     end
 
     # Regression test for https://github.com/spree/spree/issues/2455
-    it "should not overwrite properties' presentation names" do
+    it "does not overwrite properties' presentation names" do
       Spree::Property.where(name: 'foo').first_or_create!(presentation: "Foo's Presentation Name")
       product.set_property('foo', 'value1')
       product.set_property('bar', 'value2')
@@ -540,24 +540,24 @@ RSpec.describe Spree::Product, type: :model do
         hash
       end
 
-      it 'should create option types based on the prototype' do
+      it 'creates option types based on the prototype' do
         product.save
         expect(product.option_type_ids.length).to eq(1)
         expect(product.option_type_ids).to eq(prototype.option_type_ids)
       end
 
-      it 'should create product option types based on the prototype' do
+      it 'creates product option types based on the prototype' do
         product.save
         expect(product.product_option_types.pluck(:option_type_id)).to eq(prototype.option_type_ids)
       end
 
-      it 'should create variants from an option values hash with one option type' do
+      it 'creates variants from an option values hash with one option type' do
         product.option_values_hash = option_values_hash
         product.save
         expect(product.variants.length).to eq(3)
       end
 
-      it 'should still create variants when option_values_hash is given but prototype id is nil' do
+      it 'still creates variants when option_values_hash is given but prototype id is nil' do
         product.option_values_hash = option_values_hash
         product.prototype_id = nil
         product.save
@@ -566,7 +566,7 @@ RSpec.describe Spree::Product, type: :model do
         expect(product.variants.length).to eq(3)
       end
 
-      it 'should create variants from an option values hash with multiple option types' do
+      it 'creates variants from an option values hash with multiple option types' do
         color = build_option_type_with_values('color', %w(Red Green Blue))
         logo  = build_option_type_with_values('logo', %w(Ruby Rails Nginx))
         option_values_hash[color.id.to_s] = color.option_value_ids
@@ -595,7 +595,7 @@ RSpec.describe Spree::Product, type: :model do
       expect(product.images.size).to eq(2)
     end
 
-    it 'should be sorted by position' do
+    it 'is sorted by position' do
       expect(product.images.pluck(:alt)).to eq(['position 1', 'position 2'])
     end
   end
@@ -616,17 +616,17 @@ RSpec.describe Spree::Product, type: :model do
   context '#total_on_hand' do
     let(:product) { create(:product) }
 
-    it 'should be infinite if track_inventory_levels is false' do
+    it 'is infinite if track_inventory_levels is false' do
       Spree::Config[:track_inventory_levels] = false
       expect(build(:product, variants_including_master: [build(:master_variant)]).total_on_hand).to eql(Float::INFINITY)
     end
 
-    it 'should be infinite if variant is on demand' do
+    it 'is infinite if variant is on demand' do
       Spree::Config[:track_inventory_levels] = true
       expect(build(:product, variants_including_master: [build(:on_demand_master_variant)]).total_on_hand).to eql(Float::INFINITY)
     end
 
-    it 'should return sum of stock items count_on_hand' do
+    it 'returns sum of stock items count_on_hand' do
       product = create(:product)
       product.stock_items.first.set_count_on_hand 5
       product.variants_including_master.reload # force load association
@@ -733,6 +733,15 @@ RSpec.describe Spree::Product, type: :model do
     it 'adds error on product destroy' do
       expect(product.destroy).to eq false
       expect(product.errors[:base]).to include I18n.t('activerecord.errors.models.spree/product.attributes.base.cannot_destroy_if_attached_to_line_items')
+    end
+  end
+
+  describe '#gallery' do
+    let(:product) { Spree::Product.new }
+    subject { product.gallery }
+
+    it 'responds to #images' do
+      expect(subject).to respond_to(:images)
     end
   end
 end
