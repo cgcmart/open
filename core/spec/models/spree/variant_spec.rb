@@ -8,17 +8,17 @@ RSpec.describe Spree::Variant, type: :model do
   it_behaves_like 'default_price'
 
   context 'validations' do
-    it 'should validate price is greater than 0' do
+    it 'validates price is greater than 0' do
       variant.price = -1
       expect(variant).to be_invalid
     end
 
-    it 'should validate price is 0' do
+    it 'validates price is 0' do
       variant.price = 0
       expect(variant).to be_valid
     end
 
-    it 'should require a product' do
+    it 'requires a product' do
       expect(variant).to be_valid
       variant.product = nil
       expect(variant).to be_invalid
@@ -36,7 +36,7 @@ RSpec.describe Spree::Variant, type: :model do
     context 'stock location has disable propagate all variants' do
       before { Spree::StockLocation.update_all propagate_all_variants: false }
 
-      it 'propagate to stock items' do
+      it 'propagates to stock items' do
         expect_any_instance_of(Spree::StockLocation).not_to receive(:propagate_variant)
         product.variants.create!
       end
@@ -51,7 +51,7 @@ RSpec.describe Spree::Variant, type: :model do
       end
 
       context 'when a variant is created' do
-        before(:each) do
+        before do
           product.variants.create!
         end
 
@@ -169,7 +169,7 @@ RSpec.describe Spree::Variant, type: :model do
 
       let(:multi_variant) { @multi_variant }
 
-      it 'should set option value' do
+      it 'sets option value' do
         expect(multi_variant.option_value('media_type')).to be_nil
 
         multi_variant.set_option_value('media_type', 'DVD')
@@ -179,12 +179,12 @@ RSpec.describe Spree::Variant, type: :model do
         expect(multi_variant.option_value('media_type')).to eql 'CD'
       end
 
-      it 'should not duplicate associated option values when set multiple times' do
+      it 'does not duplicate associated option values when set multiple times' do
         multi_variant.set_option_value('media_type', 'CD')
 
         expect {
           multi_variant.set_option_value('media_type', 'DVD')
-        }.to_not change(multi_variant.option_values, :count)
+        }.not_to change(multi_variant.option_values, :count)
 
         expect {
           multi_variant.set_option_value('coolness_type', 'awesome')
@@ -215,21 +215,21 @@ RSpec.describe Spree::Variant, type: :model do
   end
 
   context '#cost_price=' do
-    it 'should use LocalizedNumber.parse' do
+    it 'uses LocalizedNumber.parse' do
       expect(Spree::LocalizedNumber).to receive(:parse).with('1,599.99')
       subject.cost_price = '1,599.99'
     end
   end
 
   context '#price=' do
-    it 'should use LocalizedNumber.parse' do
+    it 'uses LocalizedNumber.parse' do
       expect(Spree::LocalizedNumber).to receive(:parse).with('1,599.99')
       subject.price = '1,599.99'
     end
   end
 
   context '#weight=' do
-    it 'should use LocalizedNumber.parse' do
+    it 'uses LocalizedNumber.parse' do
       expect(Spree::LocalizedNumber).to receive(:parse).with('1,599.99')
       subject.weight = '1,599.99'
     end
@@ -467,7 +467,7 @@ RSpec.describe Spree::Variant, type: :model do
       variant.option_values << create(:option_value, name: 'Bar', presentation: 'Bar', option_type: create(:option_type, position: 1, name: 'Bar Type', presentation: 'Bar Type'))
      end
 
-    it 'should order by bar than foo' do
+    it 'orders by bar than foo' do
       expect(variant.options_text).to eql 'Bar Type: Bar, Foo Type: Foo'
     end
   end
@@ -510,13 +510,13 @@ RSpec.describe Spree::Variant, type: :model do
     end
 
     context 'master variant' do
-      it 'should return name' do
+      it 'returns name' do
         expect(master.exchange_name).to eql master.name
       end
     end
 
     context 'variant' do
-      it 'should return options text' do
+      it 'returns options text' do
         expect(variant.exchange_name).to eql 'Foo Type: Foo'
       end
     end
@@ -535,13 +535,13 @@ RSpec.describe Spree::Variant, type: :model do
     end
 
     context 'master variant' do
-      it 'should return name with Master identifier' do
+      it 'returns name with Master identifier' do
         expect(master.descriptive_name).to eql master.name + ' - Master'
       end
     end
 
     context 'variant' do
-      it 'should return options text with name' do
+      it 'returns options text with name' do
         expect(variant.descriptive_name).to eql variant.name + ' - Foo Type: Foo'
       end
     end
@@ -657,19 +657,19 @@ RSpec.describe Spree::Variant, type: :model do
     let(:variant) { build(:variant) }
     subject { variant.is_backorderable? }    
 
-    it 'should invoke Spree::Stock::Quantifier' do
+    it 'invokes Spree::Stock::Quantifier' do
       expect_any_instance_of(Spree::Stock::Quantifier).to receive(:backorderable?) { true }
       subject
     end
   end
 
   describe '#total_on_hand' do
-    it 'should be infinite if track_inventory_levels is false' do
+    it 'is infinite if track_inventory_levels is false' do
       Spree::Config[:track_inventory_levels] = false
       expect(build(:variant).total_on_hand).to eql(Float::INFINITY)
     end
 
-    it 'should match quantifier total_on_hand' do
+    it 'matches quantifier total_on_hand' do
       variant = build(:variant)
       expect(variant.total_on_hand).to eq(Spree::Stock::Quantifier.new(variant).total_on_hand)
     end
@@ -709,19 +709,19 @@ RSpec.describe Spree::Variant, type: :model do
   end
 
   describe '#should_track_inventory?' do
-    it 'should not track inventory when global setting is off' do
+    it 'does not track inventory when global setting is off' do
       Spree::Config[:track_inventory_levels] = false
 
       expect(build(:variant).should_track_inventory?).to eq(false)
     end
 
-    it 'should not track inventory when variant is turned off' do
+    it 'does not track inventory when variant is turned off' do
       Spree::Config[:track_inventory_levels] = true
 
       expect(build(:on_demand_variant).should_track_inventory?).to eq(false)
     end
 
-    it 'should track inventory when global and variant are on' do
+    it 'tracks inventory when global and variant are on' do
       Spree::Config[:track_inventory_levels] = true
 
       expect(build(:variant).should_track_inventory?).to eq(true)
@@ -747,13 +747,13 @@ RSpec.describe Spree::Variant, type: :model do
     describe 'default_price' do
       let!(:previous_variant_price) { variant.display_price }
 
-      it "should discard default_price" do
+      it "discards default_price" do
         variant.discard
         variant.reload
         expect(variant.default_price).to be_discarded
       end
 
-      it "should keep its price if deleted" do
+      it "keeps its price if deleted" do
         variant.discard
         variant.reload
         expect(variant.display_price).to eq(previous_variant_price)
@@ -862,30 +862,6 @@ RSpec.describe Spree::Variant, type: :model do
     end
   end
 
-  describe "#display_image" do
-    subject { variant.display_image }
-
-    context "variant has associated images" do
-      let(:attachment) { File.open(File.expand_path('../../fixtures/thinking-cat.jpg', __dir__)) }
-      let(:image_params) { { viewable_id: variant.id, viewable_type: 'Spree::Variant', attachment: attachment, alt: "position 1", position: 1 } }
-      let!(:first_image) { Spree::Image.create(image_params) }
-      let!(:second_image) { image_params.merge(alt: "position 2", position: 2) }
-
-      it "returns the first image" do
-        expect(subject).to eq first_image
-      end
-    end
-
-    context "variant does not have any associated images" do
-      it "returns an image" do
-        expect(subject).to be_a(Spree::Image)
-      end
-      it "returns unpersisted record" do
-        expect(subject).to be_new_record
-      end
-    end
-  end
-
   describe "#variant_properties" do
     let(:option_value_1) { create(:option_value) }
     let(:option_value_2) { create(:option_value) }
@@ -902,7 +878,16 @@ RSpec.describe Spree::Variant, type: :model do
       end
     end
 
-    context "variant doesn't have any properties" do
+    describe '#gallery' do
+    let(:product) { Spree::Variant.new }
+    subject { product.gallery }
+
+    it 'responds to #images' do
+      expect(subject).to respond_to(:images)
+    end
+  end
+
+  context "variant doesn't have any properties" do
       it "returns an empty list" do
         expect(subject).to eq []
       end
