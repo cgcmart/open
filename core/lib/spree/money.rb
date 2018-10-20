@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
-# encoding: utf-8
-
-require 'money'
-require 'monetize'
-require 'active_support/core_ext/string/output_safety'
+Money.locale_backend = :i18n
 
 module Spree
   # Spree::Money is a relatively thin wrapper around Monetize which handles
@@ -39,8 +35,8 @@ module Spree
 
     # @param amount [Money, #to_s] the value of the money object
     # @param options [Hash] the default options for formatting the money object See #format
-    def initialize(amount, options = {})
-      @money   = Monetize.parse([amount, (options[:currency] || Spree::Config[:currency])].join)
+    def initialize(money, options = {})
+      @money   = Spree::Money.parse([amount, (options[:currency] || Spree::Config[:currency])].join)
       @options = Spree::Money.default_formatting_rules.merge(options)
     end
 
@@ -54,9 +50,15 @@ module Spree
 
     # 1) prevent blank, breaking spaces
     # 2) prevent escaping of HTML character entities
-    def to_html(opts = { html: true })
+    def to_html(opts = { html_wrap: true })
+      opts[:html_wrap] = opts[:html]
+      opts.delete(:html)
+
       output = money.format(options.merge(opts))
-      output = output.sub(' ', '&nbsp;').html_safe if opts[:html]
+      if opts[:html_wrap]
+        output.gsub!(/<\/?[^>]*>/, '') # we don't want wrap every element in span
+        output = output.sub(' ', '&nbsp;').html_safe
+      end
 
       output
     end
