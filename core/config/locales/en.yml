@@ -839,6 +839,7 @@ en:
     adjustment_successfully_closed: Adjustment has been successfully closed!
     adjustment_successfully_opened: Adjustment has been successfully opened!
     adjustment_total: Adjustment Total
+    adjustment_type: Adjustment type
     adjustments: Adjustments
     admin:
       stores:
@@ -1099,6 +1100,7 @@ en:
     categories: Categories
     category: Category
     channel: Channel
+    character_limit: Limit of 255 characters
     charged: Charged
     check: Check
     checkout: Checkout
@@ -1210,6 +1212,7 @@ en:
     destroy: Destroy
     details: Details
     discount_amount: Discount Amount
+    discount_rules: Discount rules
     dismiss_banner: No. Thanks! I'm not interested, do not display this message again
     display: Display
     download_promotion_code_list: Download Code List
