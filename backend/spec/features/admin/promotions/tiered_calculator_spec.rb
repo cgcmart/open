@@ -12,7 +12,7 @@ describe 'Tiered Calculator Promotions' do
   end
 
   it 'adding a tiered percent calculator', js: true do
-    select 'Create whole-order adjustment', from: 'Add action of type'
+    select 'Create whole-order adjustment', from: 'Adjustment type'
     within('#action_fields') { click_button 'Add' }
 
     select 'Tiered Percent', from: 'Calculator', from: I18n.t('spree.admin.promotions.actions.calculator_label')
