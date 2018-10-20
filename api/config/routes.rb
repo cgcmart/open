@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+spree_path = Rails.application.routes.url_helpers.try(:spree_path, trailing_slash: true) || '/'
+
+Rails.application.routes.draw do
+  use_doorkeeper scope: "#{spree_path}/spree_oauth"
+end
+
 Spree::Core::Engine.routes.draw do
   namespace :admin do
     resources :users do
