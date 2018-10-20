@@ -15,6 +15,6 @@
     <%= tab :taxonomies %>
   <% end %>
   <% if can? :admin, Spree::Taxon %>
-    <%= tab :taxons, label: :display_order %>
+    <%= tab :taxons, label: :display_order, match_path: '/taxons' %>
   <% end %>
 </ul>
