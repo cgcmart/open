@@ -12,15 +12,6 @@ module Spree
 
     class << self
       attr_accessor :default_formatting_rules
-
-      def parse(amount, currency = Spree::Config[:currency])
-        new(parse_to_money(amount, currency))
-      end
-
-      # @api private
-      def parse_to_money(amount, currency)
-        ::Monetize.parse(amount, currency)
-      end
     end
 
     self.default_formatting_rules = {
