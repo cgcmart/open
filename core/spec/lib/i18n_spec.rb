@@ -50,12 +50,12 @@ RSpec.describe 'i18n' do
     expect(t('spree.missing_entry')).to include('<span')
   end
 
-  it "should have a Spree::I18N_GENERIC_PLURAL constant" do
+  it "has a Spree::I18N_GENERIC_PLURAL constant" do
     expect(Spree::I18N_GENERIC_PLURAL).to eq 2.1
   end
 
   describe "i18n_available_locales" do
-    it "should only return :en" do
+    it "only returns :en" do
       expect(Spree.i18n_available_locales).to eq([:en])
     end
 
@@ -64,7 +64,7 @@ RSpec.describe 'i18n' do
         I18n.backend.store_translations(:fr, { cheese: "fromage" })
       end
 
-      it "should only return :en" do
+      it "only returns :en" do
         expect(Spree.i18n_available_locales).to eq([:en])
       end
     end
@@ -74,7 +74,7 @@ RSpec.describe 'i18n' do
         I18n.backend.store_translations(:fr, spree: { cheese: "fromage" })
       end
 
-      it "should return :en and :fr" do
+      it "returns :en and :fr" do
         expect(Spree.i18n_available_locales).to eq([:en])
       end
     end
@@ -84,7 +84,7 @@ RSpec.describe 'i18n' do
         I18n.backend.store_translations(:fr, spree: { i18n: { this_file_language: "Français" } })
       end
 
-      it "should return :en and :fr" do
+      it "returns :en and :fr" do
         expect(Spree.i18n_available_locales).to eq([:en, :fr])
       end
     end
