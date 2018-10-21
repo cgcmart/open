@@ -1,4 +1,7 @@
 # encoding: UTF-8
+
+# frozen_string_literal: true
+
 require_relative 'core/lib/spree/core/version.rb'
 
 Gem::Specification.new do |s|
@@ -8,7 +11,7 @@ Gem::Specification.new do |s|
   s.summary     = 'Full-stack e-commerce framework for Ruby on Rails.'
   s.description = 'Spree is an open source e-commerce framework for Ruby on Rails. Join us on http://slack.spreecommerce.org'
 
-  s.required_ruby_version = '>= 2.2.7'
+  s.required_ruby_version = '>= 2.3.0'
 
   s.files        = Dir['README.md', 'lib/**/*']
   s.require_path = 'lib'
@@ -19,10 +22,9 @@ Gem::Specification.new do |s|
   s.homepage     = 'http://spreecommerce.org'
   s.license      = 'BSD-3-Clause'
 
-  s.add_dependency 'spree_core', s.version
   s.add_dependency 'spree_api', s.version
   s.add_dependency 'spree_backend', s.version
+  s.add_dependency 'spree_core', s.version
   s.add_dependency 'spree_frontend', s.version
   s.add_dependency 'spree_sample', s.version
-  s.add_dependency 'spree_cmd', s.version
 end
