@@ -18,7 +18,14 @@ module Spree
       fresh_when(current_order, template: 'spree/shared/_link_to_cart')
     end
 
-     private
+    def api_tokens
+      render json: {
+        order_token: current_order&.token,
+        oauth_token: current_oauth_token&.token
+      }
+    end
+
+    private
 
     def config_locale
       Spree::Frontend::Config[:locale]
