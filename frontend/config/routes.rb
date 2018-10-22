@@ -29,4 +29,6 @@ Spree::Core::Engine.routes.draw do
   get '/content/cvv', to: 'content#cvv', as: :cvv
   get '/content/test', to: 'content#test'
   get '/cart_link', to: 'store#cart_link', as: :cart_link
+
+  get '/api_tokens', to: 'store#api_tokens'
 end
