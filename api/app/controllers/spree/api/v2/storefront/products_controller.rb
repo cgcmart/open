@@ -36,11 +36,11 @@ module Spree
           end
 
           def sorted_collection
-            dependencies[:collection_sorter].new(collection, params, current_currency).call
+            dependencies[:collection_sorter].new(collection, params, current_pricing_currency).call
           end
 
           def collection
-            dependencies[:collection_finder].new(scope, params, current_currency).call
+            dependencies[:collection_finder].new(scope, params, current_pricing_currency).call
           end
 
           def resource
