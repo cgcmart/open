@@ -46,7 +46,7 @@ module Spree
             store: spree_current_store,
             user: spree_current_user,
             token: order_token,
-            currency: current_currency
+            currency: current_pricing_currency
           )
         end
 
@@ -54,7 +54,7 @@ module Spree
           params[:include].split(',').map(&:intern) if params[:include].present?
         end
 
-        def current_currency
+        def current_pricing_currency
           spree_current_store.default_currency || Spree::Config[:currency]
         end
 
