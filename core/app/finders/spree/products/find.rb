@@ -3,12 +3,12 @@
 module Spree
   module Products
     class Find
-      def initialize(scope, params, current_currency)
+      def initialize(scope, params, current_pricing_currency)
         @scope = scope
 
         @ids      = String(params.dig(:filter, :ids)).split(',')
         @price    = String(params.dig(:filter, :price)).split(',')
-        @currency = params[:currency] || current_currency
+        @currency = params[:currency] || current_pricing_currency
         @taxons   = String(params.dig(:filter, :taxons)).split(',')
         @name     = params.dig(:filter, :name)
         @options  = params.dig(:filter, :options).try(:to_unsafe_hash)
