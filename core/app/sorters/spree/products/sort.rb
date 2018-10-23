@@ -3,10 +3,10 @@
 module Spree
   module Products
     class Sort
-      def initialize(scope, params, current_currency)
+      def initialize(scope, params, current_pricing_currency)
         @scope    = scope
         @sort     = params[:sort]
-        @currency = params[:currency] || current_currency
+        @currency = params[:currency] || current_pricing_currency
       end
 
       def call
