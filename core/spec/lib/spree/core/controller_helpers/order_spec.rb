@@ -107,13 +107,6 @@ RSpec.describe Spree::Core::ControllerHelpers::Order, type: :controller do
     end
   end
 
-  describe '#current_currency' do
-    it 'returns current currency' do
-      Spree::Config[:currency] = 'USD'
-      expect(controller.current_currency).to eq 'USD'
-    end
-  end
-
   describe '#ip_address' do
     it 'returns remote ip' do
       expect(controller.ip_address).to eq request.remote_ip
