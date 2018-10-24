@@ -11,7 +11,7 @@ module Spree
             order_params = {
               user: spree_current_user,
               store: spree_current_store,
-              currency: current_currency
+              currency: current_pricing_currency
             }
 
             order   = spree_current_order if spree_current_order.present?
