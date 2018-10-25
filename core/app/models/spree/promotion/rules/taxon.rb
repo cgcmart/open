@@ -39,7 +39,6 @@ module Spree
               eligibility_errors.add(:base, eligibility_error_message(:has_excluded_taxon))
             end
           else
-            # Change this to an exception in a future version of Solidus
             warn_invalid_match_policy(assume: 'any')
             unless order_taxons.where(id: rule_taxon_ids_with_children).exists?
               eligibility_errors.add(:base, eligibility_error_message(:no_matching_taxons))
