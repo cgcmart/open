@@ -6,7 +6,7 @@ module Spree
   # `Spree::Store` provides the foundational ActiveRecord model for recording information
   # specific to your store such as its name, URL, and tax location. This model will
   # provide the foundation upon which [support for multiple stores](https://github.com/solidusio/solidus/issues/112)
-  # hosted by a single Solidus implementation can be built.
+  # hosted by a single Open implementation can be built.
   #
   class Store < Spree::Base
     has_many :store_payment_methods, inverse_of: :store
