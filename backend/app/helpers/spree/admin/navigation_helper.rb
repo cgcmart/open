@@ -131,7 +131,7 @@ module Spree
         link_to(text, url, options)
       end
 
-      def spree_icon(icon_name)
+      def open_icon(icon_name)
         icon_name ? content_tag(:i, '', class: icon_name) : ''
       end
 
