@@ -70,7 +70,7 @@ module Spree
     def persist_order_address(order)
       if order.ship_address
         address = save_in_address_book(
-          order.ship_address.attributes,
+          order.ship_address.value_attributes,
           Spree::Config.automatic_default_address
         )
         self.ship_address_id = address.id if address && address.persisted?
@@ -78,7 +78,7 @@ module Spree
 
       if order.bill_address
         address = save_in_address_book(
-          order.bill_address.attributes,
+          order.bill_address.value_attributes,
           order.ship_address.nil? && Spree::Config.automatic_default_address
         )
         self.bill_address_id = address.id if address && address.persisted?
