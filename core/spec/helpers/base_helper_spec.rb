@@ -64,7 +64,7 @@ RSpec.describe Spree::BaseHelper, type: :helper do
   context "flash_message" do
     let(:flash) { { "notice" => "ok", "foo" => "foo", "bar" => "bar" } }
 
-    it "should output all flash content" do
+    it "outputs all flash content" do
       flash_messages
       html = Nokogiri::HTML(helper.output_buffer)
       expect(html.css(".notice").text).to eq("ok")
@@ -72,7 +72,7 @@ RSpec.describe Spree::BaseHelper, type: :helper do
       expect(html.css(".bar").text).to eq("bar")
     end
 
-    it "should output flash content except one key" do
+    it "outputs flash content except one key" do
       flash_messages(ignore_types: :bar)
       html = Nokogiri::HTML(helper.output_buffer)
       expect(html.css(".notice").text).to eq("ok")
@@ -80,7 +80,7 @@ RSpec.describe Spree::BaseHelper, type: :helper do
       expect(html.css(".bar").text).to be_empty
     end
 
-    it "should output flash content except some keys" do
+    it "outputs flash content except some keys" do
       flash_messages(ignore_types: [:foo, :bar])
       html = Nokogiri::HTML(helper.output_buffer)
       expect(html.css(".notice").text).to eq("ok")
@@ -156,11 +156,11 @@ RSpec.describe Spree::BaseHelper, type: :helper do
 
     subject { plural_resource_name(base_class) }
 
-    it "should use ActiveModel::Naming module to pluralize model names" do
+    it "uses ActiveModel::Naming module to pluralize model names" do
       expect(subject).to eq base_class.model_name.human(count: plural_config)
     end
 
-    it "should use the Spree::I18N_GENERIC_PLURAL constant" do
+    it "uses the Spree::I18N_GENERIC_PLURAL constant" do
       expect(base_class.model_name).to receive(:human).with(hash_including(count: plural_config))
       subject
     end
