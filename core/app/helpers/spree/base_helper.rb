@@ -173,7 +173,7 @@ module Spree
     end
 
     def pretty_time(time, format = :long)
-      I18n.l(time, format: :'spree.#{format}')
+      I18n.l(time, format: :'open.#{format}')
     end
 
     def link_to_tracking(shipment, options = {})
