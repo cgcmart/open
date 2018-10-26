@@ -40,7 +40,7 @@ module Spree
     #   # Save the changes. All handled by activerecord
     #   s.save!
     #
-    # Each preference gets rendered as a form field in Solidus backend.
+    # Each preference gets rendered as a form field in Open backend.
     #
     # As not all supported preference types are representable as a form field, only
     # some of them get rendered per default. Arrays and Hashes for instance are
@@ -115,7 +115,7 @@ module Spree
         ]
       end
 
-      # Preference names representable as form fields in Solidus backend
+      # Preference names representable as form fields in Open backend
       #
       # Not all preferences are representable as a form field.
       #
