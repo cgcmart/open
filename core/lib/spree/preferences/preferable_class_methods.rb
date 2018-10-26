@@ -72,7 +72,7 @@ module Spree::Preferences
       "preferred_#{name}_type".to_sym
     end
 
-    # List of preference types allowed as form fields in the Solidus admin
+    # List of preference types allowed as form fields in the Open admin
     #
     # Overwrite this method in your class that includes +Spree::Preferable+
     # if you want to provide more fields. If you do so, you also need to provide
