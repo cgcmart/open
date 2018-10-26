@@ -721,7 +721,7 @@ en:
               has_to_be_payment_source_class: "has to be a Spree::PaymentSource"
   time:
     formats:
-      solidus:
+      open:
         long: '%B %d, %Y %-l:%M %p'
         short: "%b %-d '%y %-l:%M%P"
   devise:
