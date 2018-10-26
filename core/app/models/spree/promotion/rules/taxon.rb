@@ -60,7 +60,6 @@ module Spree
           when 'none'
             !found
           else
-            # Change this to an exception in a future version of Solidus
             warn_invalid_match_policy(assume: 'any')
             found
           end
