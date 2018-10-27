@@ -1,55 +1,40 @@
 version: 2 # use CircleCI 2.0
 jobs: # a collection of steps
-  build: # runs not using Workflows must have a `build` job as entry point
-    parallelism: 4 # run four instances of this job in parallel
-    working_directory: ~/spree # directory where steps will run
+  postgres: &postgres
+    working_directory: &workdir ~/open # directory where steps will run
+    environment: &environment
+      DB: postgresql
+      DB_HOST: localhost
+      DEFAULT_MAX_WAIT_TIME: 10
+      SOLIDUS_RAISE_DEPRECATIONS: true
+      CIRCLE_TEST_REPORTS: /tmp/test-results
+      CIRCLE_ARTIFACTS: /tmp/test-artifacts
     docker: # run the steps with Docker
-      - image: circleci/ruby:2.5-node-browsers # ...with this image as the primary container; this is where all `steps` will run
-        environment: # environment variables for primary container
-          DB: postgres
-          DB_HOST: localhost
-          DB_USERNAME: postgres
-          CIRCLE_TEST_REPORTS: /tmp/test-results
-          CIRCLE_ARTIFACTS: /tmp/test-artifacts
-          BUNDLE_JOBS: 4
-          BUNDLE_RETRY: 3
-          BUNDLE_PATH: ~/spree/vendor/bundle
-      - image: circleci/postgres:10-alpine # database image
+      - image: circleci/ruby:2.5-node-browsers # ...with this image as the primary container; this is where all `steps` will run          
+      - image: jhawthorn/circleci-postgres-fast
         environment: # environment variables for database
-          POSTGRES_USER: postgres
-    steps: # a collection of executable commands
+          POSTGRES_USER: root
+    parallelism: &parallelism 3
+    steps: &steps # a collection of executable commands
       - checkout # special step to check out source code to working directory
 
-      # Which version of bundler?
-      - run:
-          name: Which bundler?
-          command: bundle -v
-
-      # Restore bundle cache
       - restore_cache:
           keys:
-            - spree-bundle-v2-{{ .Branch }}-{{ checksum ".ruby-version" }}
-            - spree-bundle-v2-{{ checksum ".ruby-version" }}
+            - open-gems-v2-{{ .Branch }}
+            - open-gems-v2
 
       # Install gem dependencies
       - run:
-          name: Bundle Install
-          command: |
-            bundle check --path=~/spree/vendor/bundle || bundle install
-            ./build-ci.rb install
-      # Store bundle cache
+          bundle install --path=vendor/bundle
+
       - save_cache:
-          key: spree-bundle-v2-{{ .Branch }}-{{ checksum ".ruby-version" }}
+          key: open-gems-v2-{{ .Branch }}-{{ checksum "Gemfile.lock" }}
           paths:
-            - ~/spree/vendor/bundle
+            - vendor/bundle
 
       - run:
-          name: Wait for DB
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
-
-      - run:
-          name: Run rspec in parallel
-          command: BUNDLE_GEMFILE=../Gemfile ./build-ci.rb test
+          name: Run Tests
+          command: ./build-ci.rb test
 
       - store_artifacts:
           path: /tmp/test-artifacts
@@ -61,3 +46,36 @@ jobs: # a collection of steps
 
       - store_test_results:
           path: /tmp/test-results
+
+  mysql: &mysql
+    working_directory: *workdir
+    environment: &mysql_environment
+      <<: *environment
+      DB: mysql
+      DB_HOST: 127.0.0.1
+    docker:
+      - image: *image
+      - image: circleci/mysql:5.7-ram
+    parallelism: *parallelism
+    steps: *steps
+
+  postgres_rails51:
+    <<: *postgres
+    environment:
+      <<: *environment
+      RAILS_VERSION: '~> 5.1.0'
+
+  mysql_rails51:
+    <<: *mysql
+    environment:
+      <<: *mysql_environment
+      RAILS_VERSION: '~> 5.1.0'
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - postgres
+      - mysql
+      - postgres_rails51
+      - mysql_rails51
