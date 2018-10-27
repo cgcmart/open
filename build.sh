@@ -2,52 +2,45 @@
 
 set -e
 
-# Switching Gemfile
-set_gemfile(){
-  echo "Switching Gemfile..."
-  export BUNDLE_GEMFILE="`pwd`/Gemfile"
-}
-
-prepare_app(){
-  set_gemfile
-  bundle update --quiet
-  echo "Preparing test app..."
-  BUNDLE_GEMFILE=../Gemfile bundle exec rake test_app
-}
 # Target postgres. Override with: `DB=sqlite bash build.sh`
 export DB=${DB:-postgres}
 
-# Spree defaults
-echo "Setup Spree defaults..."
+# Open defaults
+echo "Installing Open test dependencies"
 bundle check || bundle update --quiet
 
-# Spree API
+# Open API
 echo "**************************************"
-echo "* Setup Spree API and running RSpec..."
+echo "* Testing Open API *"
 echo "**************************************"
-cd api; prepare_app; bundle exec rspec spec
+cd api
+bundle exec rspec spec
 
-# Spree Backend
+# Open Backend
 echo "******************************************"
-echo "* Setup Spree Backend and running RSpec..."
+echo "* Testing Open Backend *"
 echo "******************************************"
-cd ../backend; prepare_app; bundle exec rspec spec
+cd ../backend
+bundle exec rspec spec
+bundle exec teaspoon
 
-# Spree Core
+# Open Core
 echo "***************************************"
-echo "* Setup Spree Core and running RSpec..."
+echo "* Testing Open Core *"
 echo "***************************************"
-cd ../core; prepare_app; bundle exec rspec spec
+cd ../core
+bundle exec rspec spec
 
-# Spree Frontend
+# Open Frontend
 echo "*******************************************"
-echo "* Setup Spree Frontend and running RSpec..."
+echo "* Testing Open Frontend *"
 echo "*******************************************"
-cd ../frontend; prepare_app; bundle exec rspec spec
+cd ../frontend
+bundle exec rspec spec
 
-# Spree Sample
+# Open Sample
 echo "*****************************************"
-echo "* Setup Spree Sample and running RSpec..."
+echo "* Testing Open Sample *"
 echo "*****************************************"
-cd ../sample; prepare_app; bundle exec rspec spec
-
+cd ../sample
+bundle exec rspec spec
