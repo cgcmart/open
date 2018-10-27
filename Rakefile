@@ -1,33 +1,40 @@
-require 'rake'
-require 'rubygems/package_task'
-require 'thor/group'
-begin
-  require 'spree/testing_support/common_rake'
-rescue LoadError
-  raise "Could not find spree/testing_support/common_rake. You need to run this command using Bundler."
+# frozen_string_literal: true
+
+task default: :spec
+
+def print_title(gem_name = '')
+  title = ["Open", gem_name].join(' ')
+  puts "\n#{'-' * title.size}\n#{title}\n#{'-' * title.size}"
 end
 
-SPREE_GEMS = %w(core api cmd backend frontend sample).freeze
-
-task default: :test
-
-desc "Runs all tests in all Spree engines"
-task test: :test_app do
-  SPREE_GEMS.each do |gem_name|
-    Dir.chdir("#{File.dirname(__FILE__)}/#{gem_name}") do
-      sh 'rspec'
+def subproject_task(project, task, title: project, task_name: nil)
+  task_name ||= "#{task}:#{project}"
+  task task_name do
+    print_title(title)
+    Dir.chdir("#{File.dirname(__FILE__)}/#{project}") do
+      sh "rake #{task}"
     end
   end
 end
 
-desc "Generates a dummy app for testing for every Spree engine"
-task :test_app do
-  SPREE_GEMS.each do |gem_name|
-    Dir.chdir("#{File.dirname(__FILE__)}/#{gem_name}") do
-      sh 'rake test_app'
-    end
+%w[spec db:drop db:create db:migrate db:reset].each do |task|
+  %w(api backend core frontend sample).each do |project|
+    desc "Run specs for #{project}" if task == 'spec'
+    subproject_task(project, task)
   end
+
+  desc "Run rake #{task} for each Open engine"
+  task task => %w(api backend core frontend sample).map { |p| "#{task}:#{p}" }
 end
+
+desc "Run backend JS specs"
+subproject_task("backend", "spec:js", title: "backend JS", task_name: "spec:backend:js")
+
+# Add backend JS specs to `rake spec` dependencies
+task spec: 'spec:backend:js'
+
+task test: :spec
+task test_app: 'db:reset'
 
 desc "clean the whole repository by removing all the generated files"
 task :clean do
@@ -35,7 +42,8 @@ task :clean do
   rm_rf "sandbox"
   rm_rf "pkg"
 
-  SPREE_GEMS.each do |gem_name|
+  %w(api backend core frontend sample).each do |gem_name|
+    print_title(gem_name)
     rm_f  "#{gem_name}/Gemfile.lock"
     rm_rf "#{gem_name}/pkg"
     rm_rf "#{gem_name}/spec/dummy"
@@ -44,34 +52,37 @@ end
 
 namespace :gem do
   def version
-    require 'spree/core/version'
-    Spree.version
+    require_relative 'core/lib/spree/core/version'
+    Spree.open_version
   end
 
   def for_each_gem
-    SPREE_GEMS.each do |gem_name|
-      yield "pkg/spree_#{gem_name}-#{version}.gem"
+    %w(core api backend frontend sample).each do |gem_name|
+      print_title(gem_name)
+      yield "pkg/open_#{gem_name}-#{version}.gem"
     end
-    yield "pkg/spree-#{version}.gem"
+    print_title
+    yield "pkg/open-#{version}.gem"
   end
 
-  desc "Build all spree gems"
+  desc "Build all open gems"
   task :build do
-    pkgdir = File.expand_path("../pkg", __FILE__)
+    pkgdir = File.expand_path('pkg', __dir__)
     FileUtils.mkdir_p pkgdir
 
-    SPREE_GEMS.each do |gem_name|
+    %w(core api backend frontend sample).each do |gem_name|
       Dir.chdir(gem_name) do
-        sh "gem build spree_#{gem_name}.gemspec"
-        mv "spree_#{gem_name}-#{version}.gem", pkgdir
+        sh "gem build open_#{gem_name}.gemspec"
+        mv "open_#{gem_name}-#{version}.gem", pkgdir
       end
     end
 
-    sh "gem build spree.gemspec"
-    mv "spree-#{version}.gem", pkgdir
+    print_title
+    sh "gem build open.gemspec"
+    mv "open-#{version}.gem", pkgdir
   end
 
-  desc "Install all spree gems"
+  desc "Install all open gems"
   task install: :build do
     for_each_gem do |gem_path|
       Bundler.with_clean_env do
@@ -90,7 +101,7 @@ namespace :gem do
   end
 end
 
-desc "Creates a sandbox application for simulating the Spree code in a deployed Rails app"
+desc "Creates a sandbox application for simulating the Open code in a deployed Rails app"
 task :sandbox do
   Bundler.with_clean_env do
     exec("lib/sandbox.sh")
