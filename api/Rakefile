@@ -11,7 +11,7 @@ task default: :spec
 
 DummyApp::RakeTasks.new(
   gem_root: File.expand_path(__dir__),
-  lib_name: 'spree_api'
+  lib_name: 'open_api'
 )
 
 task test_app: 'db:reset'
