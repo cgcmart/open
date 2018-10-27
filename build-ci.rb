@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 require 'pathname'
 
 class Project
-  attr_reader :name
+  attr_reader :name, :title, :weight
 
   NODE_TOTAL = Integer(ENV.fetch('CIRCLE_NODE_TOTAL', 1))
   NODE_INDEX = Integer(ENV.fetch('CIRCLE_NODE_INDEX', 0))
@@ -12,11 +13,21 @@ class Project
 
   DEFAULT_MODE = 'test'.freeze
 
-  def initialize(name)
+  def initialize(name, test_type: :rspec, title: nil, weight:)
     @name = name
+    @title = title || name
+    @test_type = test_type
+    @weight = weight
   end
 
-  ALL = %w[api backend core frontend sample].map(&method(:new)).freeze
+  ALL = [
+    new('api', weight: 50),
+    new('backend', weight: 215),
+    new('backend', test_type: :teaspoon, title: "backend JS", weight: 15),
+    new('core', weight: 220),
+    new('frontend', weight: 95),
+    new('sample', weight: 22)
+  ].freeze
 
   # Install subproject
   #
@@ -25,12 +36,27 @@ class Project
   #
   # @return [self]
   #   otherwise
-  def install
-    chdir do
-      bundle_check || bundle_install || raise('Cannot finish gem installation')
-    end
-    self
+  def self.install
+    bundle_check || bundle_install || fail('Cannot finish gem installation')
   end
+  private_class_method :install
+
+  # Check if current bundle is already usable
+  #
+  # @return [Boolean]
+  def self.bundle_check
+    system(%w[bundle check])
+  end
+  private_class_method :bundle_check
+
+  # Install the current bundle
+  #
+  # @return [Boolean]
+  #   the success of the installation
+  def self.bundle_install
+    system(%w[bundle install])
+  end
+  private_class_method :bundle_check
 
   # Test subproject for passing its tests
   #
@@ -38,87 +64,9 @@ class Project
   #   the success of the build
   def pass?
     chdir do
-      setup_test_app
       run_tests
     end
   end
-
-  private
-
-  # Check if current bundle is already usable
-  #
-  # @return [Boolean]
-  def bundle_check
-    system(%w[bundle check])
-  end
-
-  # Install the current bundle
-  #
-  # @return [Boolean]
-  #   the success of the installation
-  def bundle_install
-    system(%w[bundle install])
-  end
-
-  # Setup the test app
-  #
-  # @return [undefined]
-  def setup_test_app
-    system(%w[bundle exec rake test_app]) || raise('Failed to setup the test app')
-  end
-
-  # Run tests for subproject
-  #
-  # @return [Boolean]
-  #   the success of the tests
-  def run_tests
-    # HACK: supporting test coverage as for Paperclip, as for ActiveStorage
-    # remove after, Paperclip going to be deprecated
-    # system(%w[bundle exec rspec] + rspec_arguments)
-    if name == 'core'
-     active_storage_test = system(%w[bundle exec rspec] + rspec_arguments('active_storage'))
-    else
-      system(%w[bundle exec rspec] + rspec_arguments)
-    end
-  end
-
-  def rspec_arguments(custom_name = name)
-    args = []
-    args += %w[--order random]
-    if report_dir = ENV['CIRCLE_TEST_REPORTS']
-      args += %W[-r rspec_junit_formatter --format RspecJunitFormatter -o #{report_dir}/rspec/#{custom_name}.xml]
-    end
-    args
-  end
-
-  # Execute system command via execve
-  #
-  # No shell interpolation gets done this way. No escapes needed.
-  #
-  # @return [Boolean]
-  #   the success of the system command
-  def system(arguments)
-    Kernel.system(*arguments)
-  end
-
-  # Change to subproject directory and execute block
-  #
-  # @return [undefined]
-  def chdir(&block)
-    Dir.chdir(ROOT.join(name), &block)
-  end
-
-  # Install subprojects
-  #
-  # @return [self]
-  def self.install
-    current_projects.each do |project|
-      log("Installing project: #{project.name}")
-      project.install
-    end
-    self
-  end
-  private_class_method :install
 
   # Execute tests on subprojects
   #
@@ -151,7 +99,11 @@ class Project
   #
   # @return [Array<Project>]
   def self.current_projects
-    NODE_INDEX.step(ALL.length - 1, NODE_TOTAL).map(&ALL.method(:fetch))
+    unallocated = ALL.sort_by(&:weight).reverse
+    nodes = Array.new(NODE_TOTAL) { [] }
+
+    while project = unallocated.shift
+      nodes.min_by { |projects| projects.sum(&:weight) } << project
   end
   private_class_method :current_projects
 
@@ -161,7 +113,7 @@ class Project
   #
   # @return [undefined]
   def self.log(message)
-    $stderr.puts(message)
+    warn(message)
   end
   private_class_method :log
 
@@ -172,7 +124,7 @@ class Project
   # @return [Boolean]
   #   the success of the CLI run
   def self.run_cli(arguments)
-    raise ArgumentError if arguments.length > 1
+    fail ArgumentError if arguments.length > 1
     mode = arguments.fetch(0, DEFAULT_MODE)
 
     case mode
@@ -182,9 +134,62 @@ class Project
     when 'test'
       test
     else
-      raise "Unknown mode: #{mode.inspect}"
+      fail "Unknown mode: #{mode.inspect}"
     end
   end
-end # Project
+
+  private
+
+  # Run tests for subproject
+  #
+  # @return [Boolean]
+  #   the success of the tests
+  def run_tests
+    send(:"run_#{@test_type}")
+  end
+
+  def run_rspec
+    run_test_cmd(%w[bundle exec rspec] + rspec_arguments)
+  end
+
+  def run_teaspoon
+    run_test_cmd(%w[bundle exec teaspoon] + teaspoon_arguments)
+  end
+
+  def run_test_cmd(args)
+    puts "Run: #{args.join(' ')}"
+    result = system(*args)
+    puts(result ? "Success" : "Failed")
+    result
+  end
+
+  def teaspoon_arguments
+    if report_dir
+      %W[--format documentation,junit>#{report_dir}/rspec/#{name}_js.xml]
+    else
+      %w[--format documentation]
+    end
+  end
+
+  def rspec_arguments(custom_name = name)
+    args = []
+    args += %w[--format documentation --profile 10 --no-color]
+    if report_dir = ENV['CIRCLE_TEST_REPORTS']
+      args += %W[-r rspec_junit_formatter --format RspecJunitFormatter -o #{report_dir}/rspec/#{name}.xml]
+    end
+    args
+  end
+
+  def report_dir
+    ENV['CIRCLE_TEST_REPORTS']
+  end
+
+  # Change to subproject directory and execute block
+  #
+  # @return [undefined]
+  def chdir(&block)
+    Dir.chdir(ROOT.join(name), &block)
+  end
+end
 
 exit Project.run_cli(ARGV)
