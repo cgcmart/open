@@ -5,7 +5,7 @@ require_relative '../core/lib/spree/core/version.rb'
 Gem::Specification.new do |s|
   s.author       = 'Open Team'
   s.email        = 'open@china-guide.com'
-  s.homepage     = 'http://china-guide.org'
+  s.homepage     = 'http://china-guide.com'
   s.license      = 'BSD-3-Clause'
 
   s.summary       = 'REST API for the Open e-commerce framework.'
