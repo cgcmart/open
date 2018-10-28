@@ -7,7 +7,7 @@ module Spree
   class CustomUserGenerator < Rails::Generators::NamedBase
     include Rails::Generators::Migration
 
-    desc 'Set up a Spree installation with a custom User class'
+    desc 'Set up an Open installation with a custom User class'
 
     source_root File.expand_path('templates', File.dirname(__FILE__))
 
