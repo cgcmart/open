@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
 
   s.author       = 'Open Team'
   s.email        = 'open@china-guide.com'
-  s.homepage     = 'http://china-guide.org'
+  s.homepage     = 'http://china-guide.com'
   s.license      = 'BSD-3-Clause'
 
   s.add_dependency 'open_api', s.version
