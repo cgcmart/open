@@ -7,7 +7,7 @@ require 'spree/core/version'
 module Spree
   # @private
   class DummyGenerator < Rails::Generators::Base
-    desc "Creates blank Rails application, installs Spree and all sample data"
+    desc "Creates blank Rails application, installs Open and all sample data"
 
     class_option :lib_name, default: ''
     class_option :database, default: ''
