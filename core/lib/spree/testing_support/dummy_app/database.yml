@@ -1,5 +1,5 @@
 <%
-database_prefix = ENV['LIB_NAME'].presence || "solidus"
+database_prefix = ENV['LIB_NAME'].presence || "open"
 %>
 <% case ENV['DB']
 when 'mysql' %>
