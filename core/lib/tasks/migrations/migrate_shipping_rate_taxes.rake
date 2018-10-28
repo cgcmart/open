@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-namespace :spree do
+namespace :open do
   namespace :migrations do
     namespace :migrate_shipping_rate_taxes do
       task up: :environment do
