@@ -52,7 +52,7 @@ if defined?(DummyApp)
     end
   end
 else
-  require 'spree_backend'
+  require 'open_backend'
 
   require 'teaspoon'
 
@@ -60,7 +60,7 @@ else
 
   DummyApp.setup(
     gem_root: File.expand_path('..', __dir__),
-    lib_name: 'spree_backend',
+    lib_name: 'open_backend',
     auto_migrate: false
   )
 end
