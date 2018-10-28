@@ -4,15 +4,15 @@ require_relative '../core/lib/spree/core/version.rb'
 
 Gem::Specification.new do |s|
   s.platform    = Gem::Platform::RUBY
-  s.name        = 'spree_core'
-  s.version     = Spree.version
-  s.summary     = 'The bare bones necessary for Spree.'
-  s.description = 'The bare bones necessary for Spree.'
+  s.name        = 'open_core'
+  s.version     = Spree.open_version
+  s.summary     = 'Essential models, mailers, and classes for the Open e-commerce platform.'
+  s.description = s.summary
 
-  s.author      = 'Sean Schofield'
-  s.email       = 'sean@spreecommerce.com'
-  s.homepage    = 'http://spreecommerce.org'
-  s.license     = 'BSD-3-Clause'
+  s.author       = 'Open Team'
+  s.email        = 'open@china-guide.com'
+  s.homepage     = 'http://china-guide.com'
+  s.license      = 'BSD-3-Clause'
 
   s.files        = `git ls-files`.split("\n")
   s.require_path = 'lib'
