@@ -10,7 +10,7 @@ require 'action_mailer/railtie'
 
 Rails.env = 'test'
 
-require 'spree_core'
+require 'open_core'
 
 # @private
 def forgery_protected_by_default?
