@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class SpreeOneEight < ActiveRecord::Migration[5.2]
+class OpenOneEight < ActiveRecord::Migration[5.2]
   def up
     # This migration is just a compressed version of all the previous
     # migrations for spree_core. Do not run it if one of the core tables
@@ -8,7 +8,7 @@ class SpreeOneEight < ActiveRecord::Migration[5.2]
     return if table_exists?(:spree_addresses)
 
     # this table should not technically exist in the database (as its provided by auth_devise),
-    # but spree_api depends on it existing. This defininition comes from spree_auth_devise's first migration,
+    # but spree_api depends on it existing. This defininition comes from open_auth_devise's first migration,
     # and creates a table equivolent to it
     create_table "spree_users", force: true do |t|
       t.string   "crypted_password", limit: 128
