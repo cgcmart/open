@@ -10,14 +10,14 @@ end %>
   when 'sqlite' %>
 development:
   adapter: sqlite3
-  database: db/spree_development.sqlite3
+  database: db/open_development.sqlite3
 test:
   adapter: sqlite3
-  database: db/spree_test.sqlite3
+  database: db/open_test.sqlite3
   timeout: 10000
 production:
   adapter: sqlite3
-  database: db/spree_production.sqlite3
+  database: db/open_production.sqlite3
 <% when 'mysql' %>
 mysql: &mysql
   adapter: mysql2
@@ -31,17 +31,17 @@ mysql: &mysql
 
 development:
   <<: *mysql
-  database: <%= database_prefix %><%= lib_name %>_spree_development
+  database: <%= database_prefix %><%= lib_name %>_open_development
 test:
   <<: *mysql
   <% if ENV['TRAVIS'] %>
   username: root
   password:
   <% end %>
-  database: <%= database_prefix %><%= lib_name %>_spree_test
+  database: <%= database_prefix %><%= lib_name %>_open_test
 production:
   <<: *mysql
-  database: <%= database_prefix %><%= lib_name %>_spree_production
+  database: <%= database_prefix %><%= lib_name %>_open_production
 <% when 'postgres', 'postgresql' %>
 <% db_host = ENV['DB_HOST'] %>
 postgres: &postgres
@@ -59,23 +59,23 @@ postgres: &postgres
 
 development:
   <<: *postgres
-  database: <%= database_prefix %><%= lib_name %>_spree_development
+  database: <%= database_prefix %><%= lib_name %>_open_development
 test:
   <<: *postgres
-  database: <%= database_prefix %><%= lib_name %>_spree_test
+  database: <%= database_prefix %><%= lib_name %>_open_test
 production:
   <<: *postgres
-  database: <%= database_prefix %><%= lib_name %>_spree_production
+  database: <%= database_prefix %><%= lib_name %>_open_production
 <% when 'sqlite', '', nil %>
 development:
   adapter: sqlite3
-  database: db/spree_development.sqlite3
+  database: db/open_development.sqlite3
 test:
   adapter: sqlite3
-  database: db/spree_test.sqlite3
+  database: db/open_test.sqlite3
 production:
   adapter: sqlite3
-  database: db/spree_production.sqlite3
+  database: db/open_production.sqlite3
 <% else %>
   <% raise "Invalid DB specified: #{ENV['DB']}" %>
 <% end %>
