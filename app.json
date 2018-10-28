@@ -1,10 +1,10 @@
 {
-  "name": "Spree Sandbox",
-  "description":"demo store built with Spree",
-  "repository": "https://github.com/spree/spree",
+  "name": "Open Sandbox",
+  "description":"A demonstration store using Open with some test data",
+  "repository": "https://github.com/99cm/open",
   "logo": "http://guides.spreecommerce.org/images/logo.png",
   "keywords": [
-    "spree"
+    "open"
   ],
   "buildpacks": [
     {"url": "https://github.com/spark-solutions/heroku-buildpack-spree.git"}
@@ -13,16 +13,16 @@
     "heroku-postgresql:hobby-dev"
   ],
   "scripts": {
-    "postdeploy": "bundle exec rake db:migrate && bundle exec rake db:seed && SKIP_SAMPLE_IMAGES=true bundle exec rake spree_sample:load"
+    "postdeploy": "rake db:migrate && rake db:seed spree_sample:load && rails runner Spree::Image.destroy_all"
   },
   "env": {
     "ADMIN_EMAIL": {
       "description": "We will create an admin user with this email.",
-      "value": "spree@example.com"
+      "value": "admin@example.com"
     },
     "ADMIN_PASSWORD": {
       "description": "We will create an admin user with this password.",
-      "value": "spree123"
+      "value": "test123"
     }
   }
 }
