@@ -7,7 +7,7 @@ ENV["RAILS_ENV"] ||= 'test'
 require 'spree/testing_support/dummy_app'
 DummyApp.setup(
   gem_root: File.expand_path('..', __dir__),
-  lib_name: 'spree_core'
+  lib_name: 'open_core'
 )
 
 require 'rspec/rails'
