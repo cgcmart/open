@@ -2,9 +2,6 @@
 
 # Default implementation for finding the current store is given an HTTP request
 #
-# This is the new default behaviour, starting in Solidus 2.3.0. For the old
-# behaviour see Spree::StoreSelector::Legacy.
-#
 # This attempts to find a Spree::Store with a URL matching the domain name of
 # the request exactly. Failing that it will return the store marked as default.
 module Spree
