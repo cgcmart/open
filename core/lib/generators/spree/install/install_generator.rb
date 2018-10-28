@@ -9,7 +9,7 @@ module Spree
   class InstallGenerator < Rails::Generators::Base
     CORE_MOUNT_ROUTE = "mount Spree::Core::Engine"
 
-    class_option :migrate, type: :boolean, default: true, banner: 'Run Spree migrations'
+    class_option :migrate, type: :boolean, default: true, banner: 'Run Open migrations'
     class_option :seed, type: :boolean, default: true, banner: 'load seed data (migrations must be run)'
     class_option :sample, type: :boolean, default: true, banner: 'load sample data (migrations must be run)'
     class_option :copy_views, type: :boolean, default: true, banner: 'copy frontend views from spree to your application for easy customization'
@@ -162,14 +162,12 @@ module Spree
       routes_file_path = File.join('config', 'routes.rb')
       unless File.read(routes_file_path).include? CORE_MOUNT_ROUTE
         insert_into_file routes_file_path, after: "Rails.application.routes.draw do\n" do
-        <<-ROUTES           # This line mounts Spree's routes at the root of your application.
-          # This means, any requests to URLs such as /products, will go to
-          # Spree::ProductsController.
-          # If you would like to change where this engine is mounted, simply change the
-          # :at option to something different.
+        <<-ROUTES
+          # This line mounts Open's routes at the root of your application.
+          # This means, any requests to URLs such as /products, will go to Spree::ProductsController.
+          # If you would like to change where this engine is mounted, simply change the :at option to something different.
           #
-          # We ask that you don't use the :as option here, as Spree relies on it being
-          # the default of "spree".
+          # We ask that you don't use the :as option here, as Open relies on it being the default of "spree".
           #{CORE_MOUNT_ROUTE}, at: '/'
         ROUTES
         end
@@ -186,7 +184,7 @@ module Spree
     def complete
       unless options[:quiet]
         puts '*' * 50
-        puts "Spree has been installed successfully. You're all ready to go!"
+        puts "Open has been installed successfully. You're all ready to go!"
         puts ' '
         puts 'Enjoy!'
       end
