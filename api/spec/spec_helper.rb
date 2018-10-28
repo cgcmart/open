@@ -8,11 +8,11 @@ end
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 ENV['RAILS_ENV'] ||= 'test'
 
-require 'spree_api'
+require 'open_api'
 require 'spree/testing_support/dummy_app'
 DummyApp.setup(
   gem_root: File.expand_path('..', __dir__),
-  lib_name: 'spree_api'
+  lib_name: 'open_api'
 )
 
 require 'rails-controller-testing'
