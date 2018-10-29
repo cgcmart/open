@@ -30,11 +30,30 @@ Spree.ready(function ($) {
   })
 })
 
-Spree.fetch_cart = function (CartLinkUrl) {
-  Spree.ajax({
-    url: cartLinkUrl || Spree.pathFor('cart_link'),
-    success: function (data) {
-      $('#link-to-cart').html(data)
-    }
+Spree.fetch_cart = function () {
+  return $.ajax({
+    url: Spree.pathFor('cart_link')
+  }).done(function (data) {
+    return $('#link-to-cart').html(data)
   })
+}
+
+Spree.ensureCart = function (successCallback) {
+  if (SpreeAPI.orderToken) {
+    successCallback()
+  } else {
+    fetch(Spree.routes.ensure_cart, {
+      method: 'POST',
+      credentials: 'same-origin'
+    }).then(function (response) {
+      switch (response.status) {
+        case 200:
+          response.json().then(function (json) {
+            SpreeAPI.orderToken = json.token
+            successCallback()
+          })
+          break
+      }
+    })
+  }
 }
