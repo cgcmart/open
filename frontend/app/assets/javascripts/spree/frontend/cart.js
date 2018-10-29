@@ -31,10 +31,10 @@ Spree.ready(function ($) {
 })
 
 Spree.fetch_cart = function () {
-  return $.ajax({
+  Spree.ajax({
     url: Spree.pathFor('cart_link')
   }).done(function (data) {
-    return $('#link-to-cart').html(data)
+    $('#link-to-cart').html(data)
   })
 }
 
