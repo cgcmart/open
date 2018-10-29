@@ -42,46 +42,6 @@ module Spree
       associate_user
     end
 
-    # Adds a new item to the order (creating a new order if none already exists)
-    def populate
-      order    = current_order(create_order_if_necessary: true)
-      authorize! :update, @order, cookies.signed[:token]
-      variant  = Spree::Variant.find(params[:variant_id])
-      quantity = params[:quantity].present? ? params[:quantity].to_i : 1
-
-      # 2,147,483,647 is crazy. See issue https://github.com/spree/spree/issues/2695.
-      if quantity.between?(1, 2_147_483_647)
-        begin
-          result = Spree::Cart::AddItem.call(order: order, variant: variant, quantity: quantity, options: options)
-          if result.failure?
-            error = result.value.errors.full_messages.join(', ')
-          else
-            order.update_line_item_prices!
-            order.create_tax_charge!
-            order.update_with_updater!
-          end
-        rescue ActiveRecord::RecordInvalid => e
-          error = e.record.errors.full_messages.join(', ')
-        end
-      else
-        error = t('spree.please_enter_reasonable_quantity')
-      end
-
-      if error
-        flash[:error] = error
-        redirect_back_or_default(spree.root_path)
-      else
-        respond_with(order) do |format|
-          format.html { redirect_to(cart_path(variant_id: variant.id)) }
-        end
-      end
-    end
-
-    def populate_redirect
-      flash[:error] = t('spree.populate_get_error')
-      redirect_to cart_path
-    end
-
     def empty
       if @order = current_order
         authorize! :update, @order, cookies.signed[:token]
