@@ -251,7 +251,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
       order
     end
 
-    before(:each) do
+    before do
       allow_any_instance_of(Spree::CheckoutController).to receive_messages(current_order: order)
       allow_any_instance_of(Spree::CheckoutController).to receive_messages(try_spree_current_user: user)
       allow_any_instance_of(Spree::CheckoutController).to receive_messages(skip_state_validation?: true)
@@ -373,9 +373,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
       click_on 'Save and Continue'
       expect(page).to have_current_path(spree.checkout_state_path('payment'))
 
-      visit spree.root_path
-      click_link bag.name
-      click_button 'add-to-cart-button'
+      add_to_cart(bag.name)
 
       click_on 'Checkout'
       fill_in 'order_bill_address_attributes_firstname', with: 'Ryann'
@@ -427,9 +425,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
       let!(:bag) { create(:product, name: 'RoR Bag') }
 
       before do
-        visit spree.root_path
-        click_link bag.name
-        click_button 'add-to-cart-button'
+        add_to_cart(bag.name)
       end
 
       it 'redirects user back to address step' do
@@ -755,8 +751,6 @@ describe 'Checkout', type: :feature, inaccessible: true do
   end
 
   def add_mug_to_cart
-    visit spree.root_path
-    click_link mug.name
-    click_button "add-to-cart-button"
+    add_to_cart(mug.name)
   end
 end
