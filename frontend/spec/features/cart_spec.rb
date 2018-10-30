@@ -2,16 +2,14 @@
 
 require 'spec_helper'
 
-describe 'Cart', type: :feature, inaccessible: true do
+describe 'Cart', type: :feature, inaccessible: true, js: true do
   before { create(:store) }
 
   let!(:variant) { create(:variant) }
   let!(:product) { variant.product }
 
   def add_mug_to_cart
-    visit spree.root_path
-    click_link product.name
-    click_button 'add-to-cart-button'
+    add_to_cart(product.name)
   end
 
   it 'shows cart icon on non-cart pages' do
@@ -19,7 +17,7 @@ describe 'Cart', type: :feature, inaccessible: true do
     expect(page).to have_selector('li#link-to-cart a', visible: true)
   end
 
-  it 'prevents double clicking the remove button on cart', js: true do
+  it 'prevents double clicking the remove button on cart' do
     add_mug_to_cart
 
     # prevent form submit to verify button is disabled
@@ -38,7 +36,7 @@ describe 'Cart', type: :feature, inaccessible: true do
     end
   end
 
-  it 'allows you to remove an item from the cart', js: true do
+  it 'allows you to remove an item from the cart' do
     add_mug_to_cart
     line_item = Spree::LineItem.first!
     within('#line_items') do
@@ -54,7 +52,7 @@ describe 'Cart', type: :feature, inaccessible: true do
     end
   end
 
-  it 'allows you to empty the cart', js: true do
+  it 'allows you to empty the cart' do
     add_mug_to_cart
     expect(page).to have_content(product.name)
     click_on 'Empty Cart'
@@ -69,19 +67,19 @@ describe 'Cart', type: :feature, inaccessible: true do
   context 'product contains variants but no option values' do
     before { variant.option_values.destroy_all }
 
-    it 'still adds product to cart', inaccessible: true do
+    it 'still adds product to cart' do
       add_mug_to_cart
       visit spree.cart_path
       expect(page).to have_content(product.name)
     end
   end
 
-  it "should hav a surrounding element with data-hook='cart_container'" do
+  it "has a surrounding element with data-hook='cart_container'" do
     visit spree.cart_path
     expect(page).to have_selector("div[data-hook='cart_container']")
   end
 
-  describe 'add promotion coupon on cart page', js: true do
+  describe 'add promotion coupon on cart page' do
     let!(:promotion) { Spree::Promotion.create(name: 'Huhuhu', code: 'huhu') }
     let!(:calculator) { Spree::Calculator::FlatPercentItemTotal.create(preferred_flat_percent: '10') }
     let!(:action) { Spree::Promotion::Actions::CreateItemAdjustments.create(calculator: calculator) }
