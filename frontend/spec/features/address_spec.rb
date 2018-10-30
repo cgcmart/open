@@ -11,8 +11,7 @@ describe 'Address', type: :feature, inaccessible: true do
   before do
     visit spree.root_path
 
-    click_link 'RoR Mug'
-    click_button 'add-to-cart-button'
+    add_to_cart('RoR Mug')
 
     address = 'order_bill_address_attributes'
     @country_css = "#{address}_country_id"
