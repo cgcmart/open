@@ -24,7 +24,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     end
     click_button 'add-to-cart-button'
     wait_for_condition do
-      expect(page).to have_content(Spree.t(:shopping_cart))
+      expect(page).to have_content(I18n.t('spree.shopping_cart'))
     end
   end
 
@@ -355,7 +355,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     end
     click_button 'add-to-cart-button'
     wait_for_condition do
-      expect(page).to have_content(Spree.t(:shopping_cart))
+      expect(page).to have_content(I18n.t('spree.shopping_cart'))
     end
     expect(page).to have_content 'This product has no description'
   end
