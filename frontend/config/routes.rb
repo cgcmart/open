@@ -31,4 +31,5 @@ Spree::Core::Engine.routes.draw do
   get '/cart_link', to: 'store#cart_link', as: :cart_link
 
   get '/api_tokens', to: 'store#api_tokens'
+  post '/ensure_cart', to: 'store#ensure_cart'
 end
