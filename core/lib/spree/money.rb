@@ -1,4 +1,7 @@
 # frozen_string_literal: true
+# encoding: utf-8
+
+require 'money'
 
 Money.locale_backend = :i18n
 
