@@ -53,9 +53,34 @@ describe 'Product Images', type: :feature, js: true do
     end
   end
 
+  # Regression test for #2228
+  it 'sees variant images', js: false do
+    variant = create(:variant)
+    create_image(variant, File.open(file_path))
+    visit spree.admin_product_images_path(variant.product)
+
+    expect(page).not_to have_content('No Images Found.')
+    within('table.table') do
+      expect(page).to have_content(variant.options_text)
+
+      # ensure no duplicate images are displayed
+      expect(page).to have_css('tbody tr', count: 1)
+
+      # ensure variant header is displayed
+      within('thead') do
+        expect(page.body).to have_content('Variant')
+      end
+
+      # ensure variant header is displayed
+      within('tbody') do
+        expect(page).to have_content('Size: S')
+      end
+    end
+  end
+
   it 'does not see variant column when product has no variants' do
     product = create(:product)
-    product.images.create!(attachment: File.open(file_path))
+    create_image(product, File.open(file_path))
     visit spree.admin_product_images_path(product)
 
     expect(page).not_to have_content('No Images Found.')
