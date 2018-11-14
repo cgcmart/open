@@ -1,4 +1,5 @@
 version: 2 # use CircleCI 2.0
+
 jobs: # a collection of steps
   postgres: &postgres
     working_directory: &workdir ~/open # directory where steps will run
@@ -6,7 +7,6 @@ jobs: # a collection of steps
       DB: postgresql
       DB_HOST: localhost
       DEFAULT_MAX_WAIT_TIME: 10
-      SOLIDUS_RAISE_DEPRECATIONS: true
       CIRCLE_TEST_REPORTS: /tmp/test-results
       CIRCLE_ARTIFACTS: /tmp/test-artifacts
     docker: # run the steps with Docker
