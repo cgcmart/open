@@ -38,6 +38,7 @@ Dir[File.dirname(__FILE__) + '/support/**/*.rb'].each { |f| require f }
 
 require 'spree/testing_support/factories'
 require 'spree/testing_support/preferences'
+require 'spree/testing_support/image_helpers'
 require 'spree/testing_support/authorization_helpers'
 
 require 'spree/api/testing_support/caching'
@@ -49,6 +50,7 @@ ActiveJob::Base.queue_adapter = :test
 RSpec.configure do |config|
   config.backtrace_exclusion_patterns = [/gems\/activesupport/, /gems\/actionpack/, /gems\/rspec/]
   config.color = true
+  config.default_formatter = 'doc'
   config.infer_spec_type_from_file_location!
   config.expect_with :rspec do |c|
     c.syntax = :expect
@@ -64,6 +66,7 @@ RSpec.configure do |config|
   config.include Spree::Api::TestingSupport::Helpers, type: :controller
   config.extend Spree::Api::TestingSupport::Setup, type: :controller
   config.include Spree::TestingSupport::Preferences
+  config.include Spree::TestingSupport::ImageHelpers
 
   config.extend WithModel
 
@@ -78,9 +81,6 @@ RSpec.configure do |config|
   config.use_transactional_fixtures = true
 
   config.example_status_persistence_file_path = "./spec/examples.txt"
-
-  config.filter_run_including :active_storage
-  config.run_all_when_everything_filtered = true
 
   config.order = :random
   Kernel.srand config.seed
