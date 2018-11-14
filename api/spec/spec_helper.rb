@@ -2,7 +2,17 @@
 
 if ENV['COVERAGE']
   require 'simplecov'
-  SimpleCov.start('rails')
+  SimpleCov.start 'rails' do
+    add_group 'Serializers', 'app/serializers'
+    add_group 'Libraries', 'lib'
+
+    add_filter '/bin/'
+    add_filter '/db/'
+    add_filter '/script/'
+    add_filter '/spec/'
+
+    coverage_dir "#{ENV['COVERAGE_DIR']}/api" if ENV['COVERAGE_DIR']
+  end
 end
 
 # This file is copied to spec/ when you run 'rails generate rspec:install'
