@@ -25,6 +25,20 @@ module Spree
       end
     end
 
+    ResultError = Struct.new(:value) do
+      def to_s
+        return value.full_messages.join(', ') if value&.respond_to?(:full_messages)
+
+        value.to_s
+      end
+
+      def to_h
+        return value.messages if value&.respond_to?(:messages)
+
+        {}
+      end
+    end
+
     module Base
       def self.prepended(base)
         class << base
@@ -50,6 +64,7 @@ module Spree
           unless respond_to?(callable, true)
             raise MethodNotImplemented, "You didn't implement #{callable} method. Implement it before calling this class"
           end
+
           callable = method(callable)
         end
 
@@ -72,8 +87,9 @@ module Spree
         Result.new(true, value, nil)
       end
 
-      def failure(value, error_message = nil)
-        Result.new(false, value, error_message)
+      def failure(value, error = nil)
+        error = value.errors if error.nil? && value.respond_to?(:errors)
+        Result.new(false, value, ResultError.new(error))
       end
 
       def enforce_data_format
