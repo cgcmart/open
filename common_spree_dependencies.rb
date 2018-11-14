@@ -11,6 +11,7 @@ rails_version = ENV['RAILS_VERSION'] || '~> 5.2.0'
 gem 'rails', rails_version, require: false
 
 gem 'sassc-rails'
+gem 'sass', '~> 3.6.0' # https://github.com/sass/ruby-sass/issues/94
 gem 'doorkeeper'
 
 platforms :ruby do
