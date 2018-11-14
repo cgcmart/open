@@ -2,7 +2,22 @@
 
 if ENV['COVERAGE']
   require 'simplecov'
-  SimpleCov.start('rails')
+  SimpleCov.start 'rails' do
+    add_group 'Finders', 'app/finders'
+    add_group 'Mailers', 'app/mailers'
+    add_group 'Paginators', 'app/paginators'
+    add_group 'Services', 'app/services'
+    add_group 'Sorters', 'app/sorters'
+    add_group 'Validators', 'app/validators'
+    add_group 'Libraries', 'lib'
+
+    add_filter '/bin/'
+    add_filter '/db/'
+    add_filter '/script/'
+    add_filter '/spec/'
+
+    coverage_dir "#{ENV['COVERAGE_DIR']}/core" if ENV['COVERAGE_DIR']
+  end
 end
 
 require 'rspec/core'
