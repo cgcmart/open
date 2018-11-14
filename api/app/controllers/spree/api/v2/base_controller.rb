@@ -16,6 +16,14 @@ module Spree
           render json: { error: exception.message }, status: 400
         end
 
+        def render_error_payload(error, status = 422)
+          if error.is_a?(Struct)
+            render json: { error: error.to_s, errors: error.to_h }, status: status
+          elsif error.is_a?(String)
+            render json: { error: error }, status: status
+          end
+        end
+
         def spree_current_store
           @spree_current_store ||= Spree::Store.current(request.env['SERVER_NAME'])
         end
