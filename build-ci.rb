@@ -145,11 +145,7 @@ class Project
   # @return [Boolean]
   #   the success of the tests
   def run_tests
-    send(:"run_#{@test_type}")
-  end
-
-  def run_rspec
-    run_test_cmd(%w[bundle exec rspec] + rspec_arguments)
+    system(%w[bundle exec rspec] + rspec_arguments)
   end
 
   def run_teaspoon
