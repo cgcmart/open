@@ -11,7 +11,7 @@ module Spree
         if order.reload.complete?
           success(order)
         else
-          failure(order, order.errors.full_messages.join(', '))
+          failure(order)
         end
       end
 
