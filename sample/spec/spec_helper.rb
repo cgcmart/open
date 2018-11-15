@@ -15,6 +15,7 @@ require 'rspec/rails'
 
 RSpec.configure do |config|
   config.color = true
+  config.default_formatter = 'doc'
   config.infer_spec_type_from_file_location!
   config.expect_with :rspec do |c|
     c.syntax = :expect
@@ -28,11 +29,6 @@ RSpec.configure do |config|
   # instead of true.
   config.use_transactional_fixtures = false
   
-  config.example_status_persistence_file_path = "./spec/examples.txt"
-
-  config.filter_run_including :active_storage
-  config.run_all_when_everything_filtered = true
-
   config.include FactoryBot::Syntax::Methods
 
   config.order = :random
