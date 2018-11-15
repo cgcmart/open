@@ -190,10 +190,8 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
     let!(:variant) { product.variants.create!(price: 5.59) }
 
     before do
-      # Need to have two images to trigger the error
       image = File.open(File.expand_path('../fixtures/thinking-cat.jpg', __dir__))
-      product.images.create!(attachment: image)
-      product.images.create!(attachment: image)
+      create_image(product, image)
 
       product.option_types << option_value.option_type
       variant.option_values << option_value
@@ -233,8 +231,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
 
     before do
       image = File.open(File.expand_path('../fixtures/thinking-cat.jpg', __dir__))
-      variant1.images.create!(attachment: image)
-      variant2.images.create!(attachment: image)
+      create_image(variant1, image)
     end
 
     it 'does not display no image available' do
