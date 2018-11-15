@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe Spree::TaxonImage, type: :model, active_storage: true do
+RSpec.describe Spree::TaxonImage, type: :model do
   context 'validation' do
     let(:spree_image) { Spree::TaxonImage.new }
     let(:image_file) { File.open(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg') }
