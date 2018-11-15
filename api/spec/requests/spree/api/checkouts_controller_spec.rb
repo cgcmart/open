@@ -148,7 +148,7 @@ module Spree
       it 'can update payment method and transition from payment to confirm' do
         order.update_column(:state, 'payment')
         allow_any_instance_of(Spree::PaymentMethod::BogusCreditCard).to receive(:source_required?).and_return(false)
-        put spree.api_checkout_path(order.to_param), params: { order_token: order.token, order: { payments_attributes: [{ payment_method_id: @payment_method.id }] } }
+        put spree.api_checkout_path(order.to_param), params: { order_token: order.token, order: { payments_attributes: [{ payment_method_id: @payment_method.id, source_attributes: source_attributes }] } }
         expect(json_response['state']).to eq('confirm')
         expect(json_response['payments'][0]['payment_method']['name']).to eq(@payment_method.name)
         expect(json_response['payments'][0]['amount']).to eq(order.total.to_s)
