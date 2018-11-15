@@ -3,7 +3,7 @@
 if ENV['COVERAGE']
   require 'simplecov'
   SimpleCov.start 'rails' do
-    add_group 'Libraries', 'lib'
+    add_group 'Libraries', 'lib/spree'
 
     add_filter '/bin/'
     add_filter '/db/'
@@ -45,11 +45,13 @@ require 'spree/testing_support/url_helpers'
 require 'spree/testing_support/order_walkthrough'
 require 'spree/testing_support/caching'
 require 'spree/testing_support/capybara_config'
+require 'spree/testing_support/image_helpers'
 
 ActiveJob::Base.queue_adapter = :test
 
 RSpec.configure do |config|
   config.color = true
+  config.default_formatter = 'doc'
   config.infer_spec_type_from_file_location!
   config.expect_with :rspec do |c|
     c.syntax = :expect
@@ -64,9 +66,6 @@ RSpec.configure do |config|
   # examples within a transaction, comment the following line or assign false
   # instead of true.
   config.use_transactional_fixtures = true
-
-  config.filter_run_including :active_storage
-  config.run_all_when_everything_filtered = true
 
   if ENV['WEBDRIVER'] == 'accessible'
     config.around(:each, inaccessible: true) do |example|
@@ -103,6 +102,7 @@ RSpec.configure do |config|
   config.include Spree::TestingSupport::UrlHelpers
   config.include Spree::TestingSupport::ControllerRequests, type: :controller
   config.include Spree::TestingSupport::Flash
+  config.include Spree::TestingSupport::ImageHelpers
 
   config.example_status_persistence_file_path = "./spec/examples.txt"
 
