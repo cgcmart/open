@@ -18,7 +18,7 @@ Gem::Specification.new do |s|
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.name          = "open_api"
   s.require_paths = ["lib"]
-  s.version       = Open.version
+  s.version       = Spree.open_version
 
   s.add_development_dependency 'jsonapi-rspec'
 
