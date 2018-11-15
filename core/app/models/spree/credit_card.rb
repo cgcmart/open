@@ -2,6 +2,13 @@
 
 module Spree
   class CreditCard < Spree::PaymentSource
+    if !ENV['SPREE_DISABLE_DB_CONNECTION'] &&
+        connection.data_source_exists?(:spree_credit_cards) &&
+        connection.column_exists?(:spree_credit_cards, :deleted_at)
+      acts_as_paranoid
+    end
+
+    belongs_to :payment_method
     belongs_to :user, class_name: Spree::UserClassHandle.new, foreign_key: 'user_id',
     belongs_to :address
 
