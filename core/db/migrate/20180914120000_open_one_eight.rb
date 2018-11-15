@@ -154,6 +154,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.string "gateway_payment_profile_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
+      t.datetime "deleted_at", precision: 6
       t.string "name"
       t.integer "user_id"
       t.integer "payment_method_id"
@@ -161,6 +162,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.integer "address_id"
       t.index ["payment_method_id"], name: "index_spree_credit_cards_on_payment_method_id"
       t.index ["user_id"], name: "index_spree_credit_cards_on_user_id"
+      t.index ["deleted_at"], name: "index_spree_credit_cards_on_deleted_at"
     end
 
     create_table "spree_customer_returns", force: :cascade do |t|
