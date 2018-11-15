@@ -3,23 +3,29 @@
 require 'rails_helper'
 
 RSpec.describe Spree::Image, type: :model do
-  context '#save' do
-    context 'invalid attachment' do
-      let(:invalid_image) { File.open(__FILE__) }
-      subject { described_class.new(attachment: invalid_image) }
+  context 'validation' do
+    let(:spree_image) { Spree::Image.new }
+    let(:image_file) { File.open(Spree::Core::Engine.root + 'spec/fixtures' + 'thinking-cat.jpg') }
+    let(:text_file) { File.open(Spree::Core::Engine.root + 'spec/fixtures' + 'text-file.txt') }
 
-      it 'returns false' do
-        expect(subject.save).to be false
-      end
+    it 'has attachment present' do
+      spree_image.attachment.attach(io: image_file, filename: 'thinking-cat.jpg')
+      expect(spree_image).to be_valid
     end
 
-    context 'valid attachment' do
-      let(:valid_image) { File.open(File.join('spec', 'fixtures', 'thinking-cat.jpg')) }
-      subject { described_class.new(attachment: valid_image) }
+    it 'has attachment absent' do
+      spree_image.attachment.attach(nil)
+      expect(spree_image).not_to be_valid
+    end
 
-      it 'returns true' do
-        expect(subject.save).to be true
-      end
+    it 'has allowed attachment content type' do
+      spree_image.attachment.attach(io: image_file, filename: 'thinking-cat.jpg', content_type: 'image/jpeg')
+      expect(spree_image).to be_valid
+    end
+
+    it 'has no allowed attachment content type' do
+      spree_image.attachment.attach(io: text_file, filename: 'text-file.txt', content_type: 'text/plain')
+      expect(spree_image).not_to be_valid
     end
   end
 end
