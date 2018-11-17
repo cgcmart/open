@@ -84,28 +84,33 @@ module Spree
 
     @@shipment_attributes = [
       :special_instructions, :stock_location_id, :id, :tracking,
-      :selected_shipping_rate_id]
+      :selected_shipping_rate_id
+    ]
 
     # month / year may be provided by some sources, or others may elect to use one field
     @@source_attributes = [
       :number, :month, :year, :expiry, :verification_value,
       :first_name, :last_name, :cc_type, :gateway_customer_profile_id,
       :gateway_payment_profile_id, :last_digits, :name, :encrypted_data,
-      :existing_card_id, :wallet_payment_source_id]
+      :existing_card_id, :wallet_payment_source_id
+    ]
 
     @@stock_item_attributes = [:variant, :stock_location, :backorderable, :variant_id]
 
     @@stock_location_attributes = [
       :name, :active, :address1, :address2, :city, :zipcode,
       :backorderable_default, :state_name, :state_id, :country_id, :phone,
-      :propagate_all_variants]
+      :propagate_all_variants
+    ]
 
     @@stock_movement_attributes = [
-      :quantity, :stock_item, :stock_item_id, :originator, :action]
+      :quantity, :stock_item, :stock_item_id, :originator, :action
+    ]
 
     @@store_attributes = [:name, :url, :seo_title, :code, :meta_keywords,
                           :meta_description, :default_currency,
-                          :mail_from_address, :cart_tax_country_iso]
+                          :mail_from_address, :cart_tax_country_iso
+    ]
 
     @@store_credit_attributes = %i[amount currency category_id memo]
 
@@ -113,7 +118,8 @@ module Spree
 
     @@taxon_attributes = [
       :name, :parent_id, :position, :icon, :description, :permalink, :taxonomy_id,
-      :meta_description, :meta_keywords, :meta_title, :child_index]
+      :meta_description, :meta_keywords, :meta_title, :child_index
+    ]
 
     # TODO: Should probably use something like Spree.user_class.attributes
     @@user_attributes = [:password, :password_confirmation]
