@@ -65,7 +65,7 @@ RSpec.describe Spree::Api::BaseController, type: :controller do
   end
 
   it "lets a subclass override the product associations that are eager-loaded" do
-    expect(controller.respond_to?(:product_includes, true)).to be
+    expect(controller.respond_to?(:product_includes, true)).to be true
   end
 
   context 'insufficient stock' do
