@@ -204,6 +204,7 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
 
   def collection
     return parent.send(controller_name) if parent?
+
     if model_class.respond_to?(:accessible_by) && !current_ability.has_block?(params[:action], model_class)
       model_class.accessible_by(current_ability, action)
     else
@@ -238,7 +239,7 @@ class Spree::Admin::ResourceController < Spree::Admin::BaseController
   end
 
   def object_url(object = nil, options = {})
-    target = object ? object : @object
+    target = object || @object
     if parent?
       spree.polymorphic_url([:admin, parent, target], options)
     else
