@@ -85,6 +85,7 @@ module Spree
 
       def preference_fields(object, form)
         return unless object.respond_to?(:preferences)
+
         capture do
           object.preferences.keys.each do |key|
             concat render("spree/admin/shared/preference_fields/#{object.preference_type(key)}", form: form, attribute: "preferred_#{key}", label: t(key, scope: 'spree'))
