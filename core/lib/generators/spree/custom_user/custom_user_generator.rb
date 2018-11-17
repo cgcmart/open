@@ -9,7 +9,7 @@ module Spree
 
     desc 'Set up an Open installation with a custom User class'
 
-    source_root File.expand_path('templates', File.dirname(__FILE__))
+    source_root File.expand_path('templates', File.dirname(__dir__))
 
     def check_for_constant
 
