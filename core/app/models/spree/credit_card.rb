@@ -97,10 +97,12 @@ module Spree
     end
 
     def number=(num)
-      @number =
-        if num.is_a?(String)
-          num.gsub(/[^0-9]/, '')
-        end
+      @number = begin
+                  num.gsub(/[^0-9]/, '')
+                rescue
+                rescue StandardError
+                  nil
+                end
     end
 
     def verification_value=(value)
