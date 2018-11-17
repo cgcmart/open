@@ -98,6 +98,7 @@ module Spree
 
         def self.create_line_items_from_params(line_items_hash, order)
           return {} unless line_items_hash
+
           line_items_hash.each_key do |k|
             extra_params = line_item_hash[k].except(:variant_id, :quantity, :sku)
             line_item = ensure_variant_id_from_params(line_item_hash[k])
@@ -113,6 +114,7 @@ module Spree
 
         def self.create_adjustments_from_params(adjustments, order)
           return [] unless adjustments
+
           adjustments.each do |a|
             adjustment = order.adjustments.build(
               order: order,
@@ -126,6 +128,7 @@ module Spree
 
         def self.create_payments_from_params(payments_hash, order)
           return [] unless payments_hash
+
           payments_hash.each do |p|
             payment = order.payments.build order: order
             payment.amount = p[:amount].to_f
