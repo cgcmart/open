@@ -25,7 +25,7 @@ module Spree
       def process!
         return if payment_method.nil?
 
-        if payment_method.auto_capture?
+        if payment_method&.auto_capture?
           purchase!
         elsif pending?
           # do nothing. already authorized.
@@ -48,6 +48,7 @@ module Spree
       # a new pending payment record for the remaining amount to capture later.
       def capture!(amount = nil)
         return true if completed?
+
         amount ||= money.amount_in_cents
         started_processing!
         protect_from_connection_error do
@@ -66,6 +67,7 @@ module Spree
 
       def void_transaction!
         return true if void?
+
         protect_from_connection_error do
           if payment_method.payment_profiles_supported?
             # Gateways supporting payment profiles will need access to credit card object because this stores the payment profile information
@@ -136,7 +138,7 @@ module Spree
         end
 
         return if payment_method.nil?
-        return if !payment_method.source_required?
+        return if !payment_method&.source_required?
 
         if source
           if !processing?
