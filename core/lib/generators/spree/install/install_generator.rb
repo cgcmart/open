@@ -24,7 +24,7 @@ module Spree
       paths = superclass.source_paths
       paths << File.expand_path('../templates', "../../#{__FILE__}")
       paths << File.expand_path('../templates', "../#{__FILE__}")
-      paths << File.expand_path('../templates', __dir__)
+      paths << File.expand_path('templates', __dir__)
       paths.flatten
     end
 
@@ -46,6 +46,7 @@ module Spree
 
     def additional_tweaks
       return unless File.exist? 'public/robots.txt'
+
       append_file 'public/robots.txt', <<-ROBOTS.strip_heredoc
         User-agent: *
         Disallow: /checkout
