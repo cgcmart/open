@@ -38,14 +38,14 @@ module Spree
           ActionController::Base.perform_caching = true
         end
 
+        after do
+          ActionController::Base.perform_caching = false
+        end
+
         it 'returns unique products' do
           get spree.api_products_path
           product_ids = json_response['products'].map { |p| p['id'] }
           expect(product_ids.uniq.count).to eq(product_ids.count)
-        end
-
-        after do
-          ActionController::Base.perform_caching = false
         end
       end
 
@@ -173,13 +173,13 @@ module Spree
       context 'tracking is disabled' do
         before { Config.track_inventory_levels = false }
 
+        after { Config.track_inventory_levels = true }
+
         it 'still displays valid json with total_on_hand Float::INFINITY' do
           get spree.api_product_path(product)
           expect(response).to be_ok
           expect(json_response[:total_on_hand]).to eq nil
         end
-
-        after { Config.track_inventory_levels = true }
       end
 
       context 'finds a product by slug first then by id' do
