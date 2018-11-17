@@ -69,17 +69,17 @@ module Spree
 
     # Cant use short form block syntax due to https://github.com/Netflix/fast_jsonapi/issues/259
     def purchasable?
-      variants_including_master.any? { |variant| variant.purchasable? }
+      variants_including_master.any?(&:purchasable?)
     end
 
     # Cant use short form block syntax due to https://github.com/Netflix/fast_jsonapi/issues/259
     def in_stock?
-      variants_including_master.any? { |variant| variant.in_stock? }
+      variants_including_master.any?(&:in_stock?)
     end
 
     # Cant use short form block syntax due to https://github.com/Netflix/fast_jsonapi/issues/259
     def backorderable?
-      variants_including_master.any? { |variant| variant.backorderable? }
+      variants_including_master.any?(&:backorderable?)
     end
 
     def find_or_build_master
@@ -167,6 +167,7 @@ module Spree
     # Ensures option_types and product_option_types exist for keys in option_values_hash
     def ensure_option_types_exist_for_values_hash
       return if option_values_hash.nil?
+
       required_option_type_ids = option_values_hash.keys.map(&:to_i)
       self.option_type_ids |= required_option_type_ids
     end
@@ -214,6 +215,7 @@ module Spree
     # eg categorise_variants_from_option(color) => {"red" -> [...], "blue" -> [...]}
     def categorise_variants_from_option(opt_type)
       return {} unless option_types.include?(opt_type)
+
       variants.active.group_by { |v| v.option_values.detect { |o| o.option_type == opt_type } }
     end
 
@@ -335,6 +337,7 @@ module Spree
 
     def ensure_master
       return unless new_record?
+
       find_or_build_master
     end
 
