@@ -145,9 +145,7 @@ Spree::Core::Engine.routes.draw do
   end
 
   namespace :v2 do
-    if Rails.env.development? || ENV['EXPOSE_SWAGGER']
-      get 'storefront.yml', to: 'swagger#storefront', as: 'swagger_storefront', format: 'yml'
-    end
+    get 'storefront.yml', to: 'swagger#storefront', as: 'swagger_storefront', format: 'yml' if Rails.env.development? || ENV['EXPOSE_SWAGGER']
 
     namespace :storefront do
       resource :cart, controller: :cart, only: %i[show create] do
