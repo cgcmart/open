@@ -94,7 +94,7 @@ module Spree
             }
           end
 
-          alias_method :collection_includes, :resource_includes
+          alias collection_includes resource_includes
         end
       end
     end
