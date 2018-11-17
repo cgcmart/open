@@ -81,7 +81,7 @@ module Spree
       def load_data
         @amount = params[:amount] || load_order.total
         @payment_methods = Spree::PaymentMethod.active.available_to_admin
-        if @payment and @payment.payment_method
+        if @payment&.payment_method
           @payment_method = @payment.payment_method
         else
           @payment_method ||= @payment_methods.first
