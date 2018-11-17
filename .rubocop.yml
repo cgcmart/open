@@ -2,10 +2,17 @@
 
 AllCops:
   Exclude:
-    - 'vendor/**/*'
+    - '**/sandbox/**/*'
+    - '**/db/migrate/*'
+    - '**/Gemfile'
+    - '**/Gemfile.lock'
+    - '**/Rakefile'
+    - '**/rails'
+    - 'guides/**/*'
+    - '**/*.gemspec'
+    - '**/dummy/**/*'
     - '**/vendor/**/*'
-    - '*/spec/dummy/**/*'
-    - 'sandbox/**/*'
+    - '**/spec_helper.rb'
     - '**/templates/**/*'
   TargetRubyVersion: 2.3
 
