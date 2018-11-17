@@ -8,7 +8,7 @@ describe 'Ransackable Attributes' do
 
   context 'filtering by attributes one association away' do
     it 'does not allow the filtering of variants by order attributes' do
-      2.times { create(:variant) }
+      create_list(:variant, 2)
 
       get "/api/variants?q[orders_email_start]=#{order.email}", params: { token: user.spree_api_key }
 
@@ -19,7 +19,7 @@ describe 'Ransackable Attributes' do
 
   context 'filtering by attributes two associations away' do
     it 'does not allow the filtering of variants by user attributes' do
-      2.times { create(:variant) }
+      create_list(:variant, 2)
 
       get "/api/variants?q[orders_user_email_start]=#{order.user.email}", params: { token: user.spree_api_key }
 
