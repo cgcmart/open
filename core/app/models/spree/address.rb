@@ -99,7 +99,7 @@ module Spree
     end
 
     def ==(other_address)
-      return false unless other_address && other_address.respond_to?(:value_attributes)
+      return false unless other_address&.respond_to?(:value_attributes)
 
       value_attributes == other_address.value_attributes
     end
