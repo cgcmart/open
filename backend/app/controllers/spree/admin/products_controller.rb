@@ -101,6 +101,7 @@ module Spree
 
       def collection
         return @collection if @collection
+
         params[:q] ||= {}
         params[:q][:s] ||= 'name asc'
         # @search needs to be defined as this is passed to search_form_for
@@ -112,10 +113,17 @@ module Spree
               per(Spree::Config[:admin_products_per_page])
       end
 
+      def create_before
+        return if params[:product][:prototype_id].blank?
+
+        @prototype = Spree::Prototype.find(params[:product][:prototype_id])
+      end
+
       def update_before
         # note: we only reset the product properties if we're receiving a post
         #       from the form on that tab
         return unless params[:clear_product_properties]
+
         params[:product] ||= {}
       end
 
