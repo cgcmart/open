@@ -420,7 +420,7 @@ RSpec.describe Spree::Admin::OrdersController, type: :controller do
     it 'restricts returned order(s) on index when using OrderSpecificAbility' do
       number = order.number
 
-      3.times { create(:completed_order_with_totals) }
+      create_list(:completed_order_with_totals, 3)
       expect(Spree::Order.complete.count).to eq 4
 
       with_ability(OrderSpecificAbility) do
