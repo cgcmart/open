@@ -186,6 +186,7 @@ module Spree
 
       if current_value
         return if current_value.name == opt_value
+
         option_values.delete(current_value)
       else
         # then we have to check to make sure that the product has the option type
@@ -308,7 +309,7 @@ module Spree
     private
 
     def set_master_out_of_stock
-      if product.master && product.master.in_stock?
+      if product.master&.in_stock?
         product.master.stock_items.update_all(backorderable: false)
         product.master.stock_items.each(&:reduce_count_on_hand_to_zero)
       end
