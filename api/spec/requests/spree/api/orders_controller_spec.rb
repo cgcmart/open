@@ -717,8 +717,10 @@ module Spree
       context "caching enabled" do
         before do
           ActionController::Base.perform_caching = true
-          3.times { Order.create }
+          create_list(:order, 3)
         end
+
+        after { ActionController::Base.perform_caching = false }
 
         it "returns unique orders" do
           get spree.api_orders_path
@@ -727,8 +729,6 @@ module Spree
           expect(orders.count).to be >= 3
           expect(orders.map { |o| o[:id] }).to match_array Order.pluck(:id)
         end
-
-        after { ActionController::Base.perform_caching = false }
       end
 
       it "lists payments source with gateway info" do
