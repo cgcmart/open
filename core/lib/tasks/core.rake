@@ -74,9 +74,7 @@ namespace :db do
     ActiveRecord::Base.send(:subclasses).each(&:reset_column_information)
 
     load_defaults = Spree::Country.count == 0
-    unless load_defaults # ask if there are already Countries => default data hass been loaded
-      load_defaults = agree('Countries present, load sample data anyways? [y/n]: ')
-    end
+    load_defaults ||= agree('Countries present, load sample data anyways? [y/n]: ')
     Rake::Task['db:seed'].invoke if load_defaults
 
     if Rails.env.production? && Spree::Product.count > 0
