@@ -156,14 +156,19 @@ THIS IS THE BEST PRODUCT EVER!
       subject { line_item_description_text description }
       context 'variant has a blank description' do
         let(:description) { nil }
+
         it { is_expected.to eq(I18n.t('spree.product_has_no_description')) }
       end
+
       context 'variant has a description' do
         let(:description) { 'test_desc' }
+
         it { is_expected.to eq(description) }
       end
+
       context 'description has nonbreaking spaces' do
         let(:description) { 'test&nbsp;desc' }
+
         it { is_expected.to eq('test desc') }
       end
     end
