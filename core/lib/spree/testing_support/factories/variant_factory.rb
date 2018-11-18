@@ -18,7 +18,7 @@ FactoryBot.define do
     product       { |p| p.association(:base_product) }
 
     # ensure stock item will be created for this variant
-    before(:create) { create(:stock_location) if Spree::StockLocation.count == 0 }
+    before(:create) { create(:stock_location) unless Spree::StockLocation.count.any? }
 
     factory :variant do
       # on_hand 5
