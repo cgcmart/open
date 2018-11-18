@@ -11,7 +11,7 @@ RSpec.describe Spree::BaseHelper, type: :helper do
     let(:country) { create(:country) }
 
     before do
-      3.times { create(:country) }
+      create_list(:country, 3)
     end
 
     context 'with no checkout zone defined' do
