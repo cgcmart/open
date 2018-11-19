@@ -23,10 +23,10 @@ RSpec.describe Spree::FulfilmentChanger do
 
   let(:shipment_splitter) do
     described_class.new(
-      current_shipment:       current_shipment,
-      desired_shipment:       desired_shipment,
-      variant:                variant,
-      quantity:               quantity
+      current_shipment: current_shipment,
+      desired_shipment: desired_shipment,
+      variant: variant,
+      quantity: quantity
     )
   end
 
@@ -107,7 +107,7 @@ RSpec.describe Spree::FulfilmentChanger do
           end
 
           it 'does not unstock the desired location' do
-            expect { subject }.not_to change { stock_item.count_on_hand }
+            expect { subject }.not_to change(stock_item, :count_on_hand)
           end
         end
       end
