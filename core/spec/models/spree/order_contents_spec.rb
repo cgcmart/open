@@ -13,7 +13,7 @@ RSpec.describe Spree::OrderContents, type: :model do
 
   context '#add' do
     context 'given quantity is not explicitly provided' do
-      it 'should add one line item' do
+      it 'adds one line item' do
         line_item = subject.add(variant)
         expect(line_item.quantity).to eq(1)
         expect(order.line_items.size).to eq(1)
@@ -29,22 +29,22 @@ RSpec.describe Spree::OrderContents, type: :model do
         subject.add(variant, 1, shipment: shipment)
       end
 
-      context "with quantity=1" do
-        it "creates correct inventory" do
+      context 'with quantity=1' do
+        it 'creates correct inventory' do
           subject.add(variant, 1, shipment: shipment)
           expect(order.inventory_units.count).to eq(1)
         end
       end
 
-      context "with quantity=2" do
-        it "creates correct inventory" do
+      context 'with quantity=2' do
+        it 'creates correct inventory' do
           subject.add(variant, 2, shipment: shipment)
           expect(order.inventory_units.count).to eq(2)
         end
       end
 
-      context "called multiple times" do
-        it "creates correct inventory" do
+      context 'called multiple times' do
+        it 'creates correct inventory' do
           subject.add(variant, 1, shipment: shipment)
           subject.add(variant, 1, shipment: shipment)
           expect(order.inventory_units.count).to eq(2)
@@ -59,20 +59,20 @@ RSpec.describe Spree::OrderContents, type: :model do
       end
     end
 
-    it 'should add line item if one does not exist' do
+    it 'adds line item if one does not exist' do
       line_item = subject.add(variant, 1)
       expect(line_item.quantity).to eq(1)
       expect(order.line_items.size).to eq(1)
     end
 
-    it 'should update line item if one exists' do
+    it 'updates line item if one exists' do
       subject.add(variant, 1)
       line_item = subject.add(variant, 1)
       expect(line_item.quantity).to eq(2)
       expect(order.line_items.size).to eq(1)
     end
 
-    it 'should update order totals' do
+    it 'updates order totals' do
       expect(order.item_total.to_f).to eq(0.00)
       expect(order.total.to_f).to eq(0.00)
 
@@ -88,6 +88,7 @@ RSpec.describe Spree::OrderContents, type: :model do
 
       shared_context 'discount changes order total' do
         before { subject.add(variant, 1) }
+
         it { expect(subject.order.total).not_to eq variant.price }
       end
 
@@ -157,7 +158,7 @@ RSpec.describe Spree::OrderContents, type: :model do
     end
 
     context 'given quantity is not explicitly provided' do
-      it 'should remove one line item' do
+      it 'removes one line item' do
         line_item = subject.add(variant, 3)
         subject.remove(variant)
 
@@ -197,14 +198,14 @@ RSpec.describe Spree::OrderContents, type: :model do
       expect(order.reload.find_line_item_by_variant(variant)).to be_nil
     end
 
-    it 'should remove line_item if quantity is greater than line_item quantity' do
+    it 'removes line_item if quantity is greater than line_item quantity' do
       subject.add(variant, 1)
       subject.remove(variant, 2)
 
       expect(order.reload.find_line_item_by_variant(variant)).to be_nil
     end
 
-    it 'should update order totals' do
+    it 'updates order totals' do
       expect(order.item_total.to_f).to eq(0.00)
       expect(order.total.to_f).to eq(0.00)
 
@@ -238,14 +239,14 @@ RSpec.describe Spree::OrderContents, type: :model do
       end
     end
 
-    it 'should remove line_item' do
+    it 'removes line_item' do
       line_item = subject.add(variant, 1)
       subject.remove_line_item(line_item)
 
       expect(order.reload.line_items).not_to include(line_item)
     end
 
-    it 'should update order totals' do
+    it 'updates order totals' do
       expect(order.item_total.to_f).to eq(0.00)
       expect(order.total.to_f).to eq(0.00)
 
@@ -271,6 +272,7 @@ RSpec.describe Spree::OrderContents, type: :model do
 
     it 'changes item quantity' do
       subject.update_cart params
+
       expect(shirt.quantity).to eq 3
     end
 
