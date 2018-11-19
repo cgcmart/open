@@ -30,7 +30,8 @@ RSpec.describe Spree::Address, type: :model do
       before do
         Spree::Config.address_requires_state = false
       end
-      it "address_requires_state preference is false" do
+
+      it 'address_requires_state preference is false' do
         address.state = nil
         address.state_name = nil
         expect(address).to be_valid
