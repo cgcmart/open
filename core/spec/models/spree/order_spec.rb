@@ -90,6 +90,8 @@ RSpec.describe Spree::Order, type: :model do
   end
 
   context '#canceled_by' do
+    subject { order.canceled_by(admin_user) }
+
     let(:admin_user) { create :admin_user }
     let(:order) { create :order }
 
@@ -97,24 +99,22 @@ RSpec.describe Spree::Order, type: :model do
       allow(order).to receive(:cancel!)
     end
 
-    subject { order.canceled_by(admin_user) }
-
-    it 'should cancel the order' do
+    it 'cancels the order' do
       expect(order).to receive(:cancel!)
       subject
     end
 
-    it 'should save canceler_id' do
+    it 'saves canceler_id' do
       subject
       expect(order.reload.canceler_id).to eq(admin_user.id)
     end
 
-    it 'should save canceled_at' do
+    it 'saves canceled_at' do
       subject
       expect(order.reload.canceled_at).not_to be_nil
     end
 
-    it 'should have canceler' do
+    it 'has canceler' do
       subject
       expect(order.reload.canceler).to eq(admin_user)
     end
@@ -124,11 +124,11 @@ RSpec.describe Spree::Order, type: :model do
     let!(:store) { create :store }
     let(:order) { Spree::Order.create }
 
-    it 'should assigns an order number' do
+    it 'assigns an order number' do
       expect(order.number).not_to be_nil
     end
 
-    it 'should create a randomized 35 character token' do
+    it 'creates a randomized 35 character token' do
       expect(order.token.size).to eq(35)
     end
   end
@@ -149,7 +149,7 @@ RSpec.describe Spree::Order, type: :model do
 
     before { allow(order).to receive_messages(line_items: [line_item]) }
 
-    it 'should return line_item that has insufficient stock on hand' do
+    it 'returns line_item that has insufficient stock on hand' do
       expect(order.insufficient_stock_lines.size).to eq(1)
       expect(order.insufficient_stock_lines.include?(line_item)).to be true
     end
@@ -166,28 +166,28 @@ RSpec.describe Spree::Order, type: :model do
         order.line_items.first.variant.discard
       end
 
-      it 'should restart checkout flow' do
+      it 'restarts checkout flow' do
         expect(order).to receive(:restart_checkout_flow).once
         subject
       end
 
-      it 'should have error message' do
+      it 'has error message' do
         subject
         expect(order.errors[:base]).to include(I18n.t('spree.deleted_variants_present'))
       end
 
-      it 'should be false' do
+      it 'is false' do
         expect(subject).to be_falsey
       end
     end
 
     context 'when no variants are destroyed' do
-      it 'should not restart checkout' do
-        expect(order).to receive(:restart_checkout_flow).never
+      it 'does not restart checkout' do
+        expect(order).not_to receive(:restart_checkout_flow)
         subject
       end
 
-      it 'should be true' do
+      it 'is true' do
         expect(subject).to be_truthy
       end
     end
@@ -231,7 +231,7 @@ RSpec.describe Spree::Order, type: :model do
     let(:order) { create(:order_ready_to_ship, line_items_count: 3) }
     let(:payment) { order.payments.first }
 
-    it "should handle refunds properly" do
+    it 'properly handles refunds' do
       order.cancellations.short_ship([order.inventory_units.first])
       expect(order.outstanding_balance).to be_negative
       expect(order.payment_state).to eq('credit_owed')
@@ -458,13 +458,14 @@ RSpec.describe Spree::Order, type: :model do
   end
 
   describe '#tax_address' do
+    subject { order.tax_address }
+
     let(:order) { build(:order, ship_address: ship_address, bill_address: bill_address, store: store) }
     let(:store) { build(:store) }
 
     before { Spree::Config[:tax_using_ship_address] = tax_using_ship_address }
-    subject { order.tax_address }
 
-    context "when the order has no addresses" do
+    context 'when the order has no addresses' do
       let(:ship_address) { nil }
       let(:bill_address) { nil }
 
@@ -485,11 +486,11 @@ RSpec.describe Spree::Order, type: :model do
       end
     end
 
-    context "when the order has addresses" do
+    context 'when the order has addresses' do
       let(:ship_address) { build(:address) }
       let(:bill_address) { build(:address) }
 
-      context "when tax_using_ship_address is true" do
+      context 'when tax_using_ship_address is true' do
         let(:tax_using_ship_address) { true }
 
         it 'returns ship_address' do
@@ -497,10 +498,10 @@ RSpec.describe Spree::Order, type: :model do
         end
       end
 
-      context "when tax_using_ship_address is not true" do
+      context 'when tax_using_ship_address is not true' do
         let(:tax_using_ship_address) { false }
 
-        it "returns bill_address" do
+        it 'returns bill_address' do
           expect(subject).to eq(order.bill_address)
         end
       end
@@ -582,9 +583,9 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.available_payment_methods).to include(payment_method)
     end
 
-    it "does not include inactive payment methods" do
+    it 'does not include inactive payment methods' do
       Spree::PaymentMethod::Check.create!({
-        name: "Fake",
+        name: 'Fake',
         active: false,
         available_to_users: true,
         available_to_admin: true
@@ -592,23 +593,23 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.available_payment_methods.count).to eq(0)
     end
 
-    context "with more than one payment method" do
+    context 'with more than one payment method' do
       subject { order.available_payment_methods }
 
       let!(:first_method) {
         FactoryBot.create(:payment_method, available_to_users: true,
-                                               available_to_admin: true)
+          available_to_admin: true)
       }
       let!(:second_method) {
         FactoryBot.create(:payment_method, available_to_users: true,
-                                               available_to_admin: true)
+          available_to_admin: true)
       }
 
       before do
         second_method.move_to_top
       end
 
-      it "respects the order of methods based on position" do
+      it 'respects the order of methods based on position' do
         expect(subject).to eq([second_method, first_method])
       end
     end
@@ -635,9 +636,7 @@ RSpec.describe Spree::Order, type: :model do
 
         context 'and the store has an extra payment method unavailable to users' do
           let!(:admin_only_payment_method) do
-            create(:payment_method,
-                                                     available_to_users: false,
-                                                     available_to_admin: true)
+            create(:payment_method, available_to_users: false, available_to_admin: true)
           end
 
           before do
@@ -733,7 +732,7 @@ RSpec.describe Spree::Order, type: :model do
       end
     end
 
-    context "with order number generator configured" do
+    context 'with order number generator configured' do
       class TruthNumberGenerator
         def initialize(options = {}); end
 
@@ -769,7 +768,7 @@ RSpec.describe Spree::Order, type: :model do
   describe '#associate_user!' do
     let!(:user) { FactoryBot.create(:user) }
 
-    it "should associate a user with a persisted order" do
+    it 'associates a user with a persisted order' do
       order = FactoryBot.create(:order_with_line_items, created_by: nil)
       order.user = nil
       order.email = nil
@@ -785,7 +784,7 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.created_by).to eq(user)
     end
 
-    it "should not overwrite the created_by if it already is set" do
+    it 'does not overwrite the created_by if it already is set' do
       creator = create(:user)
       order = FactoryBot.create(:order_with_line_items, created_by: creator)
 
@@ -803,7 +802,7 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.created_by).to eq(creator)
     end
 
-    it "should associate a user with a non-persisted order" do
+    it 'associates a user with a non-persisted order' do
       order = Spree::Order.new
 
       expect do
@@ -811,7 +810,7 @@ RSpec.describe Spree::Order, type: :model do
       end.to change { [order.user, order.email] }.from([nil, nil]).to([user, user.email])
     end
 
-    it "should not persist an invalid address" do
+    it 'does not persist an invalid address' do
       address = Spree::Address.new
       order.user = nil
       order.email = nil
@@ -822,23 +821,23 @@ RSpec.describe Spree::Order, type: :model do
     end
   end
 
-  context "#assign_default_user_addresses" do
+  context '#assign_default_user_addresses' do
     let(:order) { Spree::Order.new }
 
     subject { order.assign_default_user_addresses }
 
-    context "when no user is associated to the order" do
-      it "does not associate any bill address" do
+    context 'when no user is associated to the order' do
+      it 'does not associate any bill address' do
         expect { subject }.not_to change { order.bill_address }.from(nil)
       end
 
-      it "does not associate any ship address" do
+      it 'does not associate any ship address' do
         expect { subject }.not_to change { order.ship_address }.from(nil)
       end
     end
 
-    context "when user is associated to the order" do
-      let(:user)         { build_stubbed(:user) }
+    context 'when user is associated to the order' do
+      let(:user) { build_stubbed(:user) }
       let(:bill_address) { nil }
       let(:ship_address) { nil }
 
@@ -848,46 +847,46 @@ RSpec.describe Spree::Order, type: :model do
         user.ship_address = ship_address
       end
 
-      context "but has no bill address associated" do
-        it "does not associate any bill address" do
+      context 'but has no bill address associated' do
+        it 'does not associate any bill address' do
           expect { subject }.not_to change { order.bill_address }.from(nil)
         end
       end
 
-      context "and has an invalid bill address associated " do
+      context 'and has an invalid bill address associated' do
         let(:bill_address) { build(:address, firstname: nil) } # invalid address
 
-        it "does not associate any bill address" do
+        it 'does not associate any bill address' do
           expect { subject }.not_to change { order.bill_address }.from(nil)
         end
       end
 
-      context "and has a valid address associated " do
+      context 'and has a valid address associated' do
         let(:bill_address) { build(:address) }
 
-        it "does associate user bill address" do
+        it 'does associate user bill address' do
           expect { subject }.to change { order.bill_address }.from(nil).to(bill_address)
         end
       end
 
-      context "but has no ship address associated" do
-        it "does not associate any ship address" do
+      context 'but has no ship address associated' do
+        it 'does not associate any ship address' do
           expect { subject }.not_to change { order.ship_address }.from(nil)
         end
       end
 
-      context "and has an invalid ship address associated " do
+      context 'and has an invalid ship address associated' do
         let(:ship_address) { build(:address, firstname: nil) } # invalid address
 
-        it "does not associate any ship address" do
+        it 'does not associate any ship address' do
           expect { subject }.not_to change { order.ship_address }.from(nil)
         end
       end
 
-      context "and has a valid ship address associated" do
+      context 'and has a valid ship address associated' do
         let(:ship_address) { build(:address) }
 
-        it "does associate user ship address" do
+        it 'does associate user ship address' do
           expect { subject }.to change { order.ship_address }.from(nil).to(ship_address)
         end
 
@@ -896,7 +895,7 @@ RSpec.describe Spree::Order, type: :model do
             expect(order).to receive(:checkout_steps) { %w[some step] }
           end
 
-          it "does not associate any ship address" do
+          it 'does not associate any ship address' do
             expect { subject }.not_to change { order.ship_address }.from(nil)
           end
         end
@@ -907,17 +906,17 @@ RSpec.describe Spree::Order, type: :model do
   context '#can_ship?' do
     let(:order) { Spree::Order.create }
 
-    it "should be true for order in the 'complete' state" do
+    it "is true for order in the 'complete' state" do
       allow(order).to receive_messages(complete?: true)
       expect(order.can_ship?).to be true
     end
 
-    it "should be true for order in the 'resumed' state" do
+    it "is true for order in the 'resumed' state" do
       allow(order).to receive_messages(resumed?: true)
       expect(order.can_ship?).to be true
     end
 
-    it "should be true for an order in the 'awaiting return' state" do
+    it "is true for an order in the 'awaiting return' state" do
       allow(order).to receive_messages(awaiting_return?: true)
       expect(order.can_ship?).to be true
     end
@@ -927,14 +926,14 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.can_ship?).to be true
     end
 
-    it "should be false if the order is neither in the 'complete' nor 'resumed' state" do
+    it "is false if the order is neither in the 'complete' nor 'resumed' state" do
       allow(order).to receive_messages(resumed?: false, complete?: false)
       expect(order.can_ship?).to be false
     end
   end
 
   context '#completed?' do
-    it 'should indicate if order is completed' do
+    it 'indicates if order is completed' do
       order.completed_at = nil
       expect(order.completed?).to be false
 
@@ -944,11 +943,12 @@ RSpec.describe Spree::Order, type: :model do
   end
 
   context '#allow_checkout?' do
-    it 'should be true if there are line_items in the order' do
+    it 'is true if there are line_items in the order' do
       allow(order).to receive_message_chain(:line_items, count: 1)
       expect(order.checkout_allowed?).to be true
     end
-    it 'should be false if there are no line_items in the order' do
+
+    it 'is false if there are no line_items in the order' do
       allow(order).to receive_message_chain(:line_items, count: 0)
       expect(order.checkout_allowed?).to be false
     end
@@ -958,9 +958,10 @@ RSpec.describe Spree::Order, type: :model do
     before do
       @order = create(:order, user: user)
       @order.line_items = [create(:line_item, price: 1.0, quantity: 2),
-                           create(:line_item, price: 1.0, quantity: 1)]
+        create(:line_item, price: 1.0, quantity: 1)]
     end
-    it 'should return the correct lum sum of items' do
+
+    it 'returns the correct lum sum of items' do
       expect(@order.amount).to eq(3.0)
     end
   end
@@ -968,20 +969,20 @@ RSpec.describe Spree::Order, type: :model do
   context '#backordered?' do
     it 'is backordered if one of the shipments is backordered' do
       allow(order).to receive_messages(shipments: [mock_model(Spree::Shipment, backordered?: false),
-                                                   mock_model(Spree::Shipment, backordered?: true)])
+        mock_model(Spree::Shipment, backordered?: true)])
       expect(order).to be_backordered
     end
   end
 
   context '#can_cancel?' do
-    it 'should be false for completed order in the canceled state' do
+    it 'is false for completed order in the canceled state' do
       order.state = 'canceled'
       order.shipment_state = 'ready'
       order.completed_at = Time.current
       expect(order.can_cancel?).to be false
     end
 
-    it 'should be true for completed order with no shipment' do
+    it 'is true for completed order with no shipment' do
       order.state = 'complete'
       order.shipment_state = nil
       order.completed_at = Time.current
@@ -1017,12 +1018,12 @@ RSpec.describe Spree::Order, type: :model do
     end
   end
 
-  context "#refund_total" do
+  context '#refund_total' do
     let(:order) { create(:order_with_line_items) }
     let!(:payment) { create(:payment_with_refund, order: order, amount: 5, refund_amount: 3) }
     let!(:payment2) { create(:payment_with_refund, order: order, amount: 5, refund_amount: 2.5) }
 
-    it "sums the reimbursment refunds on the order" do
+    it 'sums the reimbursment refunds on the order' do
       expect(order.refund_total).to eq(5.5)
     end
   end
@@ -1075,6 +1076,7 @@ RSpec.describe Spree::Order, type: :model do
 
   describe '#create_proposed_shipments' do
     subject(:order) { create(:order) }
+
     it 'assigns the coordinator returned shipments to its shipments' do
       shipment = build(:shipment)
       allow_any_instance_of(Spree::Stock::SimpleCoordinator).to receive(:shipments).and_return([shipment])
@@ -1082,8 +1084,8 @@ RSpec.describe Spree::Order, type: :model do
       expect(subject.shipments).to eq [shipment]
     end
 
-    it "raises an error if any shipments are ready" do
-      shipment = create(:shipment, order: subject, state: "ready")
+    it 'raises an error if any shipments are ready' do
+      shipment = create(:shipment, order: subject, state: 'ready')
 
       expect {
         expect {
@@ -1094,8 +1096,8 @@ RSpec.describe Spree::Order, type: :model do
       expect { shipment.reload }.not_to raise_error
     end
 
-    it "raises an error if any shipments are shipped" do
-      shipment = create(:shipment, order: subject, state: "shipped")
+    it 'raises an error if any shipments are shipped' do
+      shipment = create(:shipment, order: subject, state: 'shipped')
 
       expect {
         expect {
@@ -1137,40 +1139,40 @@ RSpec.describe Spree::Order, type: :model do
     end
   end
 
-context "store credit" do
-    shared_examples "check total store credit from payments" do
-      context "with valid payments" do
-        let(:order)           { payment.order }
-        let!(:payment)        { create(:store_credit_payment) }
+context 'store credit' do
+    shared_examples 'check total store credit from payments' do
+      context 'with valid payments' do
+        let(:order) { payment.order }
+        let!(:payment) { create(:store_credit_payment) }
         let!(:second_payment) { create(:store_credit_payment, order: order) }
 
         subject { order }
 
-        it "returns the sum of the payment amounts" do
+        it 'returns the sum of the payment amounts' do
           expect(subject.total_applicable_store_credit).to eq(payment.amount + second_payment.amount)
         end
       end
 
-      context "without valid payments" do
+      context 'without valid payments' do
         let(:order) { create(:order) }
 
         subject { order }
 
-        it "returns 0" do
+        it 'returns 0' do
           expect(subject.total_applicable_store_credit).to be_zero
         end
       end
     end
 
-    describe "#add_store_credit_payments" do
+    describe '#add_store_credit_payments' do
       let(:order_total) { 500.00 }
 
       before { create(:store_credit_payment_method) }
 
       subject { order.add_store_credit_payments }
 
-      context "there is no store credit" do
-        let(:order)       { create(:order, total: order_total) }
+      context 'there is no store credit' do
+        let(:order) { create(:order, total: order_total) }
 
         context "there is a credit card payment" do
           let!(:cc_payment) { create(:payment, order: order, amount: order_total) }
@@ -1183,7 +1185,7 @@ context "store credit" do
             order.reload
           end
 
-          it "charges the outstanding balance to the credit card" do
+          it 'charges the outstanding balance to the credit card' do
             expect(order.errors.messages).to be_empty
             expect(order.payments.count).to eq 1
             expect(order.payments.first.source).to be_a(Spree::CreditCard)
@@ -1210,17 +1212,17 @@ context "store credit" do
         end
       end
 
-      context "there is enough store credit to pay for the entire order" do
+      context 'there is enough store credit to pay for the entire order' do
         let(:store_credit) { create(:store_credit, amount: order_total) }
         let(:order) { create(:order_with_totals, user: store_credit.user, line_items_price: order_total).tap(&:recalculate) }
 
-        context "there are no other payments" do
+        context 'there are no other payments' do
           before do
             subject
             order.reload
           end
 
-          it "creates a store credit payment for the full amount" do
+          it 'creates a store credit payment for the full amount' do
             expect(order.errors.messages).to be_empty
             expect(order.payments.count).to eq 1
             expect(order.payments.first).to be_store_credit
@@ -1228,44 +1230,44 @@ context "store credit" do
           end
         end
 
-        context "there is a credit card payment" do
-          it "invalidates the credit card payment" do
+        context 'there is a credit card payment' do
+          it 'invalidates the credit card payment' do
             cc_payment = create(:payment, order: order)
             expect { subject }.to change { cc_payment.reload.state }.to 'invalid'
           end
         end
       end
 
-      context "the available store credit is not enough to pay for the entire order" do
+      context 'the available store credit is not enough to pay for the entire order' do
         let(:order_total) { 500 }
         let(:store_credit_total) { order_total - 100 }
-        let(:store_credit)       { create(:store_credit, amount: store_credit_total) }
+        let(:store_credit) { create(:store_credit, amount: store_credit_total) }
         let(:order) { create(:order_with_totals, user: store_credit.user, line_items_price: order_total).tap(&:recalculate) }
 
-        context "there are no other payments" do
-          it "adds an error to the model" do
+        context 'there are no other payments' do
+          it 'adds an error to the model' do
             expect(subject).to be false
             expect(order.errors.full_messages).to include(I18n.t('spree.store_credit.errors.unable_to_fund'))
           end
         end
 
-        context "there is a completed credit card payment" do
+        context 'there is a completed credit card payment' do
           let!(:cc_payment) { create(:payment, order: order, state: "completed", amount: 100) }
 
-          it "successfully creates the store credit payments" do
+          it 'successfully creates the store credit payments' do
             expect { subject }.to change { order.payments.count }.from(1).to(2)
             expect(order.errors).to be_empty
           end
         end
 
-        context "there is a credit card payment" do
+        context 'there is a credit card payment' do
           let!(:cc_payment) { create(:payment, order: order, state: "checkout") }
 
           before do
             subject
           end
 
-          it "charges the outstanding balance to the credit card" do
+          it 'charges the outstanding balance to the credit card' do
             expect(order.errors.messages).to be_empty
             expect(order.payments.count).to eq 2
             expect(order.payments.first.source).to be_a(Spree::CreditCard)
@@ -1273,13 +1275,13 @@ context "store credit" do
           end
 
           # see associated comment in order_decorator#add_store_credit_payments
-          context "the store credit is already in the pending state" do
+          context 'the store credit is already in the pending state' do
             before do
               order.payments.store_credits.last.authorize!
               order.add_store_credit_payments
             end
 
-            it "charges the outstanding balance to the credit card" do
+            it 'charges the outstanding balance to the credit card' do
               expect(order.errors.messages).to be_empty
               expect(order.payments.count).to eq 2
               expect(order.payments.first.source).to be_a(Spree::CreditCard)
@@ -1289,10 +1291,10 @@ context "store credit" do
         end
       end
 
-      context "there are multiple store credits" do
-        context "they have different credit type priorities" do
-          let(:amount_difference)       { 100 }
-          let!(:primary_store_credit)   { create(:store_credit, amount: (order_total - amount_difference)) }
+      context 'there are multiple store credits' do
+        context 'they have different credit type priorities' do
+          let(:amount_difference) { 100 }
+          let!(:primary_store_credit) { create(:store_credit, amount: (order_total - amount_difference)) }
           let!(:secondary_store_credit) { create(:store_credit, amount: order_total, user: primary_store_credit.user, credit_type: create(:secondary_credit_type)) }
           let(:order) { create(:order_with_totals, user: primary_store_credit.user, line_items_price: order_total).tap(&:recalculate) }
 
@@ -1301,7 +1303,7 @@ context "store credit" do
             order.reload
           end
 
-          it "uses the primary store credit type over the secondary" do
+          it 'uses the primary store credit type over the secondary' do
             primary_payment = order.payments.detect{ |x| x.source == primary_store_credit }
             secondary_payment = order.payments.detect{ |x| x.source == secondary_store_credit }
 
@@ -1315,7 +1317,7 @@ context "store credit" do
       end
     end
 
-    describe "#covered_by_store_credit" do
+    describe '#covered_by_store_credit' do
       subject do
         order.covered_by_store_credit
       end
@@ -1327,36 +1329,36 @@ context "store credit" do
         it { is_expected.to eq(false) }
       end
 
-      context "order has an associated user" do
-        context "user has enough store credit to pay for the order" do
+      context 'order has an associated user' do
+        context 'user has enough store credit to pay for the order' do
           let!(:credit) { create(:store_credit, user: user, amount: 1000) }
           it { is_expected.to eq(true) }
         end
 
-        context "user does not have enough store credit to pay for the order" do
+        context 'user does not have enough store credit to pay for the order' do
           let!(:credit) { create(:store_credit, user: user, amount: 1) }
           it { is_expected.to eq(false) }
         end
       end
     end
 
-    describe "#total_available_store_credit" do
+    describe '#total_available_store_credit' do
       subject do
         order.total_available_store_credit
       end
 
-      context "order does not have an associated user" do
+      context 'order does not have an associated user' do
         let(:user) { nil }
         it { is_expected.to eq(0) }
       end
 
-      context "order has an associated user" do
+      context 'order has an associated user' do
         let!(:credit) { create(:store_credit, user: user, amount: 25) }
         it { is_expected.to eq(25) }
       end
     end
 
-    describe "#order_total_after_store_credit" do
+    describe '#order_total_after_store_credit' do
       let(:order_total) { 100.0 }
 
       subject { create(:order, total: order_total) }
@@ -1368,7 +1370,7 @@ context "store credit" do
       context "order's user has store credits" do
         let(:applicable_store_credit) { 10.0 }
 
-        it "deducts the applicable store credit" do
+        it 'deducts the applicable store credit' do
           expect(subject.order_total_after_store_credit).to eq(order_total - applicable_store_credit)
         end
       end
@@ -1376,131 +1378,133 @@ context "store credit" do
       context "order's user does not have any store credits" do
         let(:applicable_store_credit) { 0.0 }
 
-        it "returns the order total" do
+        it 'returns the order total' do
           expect(subject.order_total_after_store_credit).to eq order_total
         end
       end
     end
 
-    describe "#total_applicable_store_credit" do
-      context "order is in the confirm state" do
+    describe '#total_applicable_store_credit' do
+      context 'order is in the confirm state' do
         before { order.update_attributes(state: 'confirm') }
-        include_examples "check total store credit from payments"
+
+        include_examples 'check total store credit from payments'
       end
 
-      context "order is completed" do
+      context 'order is completed' do
         before { order.update_attributes(state: 'complete') }
-        include_examples "check total store credit from payments"
+
+        include_examples 'check total store credit from payments'
       end
 
-      context "order is in any state other than confirm or complete" do
-        context "the associated user has store credits" do
+      context 'order is in any state other than confirm or complete' do
+        context 'the associated user has store credits' do
           let(:store_credit) { create(:store_credit) }
-          let(:order)        { create(:order, user: store_credit.user) }
+          let(:order) { create(:order, user: store_credit.user) }
 
           subject { order }
 
-          context "the store credit is more than the order total" do
+          context 'the store credit is more than the order total' do
             let(:order_total) { store_credit.amount - 1 }
 
             before { order.update_attributes(total: order_total) }
 
-            it "returns the order total" do
+            it 'returns the order total' do
               expect(subject.total_applicable_store_credit).to eq order_total
             end
           end
 
-          context "the store credit is less than the order total" do
+          context 'the store credit is less than the order total' do
             let(:order_total) { store_credit.amount * 10 }
 
             before { order.update_attributes(total: order_total) }
 
-            it "returns the store credit amount" do
+            it 'returns the store credit amount' do
               expect(subject.total_applicable_store_credit).to eq store_credit.amount
             end
           end
         end
 
-        context "the associated user does not have store credits" do
+        context 'the associated user does not have store credits' do
           let(:order) { create(:order) }
 
           subject { order }
 
-          it "returns 0" do
+          it 'returns 0' do
             expect(subject.total_applicable_store_credit).to be_zero
           end
         end
 
-        context "the order does not have an associated user" do
+        context 'the order does not have an associated user' do
           subject { create(:order, user: nil) }
 
-          it "returns 0" do
+          it 'returns 0' do
             expect(subject.total_applicable_store_credit).to be_zero
           end
         end
       end
     end
 
-    describe "#display_total_applicable_store_credit" do
+    describe '#display_total_applicable_store_credit' do
       let(:total_applicable_store_credit) { 10.00 }
 
       subject { create(:order) }
 
       before { allow(subject).to receive_messages(total_applicable_store_credit: total_applicable_store_credit) }
 
-      it "returns a money instance" do
+      it 'returns a money instance' do
         expect(subject.display_total_applicable_store_credit).to be_a(Spree::Money)
       end
 
-      it "returns a negative amount" do
+      it 'returns a negative amount' do
         expect(subject.display_total_applicable_store_credit.money.cents).to eq(total_applicable_store_credit * -100.0)
       end
     end
 
-    describe "#display_order_total_after_store_credit" do
+    describe '#display_order_total_after_store_credit' do
       let(:order_total_after_store_credit) { 10.00 }
 
       subject { create(:order) }
 
       before { allow(subject).to receive_messages(order_total_after_store_credit: order_total_after_store_credit) }
 
-      it "returns a money instance" do
+      it 'returns a money instance' do
         expect(subject.display_order_total_after_store_credit).to be_a(Spree::Money)
       end
 
-      it "returns the order_total_after_store_credit amount" do
+      it 'returns the order_total_after_store_credit amount' do
         expect(subject.display_order_total_after_store_credit.money.cents).to eq(order_total_after_store_credit * 100.0)
       end
     end
 
-    describe "#display_total_available_store_credit" do
+    describe '#display_total_available_store_credit' do
       let(:total_available_store_credit) { 10.00 }
 
       subject { create(:order) }
 
       before { allow(subject).to receive_messages(total_available_store_credit: total_available_store_credit) }
 
-      it "returns a money instance" do
+      it 'returns a money instance' do
         expect(subject.display_total_available_store_credit).to be_a(Spree::Money)
       end
 
-      it "returns the total_available_store_credit amount" do
+      it 'returns the total_available_store_credit amount' do
         expect(subject.display_total_available_store_credit.money.cents).to eq(total_available_store_credit * 100.0)
       end
     end
 
-    describe "#display_store_credit_remaining_after_capture" do
-      let(:total_available_store_credit)  { 10.00 }
+    describe '#display_store_credit_remaining_after_capture' do
+      let(:total_available_store_credit) { 10.00 }
       let(:total_applicable_store_credit) { 5.00 }
 
       subject { create(:order) }
 
       before do
         allow(subject).to receive_messages(total_available_store_credit: total_available_store_credit,
-                     total_applicable_store_credit: total_applicable_store_credit)
+          total_applicable_store_credit: total_applicable_store_credit)
       end
 
-      it "returns a money instance" do
+      it 'returns a money instance' do
         expect(subject.display_store_credit_remaining_after_capture).to be_a(Spree::Money)
       end
 
@@ -1581,6 +1585,7 @@ context "store credit" do
         resumed_order.inventory_units.update_all(state: 'returned')
         resumed_order.return
       end
+
       it { expect(resumed_order).to be_returned }
     end
 
@@ -1589,57 +1594,62 @@ context "store credit" do
         resumed_order.inventory_units.first.update_attribute(:state, 'returned')
         resumed_order.return
       end
+
       it { expect(resumed_order).to be_resumed }
     end
   end
 
   describe 'credit_card_nil_payment' do
     let(:attributes) { [ActionController::Parameters.new(payment_method_id: payment_method.id)] }
+
     subject do
       order.validate_payments_attributes(attributes)
     end
 
-    context "with empty array" do
+    context 'with empty array' do
       let(:attributes) { [] }
+
       it "doesn't error" do
         subject
       end
     end
 
-    context "with no payment method specified" do
+    context 'with no payment method specified' do
       let(:attributes) { [ActionController::Parameters.new({})] }
+
       it "doesn't error" do
         subject
       end
     end
 
-    context "with valid payment method" do
+    context 'with valid payment method' do
       let(:payment_method) { create(:check_payment_method) }
+
       it "doesn't error" do
         subject
       end
     end
 
-    context "with inactive payment method" do
+    context 'with inactive payment method' do
       let(:payment_method) { create(:check_payment_method, active: false) }
 
-      it "raises RecordNotFound" do
+      it 'raises RecordNotFound' do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
 
-    context "with unavailable payment method" do
+    context 'with unavailable payment method' do
       let(:payment_method) { create(:check_payment_method, available_to_users: false) }
 
-      it "raises RecordNotFound" do
+      it 'raises RecordNotFound' do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
 
-    context "with soft-deleted payment method" do
+    context 'with soft-deleted payment method' do
       let(:payment_method) { create(:check_payment_method, deleted_at: Time.current) }
 
-      it "raises RecordNotFound" do
+      it 'raises RecordNotFound' do
         expect { subject }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
