@@ -88,8 +88,8 @@ module Spree
       end
     end
 
-    context "with payments completed" do
-      it "should not fail transitioning to complete when paid" do
+    context 'with payments completed' do
+      it 'does not fail transitioning to complete when paid' do
         expect(order).to receive_messages total: 100, payment_total: 100
         expect(order.process_payments!).to be_truthy
       end
@@ -110,13 +110,13 @@ module Spree
         }
       end
 
-      it "keeps source attributes on assignment" do
+      it 'keeps source attributes on assignment' do
         OrderUpdateAttributes.new(order, payments_attributes: [payment_attributes]).apply
         expect(order.unprocessed_payments.last.source.number).to be_present
       end
 
       # For the reason of this test, please see spree/spree_gateway#132
-      it "keeps source attributes through OrderUpdateAttributes" do
+      it 'keeps source attributes through OrderUpdateAttributes' do
         OrderUpdateAttributes.new(order, payments_attributes: [payment_attributes]).apply
         expect(order.unprocessed_payments.last.source.number).to be_present
       end
@@ -125,11 +125,13 @@ module Spree
     context 'checking if order is paid' do
       context 'payment_state is paid' do
         before { allow(order).to receive_messages payment_state: 'paid' }
+
         it { expect(order).to be_paid }
       end
 
       context 'payment_state is credit_owned' do
         before { allow(order).to receive_messages payment_state: 'credit_owed' }
+
         it { expect(order).to be_paid }
       end
     end
@@ -138,7 +140,7 @@ module Spree
       let(:payment) { stub_model(Spree::Payment) }
       before { allow(order).to receive_messages unprocessed_payments: [payment], total: 10 }
 
-      it 'should process the payments' do
+      it 'processes the payments' do
         expect(payment).to receive(:process!)
         expect(order.process_payments!).to be_truthy
       end
@@ -146,12 +148,12 @@ module Spree
       context 'when a payment raises a GatewayError' do
         before { expect(payment).to receive(:process!).and_raise(Spree::Core::GatewayError) }
 
-        it 'should return true when configured to allow checkout on gateway failures' do
+        it 'returns true when configured to allow checkout on gateway failures' do
           Spree::Config.set allow_checkout_on_gateway_error: true
           expect(order.process_payments!).to be true
         end
 
-        it 'should return false when not configured to allow checkout on gateway failures' do
+        it 'returns false when not configured to allow checkout on gateway failures' do
           Spree::Config.set allow_checkout_on_gateway_error: false
           expect(order.process_payments!).to be false
         end
@@ -159,9 +161,11 @@ module Spree
     end
 
     context '#authorize_payments!' do
-      let(:payment) { stub_model(Spree::Payment) }
-      before { allow(order).to receive_messages unprocessed_payments: [payment], total: 10 }
       subject { order.authorize_payments! }
+
+      let(:payment) { stub_model(Spree::Payment) }
+
+      before { allow(order).to receive_messages unprocessed_payments: [payment], total: 10 }
 
       it 'processes payments with attempt_authorization!' do
         expect(payment).to receive(:authorize!)
@@ -172,9 +176,11 @@ module Spree
     end
 
     context '#capture_payments!' do
-      let(:payment) { stub_model(Spree::Payment) }
-      before { allow(order).to receive_messages unprocessed_payments: [payment], total: 10 }
       subject { order.capture_payments! }
+
+      let(:payment) { stub_model(Spree::Payment) }
+
+      before { allow(order).to receive_messages unprocessed_payments: [payment], total: 10 }
 
       it 'processes payments with attempt_authorization!' do
         expect(payment).to receive(:purchase!)
@@ -185,18 +191,18 @@ module Spree
     end
 
     context '#outstanding_balance' do
-      it 'should return positive amount when payment_total is less than total' do
+      it 'returns positive amount when payment_total is less than total' do
         order.payment_total = 20.20
         order.total = 30.30
         expect(order.outstanding_balance).to eq(10.10)
       end
-      it 'should return negative amount when payment_total is greater than total' do
+      it 'returns negative amount when payment_total is greater than total' do
         order.total = 8.20
         order.payment_total = 10.20
         expect(order.outstanding_balance).to be_within(0.001).of(-2.00)
       end
 
-      context "with reimburesements on the order" do
+      context 'with reimburesements on the order' do
         let(:amount) { 10.0 }
         let(:reimbursement) { create(:reimbursement) }
         let(:order) { reimbursement.order.reload }
@@ -212,10 +218,10 @@ module Spree
           order.recalculate
         end
 
-        context "for canceled orders" do
+        context 'for canceled orders' do
           before { order.update_attributes(state: 'canceled') }
 
-          it "it should be zero" do
+          it 'it is zero' do
             expect(order.total).to eq(110)
             expect(order.payments.sum(:amount)).to eq(10)
             expect(order.refund_total).to eq(10)
@@ -225,8 +231,8 @@ module Spree
           end
         end
 
-        context "for non-canceled orders" do
-          it 'should incorporate refund reimbursements' do
+        context 'for non-canceled orders' do
+          it 'incorporates refund reimbursements' do
             # Order Total - (Payment Total + Reimbursed)
             # 110 - (0 + 10) = 100
             expect(order.outstanding_balance).to eq 100
@@ -236,17 +242,19 @@ module Spree
     end
 
     context '#outstanding_balance?' do
-      it 'should be true when total greater than payment_total' do
+      it 'is true when total greater than payment_total' do
         order.total = 10.10
         order.payment_total = 9.50
         expect(order.outstanding_balance?).to be true
       end
-      it 'should be true when total less than payment_total' do
+
+      it 'is true when total less than payment_total' do
         order.total = 8.25
         order.payment_total = 10.44
         expect(order.outstanding_balance?).to be true
       end
-      it 'should be false when total equals payment_total' do
+
+      it 'is false when total equals payment_total' do
         order.total = 10.10
         order.payment_total = 10.10
         expect(order.outstanding_balance?).to be false
@@ -261,17 +269,17 @@ module Spree
         it { expect(order).not_to be_payment_required }
       end
 
-      context "total is once cent" do
+      context 'total is once cent' do
         let(:total) { 1 }
         it { expect(order).to be_payment_required }
       end
 
-      context "total is once dollar" do
+      context 'total is once dollar' do
         let(:total) { 1 }
         it { expect(order).to be_payment_required }
       end
 
-      context "total is huge" do
+      context 'total is huge' do
         let(:total) { 2**32 }
         it { expect(order).to be_payment_required }
       end
