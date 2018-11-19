@@ -32,7 +32,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
       let(:line_item_two_options) { {} }
 
       context "when all items matches the rate's tax category" do
-        it 'should be equal to the sum of the item totals * rate' do
+        it 'is equal to the sum of the item totals * rate' do
           expect(calculator.compute(order)).to eq(3)
         end
 
@@ -40,7 +40,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
           let(:starts_at) { 1.day.from_now }
           let(:expires_at) { 2.days.from_now }
 
-          it 'should be 0' do
+          it 'is 0' do
             expect(calculator.compute(order)).to eq(0)
           end
         end
@@ -51,7 +51,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
         let(:line_item_one_options) { { tax_category: other_tax_category } }
         let(:line_item_two_options) { { tax_category: other_tax_category } }
 
-        it 'should be 0' do
+        it 'is 0' do
           expect(calculator.compute(order)).to eq(0)
         end
       end
@@ -60,7 +60,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
         let(:other_tax_category) { create(:tax_category) }
         let(:line_item_two_options) { { tax_category: other_tax_category } }
 
-        it 'should be equal to the item total * rate' do
+        it 'is equal to the item total * rate' do
           expect(calculator.compute(order)).to eq(1.5)
         end
 
@@ -68,7 +68,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
           let(:starts_at) { 1.day.from_now }
           let(:expires_at) { 2.days.from_now }
 
-          it 'should be 0' do
+          it 'is 0' do
             expect(calculator.compute(order)).to eq(0)
           end
         end
@@ -98,7 +98,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
           let(:starts_at) { 1.day.from_now }
           let(:expires_at) { 2.days.from_now }
 
-          it 'should be 0' do
+          it 'is 0' do
             expect(calculator.compute(order)).to eq(0)
           end
         end
@@ -121,7 +121,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
       let(:included_in_price) { true }
 
       context 'when the variant matches the tax category' do
-        it "should be equal to the item's full price * rate" do
+        it "is equal to the item's full price * rate" do
           expect(calculator.compute(item)).to eql 1.43
         end
 
@@ -129,7 +129,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
           let(:starts_at) { 1.day.from_now }
           let(:expires_at) { 2.days.from_now }
 
-          it 'should be 0' do
+          it 'is 0' do
             expect(calculator.compute(item)).to eq(0)
           end
         end
@@ -137,7 +137,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
         context 'when line item is adjusted' do
           let(:adjustment_total) { -1 }
 
-          it "should be equal to the item's adjusted total * rate" do
+          it "is equal to the item's adjusted total * rate" do
             expect(calculator.compute(item)).to eql 1.38
           end
         end
@@ -148,7 +148,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
       context 'when the item has an adjustment' do
         let(:adjustment_total) { -1 }
 
-        it "should be equal to the item's pre-tax total * rate" do
+        it "is equal to the item's pre-tax total * rate" do
           expect(calculator.compute(item)).to eq(1.45)
         end
 
@@ -156,14 +156,14 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
           let(:starts_at) { 1.day.from_now }
           let(:expires_at) { 2.days.from_now }
 
-          it 'should be 0' do
+          it 'is 0' do
             expect(calculator.compute(item)).to eq(0)
           end
         end
       end
 
       context 'when the variant matches the tax category' do
-        it 'should be equal to the item pre-tax total * rate' do
+        it 'is equal to the item pre-tax total * rate' do
           expect(calculator.compute(item)).to eq(1.50)
         end
 
@@ -171,7 +171,7 @@ RSpec.describe Spree::Calculator::DefaultTax, type: :model do
           let(:starts_at) { 1.day.from_now }
           let(:expires_at) { 2.days.from_now }
 
-          it 'should be 0' do
+          it 'is 0' do
             expect(calculator.compute(item)).to eq(0)
           end
         end
