@@ -141,16 +141,16 @@ RSpec.describe Spree::InventoryUnit, type: :model do
       ]
     end
 
-    it 'should create a stock movement' do
+    it 'creates a stock movement' do
       Spree::InventoryUnit.finalize_units!(inventory_units)
       expect(inventory_units.any?(&:pending)).to be false
     end
   end
 
   describe '#current_or_new_return_item' do
-    before { allow(inventory_unit).to receive_messages(pre_tax_total: 100.0) }
-
     subject { inventory_unit.current_or_new_return_item }
+
+    before { allow(inventory_unit).to receive_messages(pre_tax_total: 100.0) }
 
     context 'associated with a return item' do
       let(:return_item) { create(:return_item) }
