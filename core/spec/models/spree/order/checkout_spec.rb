@@ -85,6 +85,7 @@ RSpec.describe Spree::Order, type: :model do
 
       context 'when payment not required' do
         before { allow(order).to receive_messages payment_required?: false }
+
         specify do
           expect(order.checkout_steps).to eq(%w(address delivery confirm complete))
         end
@@ -92,6 +93,7 @@ RSpec.describe Spree::Order, type: :model do
 
       context 'when payment required' do
         before { allow(order).to receive_messages payment_required?: true }
+
         specify do
           expect(order.checkout_steps).to eq(%w(address delivery payment confirm complete))
         end
@@ -257,7 +259,7 @@ RSpec.describe Spree::Order, type: :model do
           allow(order).to receive(:ensure_available_shipping_rates) { true }
         end
 
-        it 'should update shipment_total' do
+        it 'updates shipment_total' do
           expect { order.next! }.to change{ order.shipment_total }.by(10.00)
         end
       end
@@ -269,6 +271,7 @@ RSpec.describe Spree::Order, type: :model do
             order.state = 'address'
             order.email = 'user@example.com'
           end
+
           specify do
             transition = lambda { order.next! }
             expect(transition).to raise_error(StateMachines::InvalidTransition, /#{I18n.t('spree.items_cannot_be_shipped')}/)
@@ -618,11 +621,11 @@ RSpec.describe Spree::Order, type: :model do
       Spree::Order.checkout_flow(&@old_checkout_flow)
     end
 
-    it 'should not keep old event transitions when checkout_flow is redefined' do
+    it 'does not keep old event transitions when checkout_flow is redefined' do
       expect(Spree::Order.next_event_transitions).to eq([{ cart: :payment }, { payment: :complete }])
     end
 
-    it 'should not keep old events when checkout_flow is redefined' do
+    it 'does not keep old events when checkout_flow is redefined' do
       state_machine = Spree::Order.state_machine
       expect(state_machine.states.any? { |s| s.name == :address }).to be false
       known_states = state_machine.events[:next].branches.map(&:known_states).flatten
@@ -684,7 +687,7 @@ RSpec.describe Spree::Order, type: :model do
       Spree::Order.checkout_flow(&@old_checkout_flow)
     end
 
-    it 'should maintain removed transitions' do
+    it 'maintains removed transitions' do
       transition = Spree::Order.find_transition(from: :delivery, to: :confirm)
       expect(transition).to be_nil
     end
@@ -731,7 +734,7 @@ RSpec.describe Spree::Order, type: :model do
       Spree::Order.checkout_flow(&@old_checkout_flow)
     end
 
-    it 'should maintain removed transitions' do
+    it 'maintains removed transitions' do
       transition = Spree::Order.find_transition(from: :delivery, to: :confirm)
       expect(transition).to be_nil
     end
