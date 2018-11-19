@@ -13,12 +13,14 @@ RSpec.describe Spree::Order, type: :model do
       order.update_column :state, 'complete'
     end
 
+    after { Spree::Config.set track_inventory_levels: true }
+
     it 'sets completed_at' do
       expect(order).to receive(:touch).with(:completed_at)
       order.finalize!
     end
 
-    it 'should sell inventory units' do
+    it 'sells inventory units' do
       order.shipments.each do |shipment| # rubocop:disable RSpec/IteratedExpectation
         expect(shipment).to receive(:update_state)
         expect(shipment).to receive(:finalize!)
@@ -26,14 +28,14 @@ RSpec.describe Spree::Order, type: :model do
       order.finalize!
     end
 
-    it 'should decrease the stock for each variant in the shipment' do
+    it 'decreases the stock for each variant in the shipment' do
       order.shipments.each do |shipment|
         expect(shipment.stock_location).to receive(:decrease_stock_for_variant)
       end
       order.finalize!
     end
 
-    it 'should change the shipment state to ready if order is paid' do
+    it 'changes the shipment state to ready if order is paid' do
       Spree::Shipment.create(order: order)
       order.shipments.reload
 
@@ -43,13 +45,13 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.shipment_state).to eq('ready')
     end
 
-    it 'should not sell inventory units if track_inventory_levels is false' do
+    it 'does not sell inventory units if track_inventory_levels is false' do
       Spree::Config.set track_inventory_levels: false
       expect(Spree::InventoryUnit).not_to receive(:sell_units)
       order.finalize!
     end
 
-    it 'should send an order confirmation email' do
+    it 'sends an order confirmation email' do
       mail_message = double 'Mail::Message'
       expect(Spree::OrderMailer).to receive(:confirm_email).with(order).and_return mail_message
       expect(mail_message).to receive :deliver_later
@@ -62,13 +64,13 @@ RSpec.describe Spree::Order, type: :model do
       expect(order.confirmation_delivered?).to be true
     end
 
-    it 'should not send duplicate confirmation emails' do
+    it 'does not send duplicate confirmation emails' do
       allow(order).to receive_messages(confirmation_delivered?: true)
       expect(Spree::OrderMailer).not_to receive(:confirm_email)
       order.finalize!
     end
 
-    it 'should freeze all adjustments' do
+    it 'freezes all adjustments' do
       # Stub this method as it's called due to a callback
       # and it's irrelevant to this test
       allow(Spree::OrderMailer).to receive_message_chain :confirm_email, :deliver_later
@@ -90,7 +92,7 @@ RSpec.describe Spree::Order, type: :model do
           allow(order).to receive_messages approved?: true
         end
 
-        it 'should leave order in complete state' do
+        it 'leaves order in complete state' do
           order.finalize!
           expect(order.state).to eq 'complete'
         end
@@ -102,7 +104,7 @@ RSpec.describe Spree::Order, type: :model do
         allow(order).to receive_messages is_risky?: false
       end
 
-      it 'should set completed_at' do
+      it 'sets completed_at' do
         order.finalize!
         expect(order.completed_at).to be_present
       end
