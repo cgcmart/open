@@ -60,7 +60,7 @@ module Spree
 
     validates :cost_price, numericality: { greater_than_or_equal_to: 0, allow_nil: true }
     validates :price,      numericality: { greater_than_or_equal_to: 0, allow_nil: true }
-    validates_uniqueness_of :sku, allow_blank: true, unless: :deleted_at
+    validates_uniqueness_of :sku, allow_blank: true, if: :enforce_unique_sku?
 
     after_create :create_stock_items
     after_create :set_position
@@ -353,6 +353,10 @@ module Spree
 
     def destroy_option_values_variants
       option_values_variants.destroy_all
+    end
+
+    def enforce_unique_sku?
+      !deleted_at
     end
   end
 end
