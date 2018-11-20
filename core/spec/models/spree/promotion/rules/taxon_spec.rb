@@ -28,11 +28,11 @@ RSpec.describe Spree::Promotion::Rules::Taxon, type: :model do
           rule.taxons << taxon
         end
 
-        it 'should act on a product within the eligible taxon' do
+        it 'acts on a product within the eligible taxon' do
           expect(rule).to be_actionable(order.line_items.last)
         end
 
-        it 'should not act on a product in another taxon' do
+        it 'does not act on a product in another taxon' do
           order.line_items << create(:line_item, product: create(:product, taxons: [taxon2]))
           expect(rule).not_to be_actionable(order.line_items.last)
         end
@@ -40,6 +40,7 @@ RSpec.describe Spree::Promotion::Rules::Taxon, type: :model do
 
       context 'when order does not have any prefered taxon' do
         before { rule.taxons << taxon2 }
+
         it { expect(rule).not_to be_eligible(order) }
         it 'sets an error message' do
           rule.eligible?(order)
@@ -75,6 +76,7 @@ RSpec.describe Spree::Promotion::Rules::Taxon, type: :model do
 
       context 'when order does not have all prefered taxons' do
         before { rule.taxons << taxon }
+
         it { expect(rule).not_to be_eligible(order) }
         it 'sets an error message' do
           rule.eligible?(order)
@@ -104,6 +106,7 @@ RSpec.describe Spree::Promotion::Rules::Taxon, type: :model do
 
       context "none of the order's products are in listed taxon" do
         before { rule.taxons << taxon2 }
+
         it { expect(rule).to be_eligible(order) }
       end
 
@@ -112,10 +115,12 @@ RSpec.describe Spree::Promotion::Rules::Taxon, type: :model do
           order.products.first.taxons << taxon
           rule.taxons << taxon
         end
-        it "should not be eligible" do
+
+        it 'is not eligible' do
           expect(rule).not_to be_eligible(order)
         end
-        it "sets an error message" do
+
+        it 'sets an error message' do
           rule.eligible?(order)
           expect(rule.eligibility_errors.full_messages.first).
             to eq "Your cart contains a product from an excluded category that prevents this coupon code from being applied."
