@@ -9,19 +9,19 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
   context '#eligible?(order)' do
     let(:order) { Spree::Order.new }
 
-    it 'should be eligible if there are no products' do
-      allow(rule).to receive_messages(eligible_products: [])
-      expect(rule).to be_eligible(order)
-    end
-
     before do
       3.times { |i| instance_variable_set("@product#{i}", mock_model(Spree::Product)) }
+    end
+
+    it 'is eligible if there are no products' do
+      allow(rule).to receive_messages(eligible_products: [])
+      expect(rule).to be_eligible(order)
     end
 
     context "with 'any' match policy" do
       let(:rule_options) { super().merge(preferred_match_policy: 'any') }
 
-      it 'should be eligible if any of the products is in eligible products' do
+      it 'is eligible if any of the products is in eligible products' do
         allow(order).to receive_messages(products: [@product1, @product2])
         allow(rule).to receive_messages(eligible_products: [@product2, @product3])
         expect(rule).to be_eligible(order)
@@ -32,6 +32,7 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
           allow(order).to receive_messages(products: [@product1])
           allow(rule).to receive_messages(eligible_products: [@product2, @product3])
         end
+
         it { expect(rule).not_to be_eligible(order) }
         it 'sets an error message' do
           rule.eligible?(order)
@@ -44,7 +45,7 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
     context "with 'all' match policy" do
       let(:rule_options) { super().merge(preferred_match_policy: 'all') }
 
-      it 'should be eligible if all of the eligible products are ordered' do
+      it 'is eligible if all of the eligible products are ordered' do
         allow(order).to receive_messages(products: [@product3, @product2, @product1])
         allow(rule).to receive_messages(eligible_products: [@product2, @product3])
         expect(rule).to be_eligible(order)
@@ -55,6 +56,7 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
           allow(order).to receive_messages(products: [@product1, @product2])
           allow(rule).to receive_messages(eligible_products: [@product1, @product2, @product3])
         end
+
         it { expect(rule).not_to be_eligible(order) }
         it 'sets an error message' do
           rule.eligible?(order)
@@ -67,7 +69,7 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
     context "with 'none' match policy" do
       let(:rule_options) { super().merge(preferred_match_policy: 'none') }
 
-      it "should be eligible if none of the order's products are in eligible products" do
+      it "is eligible if none of the order's products are in eligible products" do
         allow(order).to receive_messages(products: [@product1])
         allow(rule).to receive_messages(eligible_products: [@product2, @product3])
         expect(rule).to be_eligible(order)
@@ -78,6 +80,7 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
           allow(order).to receive_messages(products: [@product1, @product2])
           allow(rule).to receive_messages(eligible_products: [@product2, @product3])
         end
+
         it { expect(rule).not_to be_eligible(order) }
         it 'sets an error message' do
           rule.eligible?(order)
@@ -127,11 +130,13 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
 
       context 'for product in rule' do
         let(:line_item) { rule_line_item }
+
         it { is_expected.to be_truthy }
       end
 
       context 'for product not in rule' do
         let(:line_item) { other_line_item }
+
         it { is_expected.to be_falsey }
       end
     end
@@ -141,11 +146,13 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
 
       context 'for product in rule' do
         let(:line_item) { rule_line_item }
+
         it { is_expected.to be_truthy }
       end
 
       context 'for product not in rule' do
         let(:line_item) { other_line_item }
+
         it { is_expected.to be_falsey }
       end
     end
@@ -160,6 +167,7 @@ RSpec.describe Spree::Promotion::Rules::Product, type: :model do
 
       context 'for product not in rule' do
         let(:line_item) { other_line_item }
+
         it { is_expected.to be_truthy }
       end
     end
