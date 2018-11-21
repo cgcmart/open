@@ -3,11 +3,12 @@
 require 'rails_helper'
 
 RSpec.describe Spree::StockMovement, type: :model do
-  let(:stock_location) { create(:stock_location_with_items) }
-  let(:stock_item) { stock_location.stock_items.order(:id).first }
   subject { build(:stock_movement, stock_item: stock_item) }
 
-  it 'should belong to a stock item' do
+  let(:stock_location) { create(:stock_location_with_items) }
+  let(:stock_item) { stock_location.stock_items.order(:id).first }
+
+  it 'belongs to a stock item' do
     expect(subject).to respond_to(:stock_item)
   end
 
@@ -34,9 +35,9 @@ RSpec.describe Spree::StockMovement, type: :model do
     expect(stock_item.count_on_hand).to eq(10)
   end
 
-  context "when quantity is negative" do
-    context "after save" do
-      it "should decrement the stock item count on hand" do
+  context 'when quantity is negative' do
+    context 'after save' do
+      it 'decrements the stock item count on hand' do
         subject.quantity = -1
         subject.save
         stock_item.reload
@@ -45,9 +46,9 @@ RSpec.describe Spree::StockMovement, type: :model do
     end
   end
 
-  context "when quantity is positive" do
-    context "after save" do
-      it "should increment the stock item count on hand" do
+  context 'when quantity is positive' do
+    context 'after save' do
+      it 'increments the stock item count on hand' do
         subject.quantity = 1
         subject.save
         stock_item.reload
