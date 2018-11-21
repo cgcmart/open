@@ -3,27 +3,27 @@
 require 'rails_helper'
 
 RSpec.describe Spree::LegacyUser, type: :model do # rubocop:disable RSpec/MultipleDescribes
-  # Regression test for #2844 + #3346
   context '#last_incomplete_order' do
+    let!(:user) { create(:user) }
 
-    it "excludes orders that are not frontend_viewable" do
+    it 'excludes orders that are not frontend_viewable' do
       create(:order, user: user, frontend_viewable: false)
       expect(user.last_incomplete_spree_order).to eq nil
     end
 
-    it "can include orders that are not frontend viewable" do
+    it 'can include orders that are not frontend viewable' do
       order = create(:order, user: user, frontend_viewable: false)
       expect(user.last_incomplete_spree_order(only_frontend_viewable: false)).to eq order
     end
 
-    it "can scope to a store" do
+    it 'can scope to a store' do
       store = create(:store)
       store_1_order = create(:order, user: user, store: store)
       create(:order, user: user, store: create(:store))
       expect(user.last_incomplete_spree_order(store: store)).to eq store_1_order
     end
 
-    it "excludes completed orders" do
+    it 'excludes completed orders' do
       create(:completed_order_with_totals, user: user, created_by: user)
       expect(user.last_incomplete_spree_order).to eq nil
     end
@@ -34,29 +34,29 @@ RSpec.describe Spree::LegacyUser, type: :model do # rubocop:disable RSpec/Multip
       expect(user.last_incomplete_spree_order).to eq nil
     end
 
-    context "with completable_order_created_cutoff set" do
+    context 'with completable_order_created_cutoff set' do
       before do
         Spree::Config.completable_order_created_cutoff_days = 1
       end
 
-      it "excludes orders updated outside of the cutoff date" do
+      it 'excludes orders updated outside of the cutoff date' do
         create(:order, user: user, created_by: user, created_at: 3.days.ago, updated_at: 2.days.ago)
         expect(user.last_incomplete_spree_order).to eq nil
       end
     end
 
-    context "with completable_order_created_cutoff set" do
+    context 'with completable_order_created_cutoff set' do
       before do
         Spree::Config.completable_order_updated_cutoff_days = 1
       end
 
-      it "excludes orders updated outside of the cutoff date" do
+      it 'excludes orders updated outside of the cutoff date' do
         create(:order, user: user, created_by: user, created_at: 3.days.ago, updated_at: 2.days.ago)
         expect(user.last_incomplete_spree_order).to eq nil
       end
     end
 
-    it "chooses the most recently created incomplete order" do
+    it 'chooses the most recently created incomplete order' do
       create(:order, user: user, created_at: 1.second.ago)
       order_2 = create(:order, user: user)
       expect(user.last_incomplete_spree_order).to eq order_2
@@ -77,7 +77,7 @@ RSpec.describe Spree::LegacyUser, type: :model do # rubocop:disable RSpec/Multip
         }.not_to change { Spree::Address.count }
       end
 
-      it "associates both the bill and ship address to the user" do
+      it 'associates both the bill and ship address to the user' do
         user.persist_order_address(order)
         user.save!
         user.user_addresses.reload
@@ -107,10 +107,12 @@ describe Spree.user_class, type: :model do
     describe '#lifetime_value' do
       context 'with orders' do
         before { load_orders }
+
         it 'returns the total of completed orders for the user' do
           expect(subject.lifetime_value).to eq (order_count * order_value)
         end
       end
+
       context 'without orders' do
         it 'returns 0.00' do
           expect(subject.lifetime_value).to eq BigDecimal('0.00')
@@ -128,6 +130,7 @@ describe Spree.user_class, type: :model do
 
     describe '#order_count' do
       before { load_orders }
+
       it 'returns the count of completed orders for the user' do
         expect(subject.order_count).to eq BigDecimal(order_count)
       end
@@ -136,10 +139,12 @@ describe Spree.user_class, type: :model do
     describe '#average_order_value' do
       context 'with orders' do
         before { load_orders }
+
         it 'returns the average completed order price for the user' do
           expect(subject.average_order_value).to eq order_value
         end
       end
+
       context 'without orders' do
         it 'returns 0.00' do
           expect(subject.average_order_value).to eq BigDecimal('0.00')
@@ -149,6 +154,7 @@ describe Spree.user_class, type: :model do
 
     describe '#display_average_order_value' do
       before { load_orders }
+
       it 'returns a Spree::Money version of average_order_value' do
         value = BigDecimal('500.05')
         allow(subject).to receive(:average_order_value).and_return(value)
@@ -167,13 +173,13 @@ describe Spree.user_class, type: :model do
     end
 
     context 'user has several associated store credits' do
+      subject { store_credit.user }
+
       let(:user) { create(:user) }
       let(:amount) { 120.25 }
       let(:additional_amount) { 55.75 }
       let(:store_credit) { create(:store_credit, user: user, amount: amount, amount_used: 0.0) }
       let!(:additional_store_credit) { create(:store_credit, user: user, amount: additional_amount, amount_used: 0.0) }
-
-      subject { store_credit.user }
 
       context 'part of the store credit has been used' do
         let(:amount_used) { 35.00 }
