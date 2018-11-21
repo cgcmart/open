@@ -13,12 +13,12 @@ end
 module Spree
   module Stock
     RSpec.describe Quantifier, type: :model do
+      subject { described_class.new(stock_item.variant, target_stock_location) }
+
       let(:target_stock_location) { nil }
       let!(:stock_location) { create :stock_location_with_items }
       let!(:stock_item) { stock_location.stock_items.order(:id).first }
-
-      subject { described_class.new(stock_item.variant, target_stock_location) }
-
+     
       specify { expect(subject.stock_items).to eq([stock_item]) }
 
       context 'with a single stock location/item' do
@@ -31,7 +31,7 @@ module Spree
 
           specify { expect(subject.total_on_hand).to eq(Float::INFINITY) }
 
-          it_should_behaves_like 'unlimited supply'
+          it_behaves_like 'unlimited supply'
         end
 
         context 'when variant inventory tracking is off' do
@@ -39,13 +39,13 @@ module Spree
 
           specify { expect(subject.total_on_hand).to eq(Float::INFINITY) }
 
-          it_should_behaves_like 'unlimited supply'
+          it_behaves_like 'unlimited supply'
         end
 
         context 'when stock item allows backordering' do
           specify { expect(subject.backorderable?).to be true }
 
-          it_should_behaves_like 'unlimited supply'
+          it_behaves_like 'unlimited supply'
         end
 
         context 'when stock item prevents backordering' do
@@ -77,7 +77,7 @@ module Spree
         context 'when any stock item allows backordering' do
           specify { expect(subject.backorderable?).to be true }
 
-          it_should_behaves_like 'unlimited supply'
+          it_behaves_like 'unlimited supply'
         end
 
         context 'when all stock items prevent backordering' do
