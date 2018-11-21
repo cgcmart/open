@@ -3,9 +3,9 @@
 require 'rails_helper'
 
 RSpec.describe Spree::StockItem, type: :model do
-  let(:stock_location) { create(:stock_location_with_items) }
-
   subject { stock_location.stock_items.order(:id).first }
+
+  let(:stock_location) { create(:stock_location_with_items) }
 
   it 'maintains the count on hand for a variant' do
     expect(subject.count_on_hand).to eq 10
@@ -22,6 +22,7 @@ RSpec.describe Spree::StockItem, type: :model do
 
     context 'backorderable' do
       before { subject.backorderable = true }
+
       it { expect(subject).to be_available }
     end
 
@@ -37,7 +38,7 @@ RSpec.describe Spree::StockItem, type: :model do
 
   describe 'reduce_count_on_hand_to_zero' do
     context 'when count_on_hand > 0' do
-      before(:each) do
+      before do
         subject.update_column('count_on_hand', 4)
         subject.reduce_count_on_hand_to_zero
       end
@@ -46,7 +47,7 @@ RSpec.describe Spree::StockItem, type: :model do
     end
 
     context 'when count_on_hand > 0' do
-      before(:each) do
+      before do
         subject.update_column('count_on_hand', -4)
         @count_on_hand = subject.count_on_hand
         subject.reduce_count_on_hand_to_zero
@@ -196,7 +197,7 @@ RSpec.describe Spree::StockItem, type: :model do
       end
     end
 
-    context "inventory_cache_threshold is set" do
+    context 'inventory_cache_threshold is set' do
       before do
         Spree::Config.inventory_cache_threshold = inventory_cache_threshold
       end
@@ -208,32 +209,32 @@ RSpec.describe Spree::StockItem, type: :model do
         subject.variant.update_column(:updated_at, 1.day.ago)
       end
 
-      context "beginning above threshold" do
+      context 'beginning above threshold' do
         let(:existing_count_on_hand) { 10 }
 
-        it "count on hand falls below threshold" do
+        it 'count on hand falls below threshold' do
           expect do
             subject.set_count_on_hand(3)
           end.to change { subject.variant.updated_at }
         end
 
-        it "count on hand stays above threshold" do
+        it 'count on hand stays above threshold' do
           expect do
             subject.set_count_on_hand(8)
           end.not_to change { subject.variant.updated_at }
         end
       end
 
-      context "beginning below threshold" do
+      context 'beginning below threshold' do
         let(:existing_count_on_hand) { 2 }
 
-        it "count on hand rises above threshold" do
+        it 'count on hand rises above threshold' do
           expect do
             subject.set_count_on_hand(7)
           end.to change { subject.variant.updated_at }
         end
 
-        it "count on hand stays below threshold" do
+        it 'count on hand stays below threshold' do
           expect do
             subject.set_count_on_hand(3)
           end.to change { subject.variant.updated_at }
@@ -287,13 +288,14 @@ RSpec.describe Spree::StockItem, type: :model do
 
         context 'when count_on_hand is positive' do
           let(:count_on_hand) { 3 }
-          it_should_behave_like "valid count_on_hand"
+
+          it_behaves_like "valid count_on_hand"
         end
 
         context 'when count_on_hand is negative' do
           let(:count_on_hand) { -3 }
 
-          it_should_behave_like "valid count_on_hand"
+          it_behaves_like "valid count_on_hand"
 
           it "can't be changed to not backorderable" do
             expect(subject).to be_valid
@@ -308,13 +310,14 @@ RSpec.describe Spree::StockItem, type: :model do
 
         context 'when count_on_hand is positive' do
           let(:count_on_hand) { 3 }
-          it_should_behave_like "valid count_on_hand"
+
+          it_behaves_like "valid count_on_hand"
         end
 
         context 'when count_on_hand is negative' do
           let(:count_on_hand) { -3 }
 
-          it_should_behave_like "invalid count_on_hand"
+          it_behaves_like "invalid count_on_hand"
         end
       end
     end
