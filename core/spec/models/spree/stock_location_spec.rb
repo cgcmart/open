@@ -51,11 +51,13 @@ module Spree
           context 'passes backorderable default config' do
             context 'true' do
               before { subject.backorderable_default = true }
+
               it { expect(stock_item.backorderable).to be true }
             end
 
             context 'false' do
               before { subject.backorderable_default = false }
+
               it { expect(stock_item.backorderable).to be false }
             end
           end
@@ -231,6 +233,7 @@ module Spree
 
       context 'with soft-deleted stock_items' do
         subject { create(:stock_location) }
+
         let(:variant) { create(:base_variant) }
 
         it 'zero on_hand and backordered' do
@@ -252,28 +255,34 @@ module Spree
 
       context 'both name and abbr is present' do
         let(:state) { stub_model(Spree::State, name: 'virginia', abbr: 'va') }
+
         subject { StockLocation.create(name: 'testing', state: state, state_name: nil) }
 
         specify { expect(subject.state_text).to eq('va') }
       end
 
       context 'only name is present' do
-        let(:state) { stub_model(Spree::State, name: 'virginia', abbr: nil) }
         subject { StockLocation.create(name: 'testing', state: state, state_name: nil) }
+
+        let(:state) { stub_model(Spree::State, name: 'virginia', abbr: nil) }
+
         specify { expect(subject.state_text).to eq('virginia') }
       end
     end
 
     describe '#move' do
       let!(:variant) { create(:variant) }
+
       def move
         subject.move(variant, quantity)
       end
 
       context 'no stock item exists' do
         before { subject.stock_items.each(&:really_destroy!) }
+
         context 'positive movement' do
           let(:quantity) { 1 }
+
           it 'creates a stock item' do
             expect { move }.to change { subject.stock_items.count }.by 1
           end
@@ -283,6 +292,7 @@ module Spree
         # for the sake of a negative movement.
         context 'negative movement' do
           let(:quantity) { -1 }
+
           it 'raises an error' do
             expect {
               expect {
