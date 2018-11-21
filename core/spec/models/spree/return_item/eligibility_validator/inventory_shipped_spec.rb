@@ -7,9 +7,9 @@ RSpec.describe Spree::ReturnItem::EligibilityValidator::InventoryShipped do
   let(:validator) { Spree::ReturnItem::EligibilityValidator::InventoryShipped.new(return_item) }
 
   describe '#eligible_for_return?' do
-    before { allow(return_item.inventory_unit).to receive(:shipped?).and_return(true) }
-
     subject { validator.eligible_for_return? }
+
+    before { allow(return_item.inventory_unit).to receive(:shipped?).and_return(true) }
 
     context 'the associated inventory unit is shipped' do
       it 'returns true' do
