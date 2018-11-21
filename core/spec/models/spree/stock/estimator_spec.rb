@@ -5,6 +5,8 @@ require 'spec_helper'
 module Spree
   module Stock
     RSpec.describe Estimator, type: :model do
+      subject { Estimator.new(order) }
+
       let(:shipping_rate)    { 4.00 }      
       let!(:shipping_method) { create(:shipping_method, cost: shipping_rate, currency: currency) }
       let(:package)          { build(:stock_package, contents: inventory_units.map { |i| ContentItem.new(i) }).tap do |p|
@@ -14,17 +16,16 @@ module Spree
       let(:order)            { build(:order_with_line_items, shipping_method: shipping_method) }
       let(:inventory_units)  { order.inventory_units }
 
-      subject { Estimator.new(order) }
-
       context '#shipping rates' do
-        before(:each) do
+        before do
           shipping_method.zones.first.members.create(zoneable: order.ship_address.country)
         end
 
         let(:currency) { 'USD' }
 
-         context 'without a shipment' do
+        context 'without a shipment' do
           before { package.shipment = nil }
+
           it 'raises an error' do
             expect {
               subject.shipping_rates(package)
@@ -34,6 +35,7 @@ module Spree
 
         context 'without an order' do
           before { package.shipment.order = nil }
+
           it 'raises an error' do
             expect {
               subject.shipping_rates(package)
@@ -56,22 +58,25 @@ module Spree
         end
 
         context "when the order's ship address is in the same zone" do
-          it_should_behave_like 'shipping rate matches'
+          it_behaves_like 'shipping rate matches'
         end
 
         context "when the order's ship address is in a different zone" do
           before { shipping_method.zones.each { |z| z.members.delete_all } }
-          it_should_behave_like "shipping rate doesn't match"
+
+          it_behaves_like "shipping rate doesn't match"
         end
 
         context 'when the currency is nil' do
           let(:currency) { nil }
-          it_should_behave_like 'shipping rate matches'
+
+          it_behaves_like 'shipping rate matches'
         end
 
         context 'when the currency is an empty string' do
           let(:currency) { '' }
-          it_should_behaveslike 'shipping rate matches'
+
+          it_behaves_like 'shipping rate matches'
         end
 
         context "when the current matches the order's currency" do
@@ -80,7 +85,8 @@ module Spree
 
         context "if the currency is different than the order's currency" do
           let(:currency) { 'GBP' }
-          it_should_behave_like "shipping rate doesn't match"
+
+          it_behaves_like "shipping rate doesn't match"
         end
 
         it 'sorts shipping rates by cost' do
@@ -127,6 +133,7 @@ module Spree
 
         context 'involves backend only shipping methods' do
           before{ Spree::ShippingMethod.all.each(&:really_destroy!) }
+
           let!(:backend_method) { create(:shipping_method, available_to_users: false, cost: 0.00) }
           let!(:generic_method) { create(:shipping_method, cost: 5.00) }
 
@@ -159,7 +166,7 @@ module Spree
             )
           end
 
-          it "does not return the other rate at all" do
+          it 'does not return the other rate at all' do
             expect(subject.shipping_rates(package).map(&:shipping_method_id)).to eq([main_method.id])
           end
 
