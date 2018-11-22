@@ -32,7 +32,7 @@ rails new open
 Go to the directory that contains the generated Rails app:
 
 ```shell
-open
+cd open
 ```
 
 Use a text editor to add Open gems to your Gemfile:
