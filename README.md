@@ -1,7 +1,7 @@
 
 <img src="open_logo_300.png" width="240">
 
-**Open** is a whole new approach to the e-commerce solution built with Ruby on Rails. It is a fork of [Spree](https://spreecommerce.org).
+**Open** is the newest approach to the e-commerce solution built with Ruby on Rails. It is a fork of [Spree](https://spreecommerce.org).
 
 Open consists of several gems. When you require the `open` gem in your
 `Gemfile`, Bundler will install all of the gems maintained in this repository:
