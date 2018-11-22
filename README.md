@@ -9,7 +9,7 @@ Open consists of several gems. When you require the `open` gem in your
 * open_api (RESTful API)
 * open_frontend (Customer frontend)
 * open_backend (Admin panel)
-* open_core (Models & Mailers, the basic components of Spree that it can't run without)
+* open_core (Essential models, mailers, and classes)
 * open_sample (Sample data)
 
 Getting Started
@@ -23,9 +23,7 @@ Set up your local environment:
 
 3. Install the Bundler gem.
 
-Create a new app to your open store
-
-Run the rails new command to create a new Rails app:
+Create a new app to your open store. Run the rails new command to create a new Rails app:
 
 ```shell
 rails new open
