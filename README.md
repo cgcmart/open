@@ -47,11 +47,7 @@ and add:
 gem 'open', github: '99cm/open'
 ```
 
-Run the app locally
-
-To run the new Rails app on your local computer:
-
-Install dependencies by using Bundler:
+To run the new Rails app on your local computer, install dependencies by using Bundler:
 
 ```shell
 bundle install
