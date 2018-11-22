@@ -34,7 +34,7 @@ rails new open
 Go to the directory that contains the generated Rails app:
 
 ```shell
-cpen
+open
 ```
 
 Use a text editor to add Open gems to your Gemfile:
@@ -46,7 +46,7 @@ nano Gemfile
 and add:
 
 ```ruby
-gem 'open', github: '99cm/solidus'
+gem 'open', github: '99cm/open'
 ```
 
 Run the app locally
@@ -65,8 +65,6 @@ Start a local web server:
 bundle exec bin/rails server
 ```
 
-    In a browser, go to http://localhost:3000/
-
 By default, the installation generator (`rails g spree:install`) will run
 migrations as well as adding seed and sample data. This can be disabled using
 
@@ -83,8 +81,6 @@ bundle exec rake db:seed
 bundle exec rake spree_sample:load
 ```
 
-
-
 Browse Store
 ----------------------
 
@@ -94,8 +90,6 @@ Browse Admin Interface
 ----------------------
 
 http://localhost:3000/admin
-
-If you have `spree_auth_devise` installed, you can generate a new admin user by running `rake spree_auth:admin:create`.
 
 Extensions
 ----------------------
