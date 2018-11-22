@@ -17,11 +17,11 @@ describe 'Checkout', type: :feature, inaccessible: true do
         click_button 'Checkout'
       end
 
-      it 'should default checkbox to checked', inaccessible: true do
+      it 'defaults checkbox to checked', inaccessible: true do
         expect(find('input#order_use_billing')).to be_checked
       end
 
-      it 'should remain checked when used and visitor steps back to address step' do
+      it 'remains checked when used and visitor steps back to address step' do
         fill_in_address
         expect(find('input#order_use_billing')).to be_checked
       end
@@ -69,7 +69,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
         click_button 'Checkout'
       end
 
-      it "should not show 'Free Shipping' when there are no shipments" do
+      it "does not show 'Free Shipping' when there are no shipments" do
         within('#checkout-summary') do
           expect(page).to_not have_content('Free Shipping')
         end
@@ -214,7 +214,8 @@ describe 'Checkout', type: :feature, inaccessible: true do
   # Regression test for https://github.com/spree/spree/issues/2694 and https://github.com/spree/spree/issues/4117
   context "doesn't allow bad credit card numbers" do
     let!(:payment_method) { create(:credit_card_payment_method) }
-    before(:each) do
+
+    before do
       order = Spree::TestingSupport::OrderWalkthrough.up_to(:delivery)
 
       user = create(:user)
@@ -317,6 +318,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
 
   context 'user has payment sources', js: true do
     before { Spree::PaymentMethod.all.each(&:really_destroy!) }
+
     let(:bogus) { create(:credit_card_payment_method) }
     let(:user) { create(:user) }
 
@@ -614,7 +616,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
         click_button 'Checkout'
       end
 
-      it 'should not be displayed' do
+      it 'is not displayed' do
         expect(page).to_not have_css('[data-hook=save_user_address]')
       end
     end
@@ -628,7 +630,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
         click_button 'Checkout'
       end
 
-      it 'should be displayed' do
+      it 'is displayed' do
         expect(page).to have_css('[data-hook=save_user_address]')
       end
     end
@@ -659,27 +661,28 @@ describe 'Checkout', type: :feature, inaccessible: true do
     end
   end
   
-  context "with attempted XSS", js: true do
-    shared_examples "safe from XSS" do
+  context 'with attempted XSS', js: true do
+    shared_examples 'safe from XSS' do
       # We need a country with states required but no states so that we have
       # access to the state_name input
       let!(:canada) { create(:country, name: 'Canada', iso: "CA", states_required: true) }
+
       before do
         canada.states.destroy_all
         zone.members.create!(zoneable: canada)
       end
 
-      it "displays the entered state name without evaluating" do
+      it 'displays the entered state name without evaluating' do
         add_mug_to_cart
         visit spree.checkout_state_path(:address)
         fill_in_address
 
-        state_name_css = "order_bill_address_attributes_state_name"
+        state_name_css = 'order_bill_address_attributes_state_name'
 
-        select "Canada", from: "order_bill_address_attributes_country_id"
+        select 'Canada', from: 'order_bill_address_attributes_country_id'
         fill_in 'Customer E-Mail', with: 'test@example.com'
         fill_in state_name_css, with: xss_string
-        fill_in "Zip", with: "H0H0H0"
+        fill_in 'Zip', with: 'H0H0H0'
 
         click_on 'Save and Continue'
         visit spree.checkout_state_path(:address)
@@ -689,65 +692,65 @@ describe 'Checkout', type: :feature, inaccessible: true do
     end
 
     let(:xss_string) { %(<script>throw("XSS")</script>) }
-    include_examples "safe from XSS"
+    include_examples 'safe from XSS'
 
-    context "escaped XSS string" do
+    context 'escaped XSS string' do
       let(:xss_string) { '\x27\x3e\x3cscript\x3ethrow(\x27XSS\x27)\x3c/script\x3e' }
-      include_examples "safe from XSS"
+      include_examples 'safe from XSS'
     end
   end
 
-  context "using credit card" do
+  context 'using credit card' do
     let!(:payment_method) { create(:credit_card_payment_method) }
 
     # Regression test for https://github.com/solidusio/solidus/issues/1421
-    it "works with card number 1", js: true do
+    it 'works with card number 1', js: true do
       add_mug_to_cart
 
-      click_on "Checkout"
-      fill_in "order_email", with: "test@example.com"
+      click_on 'Checkout'
+      fill_in 'order_email', with: 'test@example.com'
       fill_in_address
-      click_on "Save and Continue"
-      click_on "Save and Continue"
+      click_on 'Save and Continue'
+      click_on 'Save and Continue'
 
-      fill_in_credit_card(number: "1")
-      click_on "Save and Continue"
+      fill_in_credit_card(number: '1')
+      click_on 'Save and Continue'
 
-      expect(page).to have_current_path("/checkout/confirm")
+      expect(page).to have_current_path('/checkout/confirm')
     end
 
-    it "works with card number 4111111111111111", js: true do
+    it 'works with card number 4111111111111111', js: true do
       add_mug_to_cart
 
-      click_on "Checkout"
-      fill_in "order_email", with: "test@example.com"
+      click_on 'Checkout'
+      fill_in 'order_email', with: 'test@example.com'
       fill_in_address
-      click_on "Save and Continue"
-      click_on "Save and Continue"
+      click_on 'Save and Continue'
+      click_on 'Save and Continue'
 
-      fill_in_credit_card(number: "4111 1111 1111 1111")
-      click_on "Save and Continue"
+      fill_in_credit_card(number: '4111 1111 1111 1111')
+      click_on 'Save and Continue'
 
-      expect(page).to have_current_path("/checkout/confirm")
+      expect(page).to have_current_path('/checkout/confirm')
     end
   end
 
   def fill_in_credit_card(number:)
-    fill_in "Card Number", with: number
-    fill_in "Expiration", with: "12 / 24"
-    fill_in "Card Code", with: "123"
+    fill_in 'Card Number', with: number
+    fill_in 'Expiration', with: '12 / 24'
+    fill_in 'Card Code', with: '123'
   end
 
   def fill_in_address
-    address = "order_bill_address_attributes"
-    fill_in "#{address}_firstname", with: "Ryan"
-    fill_in "#{address}_lastname", with: "Bigg"
-    fill_in "#{address}_address1", with: "143 Swan Street"
-    fill_in "#{address}_city", with: "Richmond"
-    select "United States of America", from: "#{address}_country_id"
-    select "Alabama", from: "#{address}_state_id"
-    fill_in "#{address}_zipcode", with: "12345"
-    fill_in "#{address}_phone", with: "(555) 555-5555"
+    address = 'order_bill_address_attributes'
+    fill_in '#{address}_firstname', with: 'Ryan'
+    fill_in '#{address}_lastname', with: 'Bigg'
+    fill_in '#{address}_address1', with: '143 Swan Street'
+    fill_in '#{address}_city', with: 'Richmond'
+    select 'United States of America', from: '#{address}_country_id'
+    select 'Alabama', from: '#{address}_state_id'
+    fill_in '#{address}_zipcode', with: '12345'
+    fill_in '#{address}_phone', with: '(555) 555-5555'
   end
 
   def add_mug_to_cart
