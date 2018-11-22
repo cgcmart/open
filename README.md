@@ -15,13 +15,13 @@ Open consists of several gems. When you require the `open` gem in your
 Getting Started
 ----------------------
 
-Set up your local environment for this tutorial:
+Set up your local environment:
 
-    Install Ruby version 2.5.0 or newer.
+1. Install Ruby version 2.5.0 or newer.
 
-    Install the Rails 5 gem.
+2. Install the Rails 5 gem.
 
-    Install the Bundler gem.
+3. Install the Bundler gem.
 
 Create a new app to your open store
 
@@ -53,13 +53,13 @@ Run the app locally
 
 To run the new Rails app on your local computer:
 
-    Install dependencies by using Bundler:
+Install dependencies by using Bundler:
 
 ```shell
 bundle install
 ```
 
-    Start a local web server:
+Start a local web server:
 
 ```shell
 bundle exec bin/rails server
