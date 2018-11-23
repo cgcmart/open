@@ -57,7 +57,7 @@ describe 'Stock Management', type: :feature do
         find(:css, "input[type='number']").set(count_on_hand)
         click_icon :check
       end
-      expect(page).to have_content('Updated successfully')
+      expect(page).to have_content('Updated Successfully')
     end
 
     context 'with multiple stock locations' do
