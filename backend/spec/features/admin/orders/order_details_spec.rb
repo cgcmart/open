@@ -7,8 +7,8 @@ describe 'Order Details', type: :feature, js: true do
 
   let!(:stock_location) { create(:stock_location_with_items) }
   let!(:product) { create(:product, name: 'spree t-shirt', price: 20.00) }
-  let!(:store) { create(:store) }
   let(:order) { create(:order, state: 'complete', completed_at: '2011-02-01 12:36:15', number: 'R100', store_id: store.id) }
+  let!(:store) { create(:store) }
   let(:state) { create(:state) }
   let(:line_item) { order.line_items.first }
 
@@ -61,7 +61,7 @@ describe 'Order Details', type: :feature, js: true do
 
         within('tr', text: line_item.sku) do
           click_icon :edit
-          fill_in "quantity", with: "1"
+          fill_in 'quantity', with: '1'
         end
         click_icon :ok
 
@@ -71,10 +71,10 @@ describe 'Order Details', type: :feature, js: true do
       end
 
       it 'can add an item' do
-        add_line_item "spree t-shirt", quantity: 2
+        add_line_item 'spree t-shirt', quantity: 2
 
-        within("#order_total") do
-          expect(page).to have_content("$80.00")
+        within('#order_total') do
+          expect(page).to have_content('$80.00')
         end
       end
 
@@ -109,9 +109,9 @@ describe 'Order Details', type: :feature, js: true do
       it 'can add tracking information' do
         visit spree.edit_admin_order_path(order)
 
-        within("tr", text: "Tracking Number") do
+        within('tr', text: 'Tracking Number') do
           click_icon :edit
-          fill_in "tracking", with: "FOOBAR"
+          fill_in 'tracking', with: 'FOOBAR'
           click_icon :check
 
         expect(page).not_to have_css('input')
@@ -119,15 +119,15 @@ describe 'Order Details', type: :feature, js: true do
       end
     end
 
-    context "with a completed order" do
+    context 'with a completed order' do
       let!(:order) { create(:completed_order_with_totals) }
       let(:shipment1) { order.shipments[0] }
 
       it 'can change the shipping method' do
         visit spree.edit_admin_order_path(order)
-        within("tr", text: "Shipping Method") do
+        within('tr', text: 'Shipping Method') do
             click_icon :edit
-            select "UPS Ground $100.00"
+            select 'UPS Ground $100.00'
             click_icon :check
         end
         expect(page).not_to have_css('#selected_shipping_rate_id')
@@ -137,9 +137,9 @@ describe 'Order Details', type: :feature, js: true do
       it 'can use admin only shipping method' do
         create(:shipping_method, name: 'Admin Free Shipping', cost: 0, available_to_users: false)
         visit spree.edit_admin_order_path(order)
-        within("tr", text: "Shipping Method") do
+        within('tr', text: 'Shipping Method') do
             click_icon :edit
-            select "Admin Free Shipping $0.00"
+            select 'Admin Free Shipping $0.00'
             click_icon :check
         end
 
@@ -156,7 +156,7 @@ describe 'Order Details', type: :feature, js: true do
     end
 
     context 'with special_instructions present' do
-      let(:order) { create(:order, state: 'complete', completed_at: "2011-02-01 12:36:15", number: "R100", special_instructions: 'Very special instructions here') }
+      let(:order) { create(:order, state: 'complete', completed_at: '2011-02-01 12:36:15', number: 'R100', special_instructions: 'Very special instructions here') }
 
       it 'will show the special_instructions' do
         visit spree.edit_admin_order_path(order)
@@ -184,10 +184,10 @@ describe 'Order Details', type: :feature, js: true do
 
       it 'does not display the out of stock variant in the search results' do
         click_on 'Add Item'
-          select2_search_without_selection product.name, from: ".select-variant"
+          select2_search_without_selection product.name, from: '.select-variant'
 
           expect(page).to have_selector('.select2-no-results')
-          within(".select2-no-results") do
+          within('.select2-no-results') do
             expect(page).to have_content('No matches found')
           end
         end
@@ -266,7 +266,7 @@ describe 'Order Details', type: :feature, js: true do
 
             within('tr', text: line_item.sku) { click_icon 'arrows-h' }
 
-            accept_alert "Quantity must be greater than 0" do
+            accept_alert 'Quantity must be greater than 0' do
               complete_split_to(stock_location2, quantity: 0)
             end
 
@@ -276,7 +276,7 @@ describe 'Order Details', type: :feature, js: true do
 
             fill_in 'item_quantity', with: -1
 
-            accept_alert "Quantity must be greater than 0" do
+            accept_alert 'Quantity must be greater than 0' do
               click_icon :ok
             end
 
@@ -364,14 +364,14 @@ describe 'Order Details', type: :feature, js: true do
       context 'removing an item' do
         let!(:shipment2) { order.shipments.create(stock_location_id: stock_location2.id) }
 
-        it "removes only the one item" do
+        it 'removes only the one item' do
           order.line_items[0].inventory_units[0].update!(shipment: shipment2)
           visit spree.edit_admin_order_path(order)
 
           expect(page).to have_css('.stock-item', count: 2)
 
           within '[data-hook=admin_shipment_form]', text: shipment2.number do
-            accept_confirm "Are you sure you want to delete this record?" do
+            accept_confirm 'Are you sure you want to delete this record?' do
               click_icon :trash
             end
           end
@@ -416,7 +416,7 @@ describe 'Order Details', type: :feature, js: true do
             within(all('.stock-contents', count: 2).first) do
               within('tr', text: line_item.sku) { click_icon 'arrows-h' }
 
-              accept_alert("Desired shipment not enough stock in desired stock location") do
+              accept_alert('Desired shipment not enough stock in desired stock location') do
                 complete_split_to(shipment2, quantity: 200)
               end
             end
@@ -429,7 +429,7 @@ describe 'Order Details', type: :feature, js: true do
           it 'does not allow a shipment to split stock to itself' do
             visit spree.edit_admin_order_path(order)
             within('tr', text: line_item.sku) { click_icon 'arrows-h' }
-            click_on 'Choose location'
+            click_on 'Choose Location'
             within '.select2-results' do
               expect(page).to have_content(shipment2.number)
               expect(page).not_to have_content(shipment1.number)
@@ -581,14 +581,14 @@ describe 'Order Details', type: :feature, js: true do
     it 'can change the shipping method' do
       order = create(:completed_order_with_totals)
       visit spree.edit_admin_order_path(order)
-      within("tr", text: "Shipping Method") do
+      within('tr', text: 'Shipping Method') do
         click_icon :edit
       end
-      select "UPS Ground $100.00"
+      select 'UPS Ground $100.00'
       click_icon :check
 
       expect(page).not_to have_css('#selected_shipping_rate_id')
-      expect(page).to have_content("UPS Ground")
+      expect(page).to have_content('UPS Ground')
     end
 
     it 'can ship' do
