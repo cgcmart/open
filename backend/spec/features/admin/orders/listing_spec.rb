@@ -31,7 +31,7 @@ describe 'Orders Listing', type: :feature, js: true do
   end
 
   describe 'listing orders' do
-    it 'should list existing orders' do
+    it 'lists existing orders' do
       within_row(1) do
         expect(column_text(2)).to eq 'R100'
         expect(column_text(3)).to eq 'cart'
@@ -47,7 +47,7 @@ describe 'Orders Listing', type: :feature, js: true do
       within_row(1) { expect(page).to have_content('R100') }
       within_row(2) { expect(page).to have_content('R200') }
 
-      click_link 'Completed At', exact: false
+      click_link 'Completed at', exact: false
 
       # Completed at desc
       within_row(1) { expect(page).to have_content('R200') }
@@ -61,8 +61,8 @@ describe 'Orders Listing', type: :feature, js: true do
     end
   end
 
-  context "searching orders" do
-    context "when there are multiple stores" do
+  context 'searching orders' do
+    context 'when there are multiple stores' do
       let(:stores) { FactoryBot.create_pair(:store) }
 
       before do
@@ -71,37 +71,37 @@ describe 'Orders Listing', type: :feature, js: true do
         end
       end
 
-      it "can find the orders belonging to a specific store" do
+      it 'can find the orders belonging to a specific store' do
         main_store, other_store = stores
 
-        click_on "Filter Results"
+        click_on 'Filter Results'
         select main_store.name, from: I18n.t('spree.store')
-        click_on "Filter Results"
+        click_on 'Filter Results'
 
         within_row(1) do
-          expect(page).to have_content("R#{main_store.id}999")
+          expect(page).to have_content('R#{main_store.id}999')
         end
 
         # Ensure that the other order doesn't show up
-        within("table#listing_orders") { expect(page).not_to have_content("R#{other_store.id}999") }
+        within('table#listing_orders') { expect(page).not_to have_content('R#{other_store.id}999') }
       end
     end
 
     context "when there's a single store" do
-      it "should be able to search orders" do
-        click_on "Filter Results"
-        fill_in "q_number_start", with: "R200"
+      it 'is able to search orders' do
+        click_on 'Filter Results'
+        fill_in 'q_number_start', with: 'R200'
         click_on 'Filter Results'
         within_row(1) do
-          expect(page).to have_content("R200")
+          expect(page).to have_content('R200')
         end
 
         # Ensure that the other order doesn't show up
         within('table#listing_orders') { expect(page).not_to have_content('R100') }
       end
 
-      it "is able to filter on variant_id" do
-        click_on "Filter Results"
+      it 'is able to filter on variant_id' do
+        click_on 'Filter Results'
         select2_search @order1.products.first.sku, from: I18n.t('spree.variant')
         click_on 'Filter Results'
 
@@ -112,7 +112,7 @@ describe 'Orders Listing', type: :feature, js: true do
         expect(page).not_to have_content(@order2.number)
       end
 
-      context "when pagination is really short" do
+      context 'when pagination is really short' do
         before do
           @old_per_page = Spree::Config[:orders_per_page]
           Spree::Config[:orders_per_page] = 1
@@ -137,7 +137,7 @@ describe 'Orders Listing', type: :feature, js: true do
       end
 
       it 'is able to search orders using only completed at input' do
-        click_on "Filter Results"
+        click_on 'Filter Results'
         fill_in 'q_created_at_gt', with: Date.current
         click_on 'Filter Results'
         within_row(1) { expect(page).to have_content('R100') }
@@ -157,31 +157,31 @@ describe 'Orders Listing', type: :feature, js: true do
         end
 
         it 'only shows the orders with the selected promotion' do
-          click_on "Filter Results"
-          fill_in "q_order_promotions_promotion_code_value_start", with: promotion.codes.first.value
+          click_on 'Filter Results'
+          fill_in 'q_order_promotions_promotion_code_value_start', with: promotion.codes.first.value
           click_on 'Filter Results'
           within_row(1) { expect(page).to have_content('R100') }
           within('table#listing_orders') { expect(page).not_to have_content('R200') }
         end
       end
 
-      context "when toggling the completed orders checkbox" do
+      context 'when toggling the completed orders checkbox' do
         before do
           create(:order, number: 'R300', completed_at: nil, state: 'cart')
         end
 
-        it "shows both complete and incomplete orders" do
-          check "q_completed_at_not_null"
-          click_on "Filter Results"
-
-          expect(page).to have_content("R200")
-          expect(page).to_not have_content("R300")
-
-          uncheck "q_completed_at_not_null"
+        it 'shows both complete and incomplete orders' do
+          check 'q_completed_at_not_null'
           click_on 'Filter Results'
 
-          expect(page).to have_content("R200")
-          expect(page).to have_content("R300")
+          expect(page).to have_content('R200')
+          expect(page).to_not have_content('R300')
+
+          uncheck 'q_completed_at_not_null'
+          click_on 'Filter Results'
+
+          expect(page).to have_content('R200')
+          expect(page).to have_content('R300')
         end
       end
     end
