@@ -1,3 +1,4 @@
+---
 en:
   activemodel:
     attributes:
@@ -396,11 +397,101 @@ en:
       spree/zone:
         description: Description
         name: Name
+    errors:
+      models:
+        spree/address:
+          attributes:
+            state:
+              does_not_match_country: does not match the country
+        spree/calculator/tiered_flat_rate:
+          attributes:
+            base:
+              keys_should_be_positive_number: Tier keys should all be numbers larger than 0
+            preferred_tiers:
+              should_be_hash: should be a hash
+        spree/calculator/tiered_percent:
+          attributes:
+            base:
+              keys_should_be_positive_number: Tier keys should all be numbers larger than 0
+              values_should_be_percent: Tier values should all be percentages between 0% and 100%
+            preferred_tiers:
+              should_be_hash: should be a hash
+        spree/classification:
+          attributes:
+            taxon_id:
+              already_linked: is already linked to this product
+        spree/credit_card:
+          attributes:
+            base:
+              card_expired: Card has expired
+              expiry_invalid: Card expiration is invalid
+        spree/image:
+          attributes:
+            attachment:
+              not_allowed_content_type: has not allowed content type
+              attachment_must_be_present: must be present
+        spree/inventory_unit:
+          attributes:
+            base:
+              cannot_destroy_shipment_state: Cannot destroy an inventory unit for a %{state} shipment
+            state:
+              cannot_destroy: Cannot destroy a %{state} inventory unit
+        spree/line_item:
+          attributes:
+            price:
+              not_a_number: is not valid
+        spree/price:
+          attributes:
+            currency:
+              invalid_code: is not a valid currency code
+        spree/promotion:
+          attributes:
+            apply_automatically:
+              disallowed_with_code: Disallowed for promotions with a code
+              disallowed_with_path: Disallowed for promotions with a path
+        spree/refund:
+          attributes:
+            amount:
+              greater_than_allowed: is greater than the allowed amount.
+        spree/reimbursement:
+          attributes:
+            base:
+              return_items_order_id_does_not_match: One or more of the return items specified do not belong to the same order as the reimbursement.
+        spree/return_item:
+          attributes:
+            inventory_unit:
+              other_completed_return_item_exists: "%{inventory_unit_id} has already been taken by return item %{return_item_id}"
+            reimbursement:
+              cannot_be_associated_unless_accepted: cannot be associated to a return item that is not accepted.
+        spree/shipment:
+          attributes:
+            base:
+              cannot_remove_items_shipment_state: Cannot remove items from a %{state} shipment
+            state:
+              cannot_destroy: Cannot destroy a %{state} shipment
+        spree/store:
+          attributes:
+            base:
+              cannot_destroy_default_store: Cannot destroy the default Store.
+        spree/taxon_image:
+          attributes:
+            attachment:
+              not_allowed_content_type: has not allowed content type
+        spree/user_address:
+          attributes:
+            user_id:
+              default_address_exists: already has a default address
+        spree/variant:
+          attributes:
+            base:
+              cannot_destroy_if_attached_to_line_items: Cannot delete variants once they are attached to line items.
+              must_supply_price_for_variant_or_master: Must supply price for variant or master price for product.
+              no_master_variant_found_to_infer_price: No master variant found to infer price
+        spree/wallet_payment_source:
+          attributes:
+            payment_source:
+              has_to_be_payment_source_class: has to be a Spree::PaymentSource
     models:
-      # LegacyUser maps to this model_name so we want to provide translations for it
-      user:
-        one: User
-        other: Users
       spree/address:
         one: Address
         other: Addresses
@@ -629,6 +720,9 @@ en:
       spree/zone:
         one: Zone
         other: Zones
+      user:
+        one: User
+        other: Users
   devise:
     confirmations:
       confirmed: Your account was successfully confirmed. You are now signed in.
@@ -1367,8 +1461,8 @@ en:
     make_sure_the_above_reimbursement_amount_is_correct: Make sure the above reimbursement amount is correct
     manage_promotion_categories: Manage Promotion Categories
     manage_stock: Store Stock
-    manual_intervention_required: Manual intervention required
     manage_variants: Manage Variants
+    manual_intervention_required: Manual intervention required
     master_price: Master Price
     master_sku: Master SKU
     master_variant: Master Variant
@@ -1396,9 +1490,9 @@ en:
     new: New
     new_adjustment: New Adjustment
     new_adjustment_reason: New Adjustment Reason
+    new_country: New Country
     new_customer: New Customer
     new_customer_return: New Customer Return
-    new_country: New Country
     new_image: New Image
     new_option_type: New Option Type
     new_order: New Order
@@ -1412,16 +1506,16 @@ en:
     bew_prototype: New Prototype
     new_refund: New Refund
     new_refund_reason: New Refund Reason
-    new_rma_reason: New RMA Reason
     new_return_authorization: New RMA
+    new_rma_reason: New RMA Reason
+    new_shipment_at_location: New shipment at location
     new_shipping_category: New Shipping Category
     new_shipping_method: New Shipping Method
-    new_shipment_at_location: New shipment at location
     new_state: New State
     new_stock_location: New Stock Location
     new_stock_movement: New Stock Movement
-    new_store_credit: New Store Credit
     new_store: New Store
+    new_store_credit: New Store Credit
     new_tax_category: New Tax Category
     new_tax_rate: New Tax Rate
     new_taxon: New Taxon
@@ -1434,23 +1528,23 @@ en:
     no_actions_added: No actions added
     no_images_found: No images found
     no_inventory_selected: No inventory selected
+    no_option_values_on_product_html: This product has no associated option values. Add some to it through Option Types in the %{link}.
     no_orders_found: No orders found
-    no_option_values_on_product_html: "This product has no associated option values. Add some to it through Option Types in the %{link}."
-    no_payment_methods_found: No payment methods found
     no_payment_found: No payment found
+    no_payment_methods_found: No payment methods found
     no_pending_payments: No pending payments
     no_products_found: No products found
     no_promotions_found: No promotions found
+    no_resource: No %{resource} found.
+    no_resource_found: No %{resource} found
+    no_resource_found_html: No %{resource} found, %{add_one_link}!
+    no_resource_found_link: Add One
     no_results: No results
     no_rules_added: No rules added
-    no_resource: 'No %{resource} found.'
-    no_resource_found_html: 'No %{resource} found, %{add_one_link}!'
-    no_resource_found_link: Add One
-    no_resource_found: ! 'No %{resource} found'
-    no_shipping_methods_found: No shipping methods found
     no_shipping_method_selected: No shipping method selected.
-    no_trackers_found: No Trackers Found
+    no_shipping_methods_found: No shipping methods found
     no_stock_locations_found: No stock locations found
+    no_trackers_found: No Trackers Found
     no_tracking_present: No tracking details provided.
     no_variants_found: No variants found.
     no_variants_found_try_again: No variants found. Try changing the search values.
@@ -1460,9 +1554,9 @@ en:
     not: not
     not_available: N/A
     not_enough_stock: There is not enough inventory at the source location to complete this transfer.
-    not_found: ! '%{resource} is not found'
+    not_found: "%{resource} is not found"
     note: Note
-    note_already_received_a_refund: "Note: This order has already received a refund.  Make sure the above reimbursement amount is correct."
+    note_already_received_a_refund: 'Note: This order has already received a refund.  Make sure the above reimbursement amount is correct.'
     notice_messages:
       product_cloned: Product has been cloned
       product_deleted: Product has been deleted
@@ -1472,7 +1566,7 @@ en:
       variant_not_deleted: Variant could not be deleted
     num_orders: "# Orders"
     number: Number
-    number_of_codes: ! '%{count} codes'
+    number_of_codes: "%{count} codes"
     on_hand: On Hand
     open: Open
     option_type: Option Type
@@ -1483,7 +1577,7 @@ en:
     optional: Optional
     options: Options
     or: or
-    or_over_price: ! '%{price} or over'
+    or_over_price: "%{price} or over"
     order: Order
     order_adjustments: Order adjustments
     order_already_completed: Order is already completed
@@ -1496,19 +1590,19 @@ en:
     order_mailer:
       cancel_email:
         dear_customer: Dear Customer,
-        instructions: Your order has been CANCELED.  Please retain this cancellation information for your records.
+        instructions: Your order has been CANCELED. Please retain this cancellation information for your records.
         order_summary_canceled: Order Summary [CANCELED]
         subject: Cancellation of Order
-        subtotal: ! 'Subtotal:'
-        total: ! 'Order Total:'
+        subtotal: 'Subtotal:'
+        total: 'Order Total:'
       confirm_email:
         dear_customer: Dear Customer,
         instructions: Please review and retain the following order information for your records.
         order_summary: Order Summary
         subject: Order Confirmation
-        subtotal: ! 'Subtotal:'
+        subtotal: 'Subtotal:'
         thanks: Thank you for your business.
-        total: ! 'Order Total:'
+        total: 'Order Total:'
       inventory_cancellation:
         dear_customer: Dear Customer,
         instructions: Some items in your order have been CANCELED.  Please retain this cancellation information for your records.
@@ -1547,8 +1641,8 @@ en:
     package_from: package from
     pagination:
       next_page: next page &raquo;
-      previous_page: ! '&laquo; previous page'
-      truncate: ! '&hellip;'
+      previous_page: "&laquo; previous page"
+      truncate: "&hellip;"
     password: Password
     paste: Paste
     path: Path
@@ -1556,14 +1650,13 @@ en:
     payment: Payment
     payment_amount: Payment Amount
     payment_could_not_be_created: Payment could not be created.
-    payments_failed_count:
-      one: 1 Payment
-      other: '%{count} Payments'
     payment_identifier: Payment Identifier
     payment_information: Payment Information
     payment_method: Payment Method
-    payment_methods: Payment Methods
     payment_method_not_supported: That payment method is unsupported. Please choose another one.
+    payment_method_settings_warning: If you are changing the payment method type,
+      you must save first before you can edit the payment method settings
+    payment_methods: Payment Methods
     payment_processing_failed: Payment could not be processed, please check the details you entered
     payment_processor_choose_banner_text: If you need help choosing a payment processor, please visit
     payment_processor_choose_link: our payments page
@@ -1574,34 +1667,37 @@ en:
       completed: Completed
       credit_owed: Credit owed
       failed: Failed
+      invalid: Invalid
       paid: Paid
       pending: Pending
       processing: Processing
       void: Void
-      invalid: Invalid
     payment_updated: Payment Updated
     payments: Payments
+    payments_failed_count:
+      one: 1 Payment
+      other: "%{count} Payments"
+    pending: Pending
     percent: Percent
     percent_per_item: Percent Per Item
     permalink: Permalink
-    pending: Pending
     phone: Phone
     place_order: Place Order
     please_define_payment_methods: Please define some payment methods first.
     please_enter_reasonable_quantity: Please enter a reasonable quantity.
     populate_get_error: Something went wrong. Please try adding the item again.
     powered_by: Powered by
-    pre_tax_refund_amount: Pre-Tax Refund Amount
     pre_tax_amount: Pre-Tax Amount
+    pre_tax_refund_amount: Pre-Tax Refund Amount
     pre_tax_total: Pre-Tax Total
+    preference_source_none: "(custom)"
+    preference_source_using: Using static preferences "%{name}"
     preferred_reimbursement_type: Preferred Reimbursement Type
     presentation: Presentation
     previous: Previous
     price: Price
     price_range: Price Range
     price_sack: Price Sack
-    preference_source_none: '(custom)'
-    preference_source_using: 'Using static preferences "%{name}"'
     process: Process
     product: Product
     product_details: Product Details
@@ -1619,36 +1715,24 @@ en:
         manual: Manually choose
     products: Products
     promotion: Promotion
-    promotionable: Promotable
     promotion_action: Promotion Action
     promotion_actions: Actions
-    promotion_code_batch_mailer:
-      promotion_code_batch_finished:
-        subject: Promotion code batch finished
-        message: "All %{number_of_codes} codes have been created for promotion: "
-      promotion_code_batch_errored:
-        subject: Promotion code batch errored
-        message: "Promotion code batch errored (%{error}) for promotion: "
-    promotion_code_batches:
-      errored: "Errored: %{error}"
-      finished: "All %{number_of_codes} codes have been created."
-      processing: "Processing: %{number_of_codes_processed} / %{number_of_codes}"
     promotion_form:
       match_policies:
         all: Match all of these rules
         any: Match any of these rules
     promotion_rule: Promotion Rule
-    promotions: Promotions
     promotion_successfully_created: Promotion has been successfully created!
-    promotion_total_changed_before_complete: "One or more of the promotions on your order have become ineligible and were removed. Please check the new order amounts and try again."
+    promotion_total_changed_before_complete: One or more of the promotions on your order have become ineligible and were removed. Please check the new order amounts and try again.
     promotion_uses: Promotion uses
+    promotionable: Promotable
+    promotions: Promotions
     propagate_all_variants: Propagate all variants
     properties: Property Types
     property: Property Type
     prototype: Prototype
     prototypes: Prototypes
     provider: Provider
-    payment_method_settings_warning: If you are changing the payment method type, you must save first before you can edit the payment method settings
     qty: Qty
     quantity: Quantity
     quantity_returned: Quantity Returned
@@ -1657,8 +1741,8 @@ en:
     ready_to_ship: Ready to ship
     reason: Reason
     receive: receive
-    received: Received
     receive_stock: Receive Stock
+    received: Received
     received_items: Received Items
     received_successfully: Received Successfully
     receiving: Receiving
@@ -1681,13 +1765,22 @@ en:
     refund_reasons: Refund Reasons
     refunded_amount: Refunded Amount
     refunds: Refunds
-    refund_amount_must_be_greater_than_zero: Refund amount must be greater than zero
     register: Register
     registration: Registration
     reimburse: Reimburse
     reimbursed: Reimbursed
     reimbursement: Reimbursement
-    reimbursement_perform_failed: "Reimbursement could not be performed.  Error: %{error}"
+    reimbursement_mailer:
+      reimbursement_email:
+        days_to_send: You have %{days} days to send back any items awaiting exchange.
+        dear_customer: Dear Customer,
+        exchange_summary: Exchange Summary
+        for: for
+        instructions: Your reimbursement has been processed.
+        refund_summary: Refund Summary
+        subject: Reimbursement Notification
+        total_refunded: 'Total refunded: %{total}'
+    reimbursement_perform_failed: 'Reimbursement could not be performed. Error: %{error}'
     reimbursement_states:
       errored: Errored
       pending: Pending
@@ -1711,12 +1804,12 @@ en:
     resumed: Resumed
     return: return
     return_authorization: Return Merchandise Authorization
+    return_authorization_fire_error: Cannot perform this action on return merchandise authorization
     return_authorization_states:
       authorized: Authorized
       canceled: Canceled
-    return_authorizations: Return Merchandise Authorizations
-    return_authorization_fire_error: Cannot perform this action on return merchandise authorization
     return_authorization_updated: Return merchandise authorization updated
+    return_authorizations: Return Merchandise Authorizations
     return_item_inventory_unit_ineligible: Return item's inventory unit must be shipped
     return_item_inventory_unit_reimbursed: Return item's inventory unit is already reimbursed
     return_item_order_not_completed: Return item's order must be completed
@@ -1725,16 +1818,6 @@ en:
     return_items: Return Items
     return_items_cannot_be_associated_with_multiple_orders: Return items cannot be associated with multiple orders.
     return_items_cannot_be_created_for_inventory_units_that_are_already_awaiting_exchange: Return items cannot be created for inventory units that are already awaiting exchange.
-    reimbursement_mailer:
-      reimbursement_email:
-        days_to_send: ! 'You have %{days} days to send back any items awaiting exchange.'
-        dear_customer: Dear Customer,
-        exchange_summary: Exchange Summary
-        for: for
-        instructions: Your reimbursement has been processed.
-        refund_summary: Refund Summary
-        subject: Reimbursement Notification
-        total_refunded: ! 'Total refunded: %{total}'
     return_number: Return Number
     return_quantity: Return Quantity
     return_reasons: Return Reasons
@@ -1766,7 +1849,7 @@ en:
     select_a_stock_location: Select a stock location
     select_from_prototype: Select From Prototype
     select_stock: Select stock
-    selected_quantity_not_available: ! 'selected of %{item} is not available.'
+    selected_quantity_not_available: selected of %{item} is not available.
     send_copy_of_all_mails_to: Send Copy of All Mails To
     send_mailer: Send Mailer
     send_mails_as: Send Mails As
@@ -1777,10 +1860,10 @@ en:
     ship_address: Ship Address
     ship_address_required: Valid shipping address required
     ship_total: Ship Total
-    shipped_at: Shipped At
     shipment: Shipment
-    shipment_adjustments: "Shipment adjustments"
-    shipment_details: "From %{stock_location} via %{shipping_method}"
+    shipment_adjustments: Shipment adjustments
+    shipment_date: Shipment date
+    shipment_details: From %{stock_location} via %{shipping_method}
     shipment_mailer:
       shipped_email:
         dear_customer: Dear Customer,
@@ -1788,9 +1871,8 @@ en:
         shipment_summary: Shipment Summary
         subject: Shipment Notification
         thanks: Thank you for your business.
-        track_information: ! 'Tracking Information: %{tracking}'
-        track_link: ! 'Tracking Link: %{url}'
-    shipment_date: Shipment date
+        track_information: 'Tracking Information: %{tracking}'
+        track_link: 'Tracking Link: %{url}'
     shipment_number: Shipment Number
     shipment_numbers: Shipment numbers
     shipment_state: Shipment State
@@ -1801,10 +1883,11 @@ en:
       pending: Pending
       ready: Ready
       shipped: Shipped
-    shipment_transfer_success: 'Variants successfully transferred'
-    shipment_transfer_error: 'There was an error transferring variants'
+    shipment_transfer_error: There was an error transferring variants
+    shipment_transfer_success: Variants successfully transferred
     shipments: Shipments
     shipped: Shipped
+    shipped_at: Shipped At
     shipping: Shipping
     shipping_address: Shipping Address
     shipping_categories: Shipping Categories
@@ -1823,7 +1906,6 @@ en:
     shipping_rate_tax:
       label:
         sales_tax: "+ %{amount} %{tax_rate_name}"
-        vat: "incl. %{amount} %{tax_rate_name}"
     shipping_total: Shipping total
     shop_by_taxonomy: Shop by %{taxonomy}
     shopping_cart: Shopping Cart
@@ -1844,7 +1926,7 @@ en:
     split_failed: Unable to complete split
     spree_gateway_error_flash_for_checkout: There was a problem with your payment information. Please check your information and try again.
     ssl:
-      change_protocol: "Please switch to using HTTP (rather than HTTPS) and retry this request."
+      change_protocol: Please switch to using HTTP (rather than HTTPS) and retry this request.
     start: Start
     state: State
     state_based: State Based
@@ -1854,6 +1936,7 @@ en:
       other: "%{count} States"
     states_required: States Required
     status: Status
+    stock: Stock
     stock_location: Stock Location
     stock_location_info: Stock location info
     stock_locations: Stock Locations
@@ -1864,40 +1947,39 @@ en:
     stock_movements_for_stock_location: Stock Movements for %{stock_location_name}
     stock_not_below_zero: Stock must not be below zero.
     stock_successfully_transferred: Stock was successfully transferred between locations.
-    stock: Stock
     stop: Stop
     store: Store
     store_credit:
       actions:
         invalidate: Invalidate
-      credit_allocation_memo: "This is a credit from store credit ID %{id}"
-      currency_mismatch: "Store credit currency does not match order currency"
+      credit_allocation_memo: This is a credit from store credit ID %{id}
+      currency_mismatch: Store credit currency does not match order currency
       display_action:
         adjustment: Adjustment
+        admin:
+          authorize: Authorized
+          eligible: Eligibility Verified
+          void: Voided
         allocation: Added
         capture: Used
         credit: Credit
         invalidate: Invalidated
         void: Credit
-        admin:
-          authorize: "Authorized"
-          eligible: "Eligibility Verified"
-          void: "Voided"
       errors:
-        unable_to_fund: "Unable to pay for order using store credits"
-        cannot_invalidate_uncaptured_authorization: "Cannot invalidate a store credit with an uncaptured authorization"
+        cannot_invalidate_uncaptured_authorization: Cannot invalidate a store credit with an uncaptured authorization
+        unable_to_fund: Unable to pay for order using store credits
       expiring: Expiring
-      insufficient_authorized_amount: "Unable to capture more than authorized amount"
-      insufficient_funds: "Store credit amount remaining is not sufficient"
+      insufficient_authorized_amount: Unable to capture more than authorized amount
+      insufficient_funds: Store credit amount remaining is not sufficient
       non_expiring: Non-expiring
-      select_one_store_credit: "Select store credit to go towards remaining balance"
+      select_one_store_credit: Select store credit to go towards remaining balance
       store_credit: Store Credit
-      successful_action: "Successful store credit %{action}"
-      unable_to_credit: "Unable to credit code: %{auth_code}"
-      unable_to_void: "Unable to void code: %{auth_code}"
-      unable_to_find: "Could not find store credit"
-      unable_to_find_for_action: "Could not find store credit for auth code: %{auth_code} for action: %{action}"
-      user_has_no_store_credits: "User does not have any available store credit"
+      successful_action: Successful store credit %{action}
+      unable_to_credit: 'Unable to credit code: %{auth_code}'
+      unable_to_find: Could not find store credit
+      unable_to_find_for_action: 'Could not find store credit for auth code: %{auth_code} for action: %{action}'
+      unable_to_void: 'Unable to void code: %{auth_code}'
+      user_has_no_store_credits: User does not have any available store credit
     store_credit_category:
       default: Default
     store_rule:
@@ -1907,18 +1989,18 @@ en:
     subtotal: Subtotal
     subtract: Subtract
     success: Success
-    successfully_created: ! '%{resource} has been successfully created!'
-    successfully_refunded: ! '%{resource} has been successfully refunded!'
-    successfully_removed: ! '%{resource} has been successfully removed!'
+    successfully_created: "%{resource} has been successfully created!"
+    successfully_refunded: "%{resource} has been successfully refunded!"
+    successfully_removed: "%{resource} has been successfully removed!"
     successfully_signed_up_for_analytics: Successfully signed up for Spree Analytics
-    successfully_updated: ! '%{resource} has been successfully updated!'
+    successfully_updated: "%{resource} has been successfully updated!"
     tags: Tags
     tags_placeholder: Add Tags
     tax: Tax
-    tax_included: "Tax (incl.)"
     tax_categories: Tax Categories
     tax_category: Tax Category
     tax_code: Tax Code
+    tax_included: Tax (incl.)
     tax_rate_amount_explanation: Tax rates are a decimal amount to aid in calculations, (i.e. if the tax rate is 5% then enter 0.05)
     tax_rates: Tax Rates
     taxon: Taxon
@@ -1934,7 +2016,7 @@ en:
     taxonomy: Taxonomy
     taxonomy_edit: Edit taxonomy
     taxonomy_tree_error: The requested change has not been accepted and the tree has been returned to its previous state, please try again.
-    taxonomy_tree_instruction: ! '* Right click a child in the tree to access the menu for adding, deleting or sorting a child.'
+    taxonomy_tree_instruction: "* Right click a child in the tree to access the menu for adding, deleting or sorting a child."
     taxons: Taxons
     test: Test
     test_mailer:
@@ -1948,9 +2030,9 @@ en:
     there_were_problems_with_the_following_fields: There were problems with the following fields
     this_order_has_already_received_a_refund: This order has already received a refund
     thumbnail: Thumbnail
-    tiers: Tiers
     tiered_flat_rate: Tiered Flat Rate
     tiered_percent: Tiered Percent
+    tiers: Tiers
     time: Time
     to: to
     to_add_variants_you_must_first_define: To add variants, you must first define
@@ -1968,18 +2050,18 @@ en:
     tracking_url_placeholder: e.g. http://quickship.com/package?num=:tracking
     transaction_id: Transaction ID
     transfer_from_location: Transfer From
+    transfer_number: Transfer Number
     transfer_stock: Transfer Stock
     transfer_to_location: Transfer To
-    transfer_number: Transfer Number
     tree: Tree
     try_changing_search_values: Try changing the search values.
     type: Type
     type_to_search: Type to search
-    unable_to_find_all_inventory_units: Unable to find all specified inventory units
     unable_to_connect_to_gateway: Unable to connect to gateway.
     unable_to_create_reimbursements: Unable to create reimbursements because there are items pending manual intervention.
-    unfinalize_all_adjustments: Unfinalize All Adjustments
+    unable_to_find_all_inventory_units: Unable to find all specified inventory units
     under_price: Under %{price}
+    unfinalize_all_adjustments: Unfinalize All Adjustments
     unlock: Unlock
     unrecognized_card_type: Unrecognized Card Type
     unshippable_items: Unshippable Items
@@ -1993,22 +2075,22 @@ en:
     use_new_cc: Use a new card
     use_new_cc_or_payment_method: Use a new card / payment method
     user: User
-    user_rule:
-      choose_users: Choose Users
     user_role_rule:
       choose_roles: Choose Roles
       label: User must contain %{select} of these roles
       match_all: all
       match_any: at least one
+    user_rule:
+      choose_users: Choose Users
     users: Users
     validation:
-      unpaid_amount_not_zero: "Amount was not fully reimbursed. Still due: %{amount}"
       cannot_be_less_than_shipped_units: cannot be less than the number of shipped units.
       cannot_destroy_line_item_as_inventory_units_have_shipped: Cannot destroy line item as some inventory units have shipped.
       exceeds_available_stock: exceeds available stock. Please ensure line items have a valid quantity.
       is_too_large: is too large -- stock on hand cannot cover requested quantity!
       must_be_int: must be an integer
       must_be_non_negative: must be a non-negative value
+      unpaid_amount_not_zero: 'Amount was not fully reimbursed. Still due: %{amount}'
     validity_period: Validity Period
     value: Value
     variant: Variant
@@ -2016,7 +2098,7 @@ en:
     variant_pricing: Variant Pricing
     variant_properties: Variant Properties
     variant_search: Variant Search
-    variant_search_placeholder: "SKU or Option Value"
+    variant_search_placeholder: SKU or Option Value
     variant_to_add: Variant to add
     variant_to_be_received: Variant to be received
     variants: Variants
@@ -2028,11 +2110,16 @@ en:
     what_is_this: What's This?
     width: Width
     year: Year
-    you_have_no_orders_yet: You have no orders yet
     you_cannot_undo_action: You will not be able to undo this action
+    you_have_no_orders_yet: You have no orders yet
     your_cart_is_empty: Your cart is empty
     your_order_is_empty_add_product: Your order is empty, please search for and add a product above
     zip: Zip
     zipcode: Zip Code
     zone: Zone
     zones: Zones
+  time:
+    formats:
+      open:
+        long: "%B %d, %Y %-l:%M %p"
+        short: "%b %-d '%y %-l:%M%P"
