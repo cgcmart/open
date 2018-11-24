@@ -10,20 +10,22 @@ module Spree
     PRODUCT_TABS       ||= [:products, :option_types, :properties, :prototypes,
                             :variants, :product_properties, :taxonomies,
                             :taxons]
-    REPORT_TABS        ||= [:reports]
+    PROMOTION_TABS     ||= [:promotions, :promotion_categories]
+    STOCK_TABS         ||= [:stock_items]
+    USER_TABS          ||= [:users, :store_credits]
     CONFIGURATION_TABS ||= [:stores, :tax_categories,
                             :tax_rates, :zones
                             :payment_methods, :shipping_methods,
                             :shipping_categories, :stock_locations,
                             :refund_reasons, :reimbursement_types,
                             :return_reasons, :adjustment_reasons]
-    PROMOTION_TABS     ||= [:promotions, :promotion_categories]
-    STOCK_TABS         ||= [:stock_items]
-    USER_TABS          ||= [:users, :store_credits]
+    REPORT_TABS        ||= [:reports]
 
     # An item which should be drawn in the admin menu
     class MenuItem
       attr_reader :icon, :label, :partial, :condition, :sections, :url
+
+      attr_accessor :position
 
       # @param sections [Array<Symbol>] The sections which are contained within
       #   this admin menu section.
@@ -36,13 +38,16 @@ module Spree
       # @param partial [String] A partial to draw within this menu item for use
       #   in declaring a submenu
       # @param url [String] A url where this link should send the user to
+      # @param position [Integer] The position in which the menu item should render
+      #   nil will cause the item to render last
       def initialize(
         sections,
         icon,
         condition: nil,
         label: nil,
         partial: nil,
-        url: nil
+        url: nil,
+        position: nil
       )
 
         @condition = condition || -> { true }
@@ -51,6 +56,7 @@ module Spree
         @label = label || sections.first
         @partial = partial
         @url = url
+        @position = position
       end
     end
 
@@ -66,6 +72,11 @@ module Spree
     #
     # @!attribute menu_items
     #   @return [Array<Spree::BackendConfiguration::MenuItem>]
+    #
+    # Positioning can be determined by setting the position attribute to
+    # an Integer or nil. Menu Items will be rendered with smaller lower values
+    # first and higher values last. A position value of nil will cause the menu
+    # item to be rendered at the end of the list.
     attr_writer :menu_items
 
     # Return the menu items which should be drawn in the menu
@@ -78,17 +89,37 @@ module Spree
           ORDER_TABS,
           'shopping-cart',
           condition: -> { can?(:admin, Spree::Order) },
+          position: 0
         ),
         MenuItem.new(
           PRODUCT_TABS,
           'th-large',
           condition: -> { can?(:admin, Spree::Product) },
-          partial: 'spree/admin/shared/product_sub_menu'
+          partial: 'spree/admin/shared/product_sub_menu',
+          position: 1
         ),
         MenuItem.new(
-          REPORT_TABS,
-          'file',
-          condition: -> { can?(:admin, :reports) },
+          PROMOTION_TABS,
+          'bullhorn',
+          partial: 'spree/admin/shared/promotion_sub_menu',
+          condition: -> { can?(:admin, Spree::Promotion) },
+          url: :admin_promotions_path,
+          position: 2
+        ),
+        MenuItem.new(
+          STOCK_TABS,
+          'cubes',
+          condition: -> { can?(:admin, Spree::StockItem) },
+          label: :stock,
+          url: :admin_stock_items_path,
+          position: 3
+        ),
+        MenuItem.new(
+          USER_TABS,
+          'user',
+          condition: -> { Spree.user_class && can?(:admin, Spree.user_class) },
+          url: :admin_users_path,
+          position: 4
         ),
         MenuItem.new(
           CONFIGURATION_TABS,
@@ -96,27 +127,14 @@ module Spree
           condition: -> { can?(:admin, Spree::Store) },
           label: :settings,
           partial: 'spree/admin/shared/settings_sub_menu',
-          url: :admin_stores_path
+          url: :admin_stores_path,
+          position: 5
         ),
         MenuItem.new(
-          PROMOTION_TABS,
-          'bullhorn',
-          partial: 'spree/admin/shared/promotion_sub_menu',
-          condition: -> { can?(:admin, Spree::Promotion) },
-          url: :admin_promotions_path
-        ),
-        MenuItem.new(
-          STOCK_TABS,
-          'cubes',
-          condition: -> { can?(:admin, Spree::StockItem) },
-          label: :stock,
-          url: :admin_stock_items_path
-        ),
-        MenuItem.new(
-          USER_TABS,
-          'user',
-          condition: -> { Spree.user_class && can?(:admin, Spree.user_class) },
-          url: :admin_users_path
+          REPORT_TABS,
+          'file',
+          condition: -> { can?(:admin, :reports) },
+          position: 6
         )
       ]
     end
