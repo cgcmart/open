@@ -2,20 +2,20 @@ en:
   activemodel:
     attributes:
       spree/order_cancellations:
-        quantity: Quantity
-        state: State
-        shipment: Shipment
         cancel: Cancel
+        quantity: Quantity
+        shipment: Shipment
+        state: State
     errors:
       models:
         spree/fulfilment_changer:
           attributes:
+            current_shipment:
+              can_not_have_backordered_inventory_units: has backordered inventory units
+              has_already_been_shipped: has already been shipped
             desired_shipment:
               can_not_transfer_within_same_shipment: can not be same as current shipment
               not_enough_stock_at_desired_location: not enough stock in desired stock location
-            current_shipment:
-              has_already_been_shipped: has already been shipped
-              can_not_have_backordered_inventory_units: has backordered inventory units
   activerecord:
     attributes:
       spree/address:
@@ -29,11 +29,11 @@ en:
         zipcode: Zip Code
       spree/adjustment:
         adjustable: Adjustable
+        adjustment_reason_id: Reason
         amount: Amount
         label: Label
         name: Name
         state: State
-        adjustment_reason_id: Reason
       spree/adjustment_reason:
         active: Active
         code: Code
@@ -58,8 +58,8 @@ en:
         states_required: States Required
       spree/credit_card:
         base: ''
-        cc_type: Brand
         card_code: Card Code
+        cc_type: Brand
         expiration: Expiration
         month: Month
         name: Name
@@ -67,13 +67,13 @@ en:
         verification_value: Verification Value
         year: Year
       spree/customer_return:
+        created_at: Date/Time
+        name: Name
         number: Return Number
         pre_tax_total: Pre-Tax Total
+        reimbursement_status: Reimbursement status
         total: Total
         total_excluding_vat: Pre-Tax Total
-        created_at: "Date/Time"
-        reimbursement_status: Reimbursement status
-        name: Name
       spree/image:
         alt: Alternative Text
         attachment: Filename
@@ -103,7 +103,8 @@ en:
         canceled_at: Canceled at
         canceler_id: Canceler
         checkout_complete: Checkout Complete
-        completed_at: Completed At
+        completed_at: Completed at
+        considered_risky: Risky
         coupon_code: Coupon Code
         created_at: Order Date
         email: Customer E-Mail
@@ -117,7 +118,6 @@ en:
         special_instructions: Special Instructions
         state: State
         total: Total
-        considered_risky: Risky
       spree/order/bill_address:
         address1: Billing address street
         city: Billing address city
@@ -143,21 +143,23 @@ en:
       spree/payment_method:
         active: Active
         auto_capture: Auto Capture
+        available_to_admin: Available to Admin
+        available_to_users: Available to Users
         description: Description
         display_on: Display
         name: Name
         preference_source: Preference Source
         type: Type
       spree/price:
-        currency: Currency
         amount: Price
+        currency: Currency
         is_default: Currently Valid
       spree/product:
         available_on: Available On
         cost_currency: Cost Currency
         cost_price: Cost Price
-        description: Description
         depth: Depth
+        description: Description
         height: Height
         master_price: Master Price
         meta_description: Meta Description
@@ -195,34 +197,35 @@ en:
         description: Creates an adjustment on a line item based on quantity
       spree/promotion/actions/free_shipping:
         description: Makes all shipments for the order free
-      spree/promotion/rules/item_total:
-        description: Order total meets these criteria
       spree/promotion/rules/first_order:
         description: Must be the customer's first order
+      spree/promotion/rules/first_repeat_purchase_since:
+        description: Available only to user who have not purchased in a while
+        form_text: 'Apply this promotion to users whose last order was more than X
+          days ago: '
+      spree/promotion/rules/item_total:
+        description: Order total meets these criteria
       spree/promotion/rules/landing_page:
-          description: Customer must have visited the specified page
+        description: Customer must have visited the specified page
+      spree/promotion/rules/nth_order:
+        description: Apply a promotion to every nth order a user has completed.
+        form_text: 'Apply this promotion on the users Nth order: '
       spree/promotion/rules/one_use_per_user:
-        description: Only One Use Per User
+        description: Only one use per user
       spree/promotion/rules/option_value:
         description: Order includes specified product(s) with matching option value(s)
       spree/promotion/rules/product:
         description: Order includes specified product(s)
+      spree/promotion/rules/store:
+        description: Available only to the specified stores
+      spree/promotion/rules/taxon:
+        description: Order includes products with specified taxon(s)
       spree/promotion/rules/user:
         description: Available only to the specified users
       spree/promotion/rules/user_logged_in:
         description: Available only to logged in users
-      spree/promotion/rules/taxon:
-        description: Order includes products with specified taxon(s)
-      spree/promotion/rules/nth_order:
-        description: Apply a promotion to every nth order a user has completed.
-        form_text: "Apply this promotion on the users Nth order: "
-      spree/promotion/rules/first_repeat_purchase_since:
-        description: Available only to user who have not purchased in a while
-        form_text: "Apply this promotion to users whose last order was more than X days ago: "
       spree/promotion/rules/user_role:
         description: Order includes User with specified Role(s)
-      spree/promotion/rules/store:
-        description: Available only to the specified stores
       spree/promotion_category:
         name: Name
       spree/property:
@@ -236,50 +239,50 @@ en:
         refund_reason_id: Reason
       spree/refund_reason:
         active: Active
-        name: Name
         code: Code
+        name: Name
       spree/reimbursement:
-        created_at: "Date/Time"
+        created_at: Date/Time
         number: Number
         reimbursement_status: Status
         total: Total
       spree/reimbursement/credit:
         amount: Amount
       spree/reimbursement_type:
+        created_at: Date/Time
         name: Name
         type: Type
-        created_at: "Date/Time"
       spree/return_authorization:
         amount: Amount
         pre_tax_total: Pre-Tax Total
         total_excluding_vat: Pre-Tax Total
       spree/return_item:
-        acceptance_status: Acceptance status
-        acceptance_status_errors: Acceptance errors
+        acceptance_status: Acceptance Status
+        acceptance_status_errors: Acceptance Errors
         amount: Amount Before Sales Tax
         charged: Charged
-        exchange_variant: Exchange for
+        exchange_variant: Exchange For
         inventory_unit_state: State
-        item_received?: "Item Received?"
+        item_received?: Item Received?
         override_reimbursement_type_id: Reimbursement Type Override
         preferred_reimbursement_type_id: Preferred Reimbursement Type
         reception_status: Reception Status
-        resellable: "Resellable?"
+        resellable: Resellable?
         return_reason: Reason
         total: Total
       spree/return_reason:
-        name: Name
         active: Active
-        created_at: "Date/Time"
+        created_at: 'Date/Time'
         memo: Memo
+        name: Name
         number: RMA Number
         state: State
       spree/role:
         name: Name
-      spree/shipping_category:
-        name: Name
       spree/shipment:
         tracking: Tracking Number
+      spree/shipping_category:
+        name: Name
       spree/shipping_method:
         admin_name: Internal Name
         carrier: Carrier
@@ -289,23 +292,49 @@ en:
         service_level: Service Level
         tracking_url: Tracking URL
       spree/shipping_rate:
+        amount: Amount
         label: Label
         tax_rate: Tax Rate
         shipping_rate: Shipping Rate
-        amount: Amount
       spree/state:
         abbr: Abbreviation
         name: Name
-      spree/store:
-        url: Site URL
+      spree/stock_item:
+        count_on_hand: Count On Hand
+      spree/stock_location:
+        active: Active
+        address1: Street Address
+        address2: Street Address (cont'd)
+        admin_name: Internal Name
+        backorderable_default: Backorderable Default
+        check_stock_on_transfer: Check Stock on Transfer
+        city: City
+        code: Code
+        country_id: Country
         default: Default
+        fulfillable: Fulfillable
+        internal_name: Internal Name
+        name: Name
+        phone: Phone
+        propagate_all_variants: Propagate All Variants
+        restock_inventory: Restock Inventory
+        state_id: State
+        zipcode: Zip
+      spree/stock_movement:
+        originated_by: Originated By
+        quantity: Quantity
+        variant: Variant
+      spree/store:
+        available_locales: Locales Available in the Storefront
+        cart_tax_country_iso: Tax Country for Empty Carts
+        default: Default
+        default_currency: Default Currency
+        mail_from_address: Mail From Address
         meta_description: Meta Description
         meta_keywords: Meta Keywords
-        seo_title: Seo Title
         name: Site Name
-        mail_from_address: Mail From Address
-        cart_tax_country_iso: Tax Country for Empty Carts
-        available_locales: Locales available in the storefront
+        seo_title: Seo Title
+        url: Site URL
       spree/store_credit:
         amount: Amount
         amount_authorized: Amount Authorized
@@ -322,43 +351,18 @@ en:
         user_total_amount: Total Amount
       spree/store_credit_update_reason:
         name: Reason For Updating
-      spree/stock_item:
-        count_on_hand: Count On Hand
-      spree/stock_location:
-        admin_name: Internal Name
-        active: Active
-        address1: Street Address
-        address2: Street Address (cont'd)
-        backorderable_default: Backorderable default
-        check_stock_on_transfer: Check stock on transfer
-        city: City
-        code: Code
-        country_id: Country
-        default: Default
-        fulfillable: Fulfillable
-        internal_name: Internal Name
-        name: Name
-        phone: Phone
-        propagate_all_variants: Propagate all variants
-        restock_inventory: Restock Inventory
-        state_id: State
-        zipcode: Zip
-      spree/stock_movement:
-        originated_by: Originated By
-        quantity: Quantity
-        variant: Variant
       spree/tax_category:
         description: Description
-        name: Name
         is_default: Default
+        name: Name
         tax_code: Tax Code
       spree/tax_rate:
         amount: Rate
-        included_in_price: Included In Price
+        expires_at: Expiration Date
+        included_in_price: Included in Price
         name: Name
-        show_rate_in_label: Show Rate In Label
-        starts_at: Start date
-        expires_at: Expiration date
+        show_rate_in_label: Show Rate in Label
+        starts_at: Start Date
       spree/taxon:
         description: Description
         icon: Icon
@@ -371,14 +375,14 @@ en:
       spree/taxonomy:
         name: Name
       spree/tracker:
-        analytics_id: Analytics ID
         active: Active
+        analytics_id: Analytics ID
       spree/user:
         email: Email
+        lifetime_value: Total spent
         password: Password
         password_confirmation: Password Confirmation
         spree_roles: Roles
-        lifetime_value: Total spent
       spree/variant:
         cost_currency: Cost Currency
         cost_price: Cost Price
@@ -386,7 +390,7 @@ en:
         height: Height
         price: Price
         sku: SKU
-        tax_category: Variant tax category
+        tax_category: Variant Tax Category
         weight: Weight
         width: Width
       spree/zone:
@@ -449,17 +453,17 @@ en:
         one: Flat Percent
         other: Flat Percent
       spree/calculator/shipping/flat_rate:
-        one: Flat rate
-        other: Flat rate
+        one: Flat Rate
+        other: Flat Rate
       spree/calculator/shipping/flexi_rate:
-        one: Flexible Rate per package item
-        other: Flexible Rate per package item
+        one: Flexible Rate per Package Item
+        other: Flexible Rate per Package Item
       spree/calculator/shipping/per_item:
         one: Flat rate per package item
         other: Flat rate per package item
       spree/calculator/shipping/price_sack:
-        one: Price sack
-        other: Price sack
+        one: Price Sack
+        other: Price Sack
       spree/country:
         one: Country
         other: Countries
@@ -524,9 +528,9 @@ en:
       spree/promotion/actions/create_adjustment: Create whole-order adjustment
       spree/promotion/actions/create_item_adjustments: Create per-line-item adjustment
       spree/promotion/actions/create_quantity_adjustments: Create per-quantity adjustment
-      spree/promotion/actions/free_shipping: Free shipping
-      spree/promotion/rules/first_order: First order
-      spree/promotion/rules/item_total: Item total
+      spree/promotion/actions/free_shipping: Free Shipping
+      spree/promotion/rules/first_order: First Order
+      spree/promotion/rules/item_total: Item Total
       spree/promotion/rules/landing_page: Landing Page
       spree/promotion/rules/one_use_per_user: One Use Per User
       spree/promotion/rules/option_value: Option Value(s)
@@ -625,105 +629,6 @@ en:
       spree/zone:
         one: Zone
         other: Zones
-    errors:
-      models:
-        spree/address:
-          attributes:
-            state:
-              does_not_match_country: does not match the country
-        spree/calculator/tiered_flat_rate:
-          attributes:
-            base:
-              keys_should_be_positive_number: "Tier keys should all be numbers larger than 0"
-            preferred_tiers:
-              should_be_hash: "should be a hash"
-        spree/calculator/tiered_percent:
-          attributes:
-            base:
-              keys_should_be_positive_number: "Tier keys should all be numbers larger than 0"
-              values_should_be_percent: "Tier values should all be percentages between 0% and 100%"
-            preferred_tiers:
-              should_be_hash: "should be a hash"
-        spree/classification:
-          attributes:
-            taxon_id:
-              already_linked: "is already linked to this product"
-        spree/credit_card:
-          attributes:
-            base:
-              card_expired: "Card has expired"
-              expiry_invalid: "Card expiration is invalid"
-        spree/image:
-          attributes:
-            attachment:
-              not_allowed_content_type: has not allowed content type
-              attachment_must_be_present: must be present
-        spree/inventory_unit:
-          attributes:
-            state:
-              cannot_destroy: "Cannot destroy a %{state} inventory unit"
-            base:
-              cannot_destroy_shipment_state: "Cannot destroy an inventory unit for a %{state} shipment"
-        spree/line_item:
-          attributes:
-            price:
-              not_a_number: "is not valid"
-        spree/price:
-          attributes:
-            currency:
-              invalid_code: "is not a valid currency code"
-        spree/promotion:
-          attributes:
-            apply_automatically:
-              disallowed_with_code: Disallowed for promotions with a code
-              disallowed_with_path: Disallowed for promotions with a path
-        spree/refund:
-          attributes:
-            amount:
-              greater_than_allowed: is greater than the allowed amount.
-        spree/reimbursement:
-          attributes:
-            base:
-              return_items_order_id_does_not_match: One or more of the return items specified do not belong to the same order as the reimbursement.
-        spree/return_item:
-          attributes:
-            reimbursement:
-              cannot_be_associated_unless_accepted: cannot be associated to a return item that is not accepted.
-            inventory_unit:
-              other_completed_return_item_exists: "%{inventory_unit_id} has already been taken by return item %{return_item_id}"
-        spree/shipment:
-          attributes:
-            state:
-              cannot_destroy: "Cannot destroy a %{state} shipment"
-            base:
-              cannot_remove_items_shipment_state: "Cannot remove items from a %{state} shipment"
-        spree/store:
-          attributes:
-            base:
-              cannot_destroy_default_store: Cannot destroy the default Store.
-        spree/taxon_image:
-          attributes:
-            attachment:
-              not_allowed_content_type: has not allowed content type
-        spree/user_address:
-          attributes:
-            user_id:
-              default_address_exists: "already has a default address"
-        spree/variant:
-          attributes:
-            base:
-              cannot_destroy_if_attached_to_line_items: Cannot delete variants once they are attached to line items.
-              no_master_variant_found_to_infer_price: No master variant found to infer price
-              must_supply_price_for_variant_or_master: Must supply price for variant or master price for product.
-        spree/wallet_payment_source:
-          attributes:
-            payment_source:
-              has_to_be_payment_source_class: "has to be a Spree::PaymentSource"
-  time:
-    formats:
-      open:
-        long: '%B %d, %Y %-l:%M %p'
-        short: "%b %-d '%y %-l:%M%P"
   devise:
     confirmations:
       confirmed: Your account was successfully confirmed. You are now signed in.
@@ -738,13 +643,13 @@ en:
       unconfirmed: You have to confirm your account before continuing.
     mailer:
       confirmation_instructions:
-        subject: Confirmation instructions
+        subject: Confirmation Instructions
       reset_password_instructions:
-        subject: Reset password instructions
+        subject: Reset Password Instructions
       unlock_instructions:
         subject: Unlock Instructions
     oauth_callbacks:
-      failure: "Could not authorize you from %{kind} because %{reason}."
+      failure: Could not authorize you from %{kind} because %{reason}.
       success: Successfully authorized from %{kind} account.
     unlocks:
       send_instructions: You will receive an email with instructions about how to unlock your account in a few minutes.
@@ -768,13 +673,13 @@ en:
       not_found: not found
       not_locked: was not locked
       not_saved:
-        one: ! '1 error prohibited this %{resource} from being saved:'
-        other: ! '%{count} errors prohibited this %{resource} from being saved:'
+        one: '1 error prohibited this %{resource} from being saved:'
+        other: "%{count} errors prohibited this %{resource} from being saved:"
   spree:
     abbreviation: Abbreviation
     accept: Accept
-    acceptance_status: Acceptance status
     acceptance_errors: Acceptance errors
+    acceptance_status: Acceptance status
     accepted: Accepted
     account: Account
     account_updated: Account updated
@@ -800,7 +705,6 @@ en:
     activate: Activate
     active: Active
     add: Add
-    added: Added
     add_action_of_type: Add action of type
     add_country: Add Country
     add_coupon_code: Add Coupon Code
@@ -811,7 +715,6 @@ en:
     add_option_value: Add Option Value
     add_product: Add Product
     add_product_properties: Add Product Properties
-    add_variant_properties: Add Variant Properties
     add_rule_of_type: Add rule of type
     add_state: Add State
     add_stock: Add Stock
@@ -819,7 +722,9 @@ en:
     add_taxon: Add taxon
     add_to_cart: Add To Cart
     add_to_stock_location: Add to location
-    add_variant: Add Variant
+    add_variant: Add Variant    
+    add_variant_properties: Add Variant Properties
+    added: Added
     adding_match: Adding match
     additional_item: Additional Item
     address1: Address
@@ -828,13 +733,11 @@ en:
     adjustment: Adjustment
     adjustment_amount: Amount
     adjustment_labels:
-      line_item: '%{promotion} (%{promotion_name})'
-      order: '%{promotion} (%{promotion_name})'
+      line_item: "%{promotion} (%{promotion_name})"
+      order: "%{promotion} (%{promotion_name})"
       tax_rates:
-        sales_tax: '%{name}'
-        vat: '%{name} (Included in Price)'
-        sales_tax_with_rate: '%{name} %{amount}'
-        vat_with_rate: '%{name} %{amount} (Included in Price)'
+        sales_tax: "%{name}"
+        sales_tax_with_rate: "%{name} %{amount}"
     adjustment_reasons: Adjustment Reasons
     adjustment_successfully_closed: Adjustment has been successfully closed!
     adjustment_successfully_opened: Adjustment has been successfully opened!
@@ -842,9 +745,6 @@ en:
     adjustment_type: Adjustment type
     adjustments: Adjustments
     admin:
-      stores:
-        form:
-          no_cart_tax_country: "No taxes on carts without address"
       images:
         index:
           choose_files: Choose files to upload
@@ -854,81 +754,84 @@ en:
       payments:
         source_forms:
           storecredit:
-            not_supported: "Creating store credit payments via the admin is not currently supported."
+            not_supported: Creating store credit payments via the admin is not currently supported.
       prices:
-        any_country: "Any Country"
+        any_country: Any Country
+        edit:
+          edit_price: Edit Price
         index:
           amount_greater_than: Amount greater than
           amount_less_than: Amount less than
           new_price: New Price
-        edit:
-          edit_price: Edit Price
         new:
           new_price: New Price
       promotions:
-        form:
-          starts_at_placeholder: Immediately
-          expires_at_placeholder: Never
-          activation: Activation
-          general: General
+        actions:
+          calculator_label: Calculated by
+        activations_edit:
+          auto: All orders will attempt to use this promotion
+          multiple_codes_html: This promotion uses %{count} promotion codes
+          single_code_html: 'This promotion uses the promotion code: <code>%{code}</code>'
         activations_new:
           auto: Apply to all orders
           multiple_codes: Multiple promotion codes
           single_code: Single promotion code
-        activations_edit:
-          auto: All orders will attempt to use this promotion
-          single_code_html: "This promotion uses the promotion code: <code>%{code}</code>"
-          multiple_codes_html: "This promotion uses %{count} promotion codes"
-        actions:
-          calculator_label: Calculated by
+        form:
+          activation: Activation
+          expires_at_placeholder: Never
+          general: General
+          starts_at_placeholder: Immediately
       stock_locations:
         form:
+          address: Address
           general: General
           settings: Settings
-          address: Address
       store_credits:
-        add: "Add store credit"
+        add: Add store credit
         amount_authorized: Authorized
         amount_credited: Credited
         amount_used: Used
+        back_to_edit: Back to edit
+        back_to_store_credit_list: Store credit list
+        back_to_user_list: Back to user list
+        change_amount: Change amount
         created_at: Issued On
-        back_to_edit: "Back to edit"
-        back_to_user_list: "Back to user list"
-        back_to_store_credit_list: "Store credit list"
-        change_amount: "Change amount"
-        created_by: "Created By"
+        created_by: Created By
         credit_type: Type
-        memo: Memo
-        current_balance: "Current balance:"
-        edit: "Editing store credit"
-        edit_amount: "Editing store credit amount"
-        history: "Store credit history"
-        invalidate_store_credit: "Invalidating store credit"
-        invalidated: "Invalidated"
-        issued_on: "Issued On"
-        new: "New store credit"
-        no_store_credit_selected: "No store credit was selected"
-        payment_originator: "Payment - Order #%{order_number}"
-        reason_for_updating: "Reason for updating"
-        refund_originator: "Refund - Order #%{order_number}"
-        resource_name: "store credits"
-        user_originator: "User - %{email}"
-        unable_to_create: "Unable to create store credit"
-        unable_to_update: "Unable to update store credit"
-        unable_to_delete: "Unable to delete store credit"
-        unable_to_invalidate: "Unable to invalidate store credit"
-        select_reason: "Select a reason for this store credit"
-        select_amount_update_reason: "Select a reason for updating the amount"
-        total_unused: "Total unused"
-        type_html_header: "Credit Type"
-        view: "View store credit"
+        current_balance: 'Current balance:'
+        edit: Editing store credit
+        edit_amount: 'Editing store credit amount'
         errors:
-          cannot_change_used_store_credit: "Store credit that has been claimed cannot be changed"
-          cannot_be_modified: "cannot be modified"
-          amount_used_cannot_be_greater: "cannot be greater than the credited amount"
           amount_authorized_exceeds_total_credit: " exceeds the available credit"
-          amount_used_not_zero: "is greater than zero. Can not delete store credit"
-          update_reason_required: "A reason for the change must be selected"
+          amount_used_cannot_be_greater: cannot be greater than the credited amount
+          amount_used_not_zero: is greater than zero. Can not delete store credit
+          cannot_be_modified: cannot be modified
+          cannot_change_used_store_credit: Store credit that has been claimed cannot be changed
+          update_reason_required: A reason for the change must be selected
+        history: Store credit history
+        invalidate_store_credit: Invalidating store credit
+        invalidated: Invalidated
+        issued_on: Issued On
+        memo: Memo
+        new: New store credit
+        no_store_credit_selected: No store credit was selected
+        payment_originator: 'Payment - Order #%{order_number}'
+        reason_for_updating: Reason for updating
+        refund_originator: 'Refund - Order #%{order_number}'
+        resource_name: store credits
+        select_amount_update_reason: Select a reason for updating the amount
+        select_reason: Select a reason for this store credit
+        total_unused: Total unused
+        type_html_header: Credit Type
+        unable_to_create: Unable to create store credit
+        unable_to_delete: Unable to delete store credit
+        unable_to_invalidate: Unable to invalidate store credit
+        unable_to_update: Unable to update store credit
+        user_originator: User - %{email}
+        view: View store credit
+      stores:
+        form:
+          no_cart_tax_country: No taxes on carts without address
       tab:
         checkout: Refunds and Returns
         configuration: Configuration
@@ -938,8 +841,8 @@ en:
         overview: Overview
         payments: Payments
         products: Products
-        promotions: Promotions
         promotion_categories: Promotion Categories
+        promotions: Promotions
         properties: Property Types
         prototypes: Prototypes
         reports: Reports
@@ -962,34 +865,34 @@ en:
         items: Items
         items_purchased: Items Purchased
         order_history: Order History
-        order_num: "Order #"
+        order_num: 'Order #'
         orders: Orders
         store_credit: Store Credit
         user_information: User Information
       users:
-        user_page_actions:
-          create_order: Create order for this user
         edit:
           api_access: "API Access"
           clear_key: "Clear key"
-          confirm_clear_key: "Are you sure you want to clear this user's API key? It will invalidate the existing key."
-          confirm_regenerate_key: "Are you sure you want to regenerate this user's API key? It will invalidate the existing key."
-          generate_key: "Generate API key"
-          key: "Key"
-          no_key: "No key"
-          regenerate_key: "Regenerate key"
+          confirm_clear_key: Are you sure you want to clear this user's API key? It will invalidate the existing key.
+          confirm_regenerate_key: Are you sure you want to regenerate this user's API key? It will invalidate the existing key.
+          generate_key: Generate API key
+          key: Key
+          no_key: No key
+          regenerate_key: Regenerate key
+        user_page_actions:
+          create_order: Create order for this user
       variants:
-        table_filter:
-          show_deleted: Show deleted variants
-        new:
-          new_variant: New variant
         edit:
           edit_variant: Edit Variant
         form:
           dimensions: Dimensions
-          use_product_tax_category: Use Product Tax Category
           pricing: Pricing
           pricing_hint: These values are populated from the product details page and can be overridden below
+          use_product_tax_category: Use Product Tax Category
+        new:
+          new_variant: New Variant
+        table_filter:
+          show_deleted: Show Deleted Variants
     administration: Administration
     agree_to_privacy_policy: Agree to Privacy Policy
     agree_to_terms_of_service: Agree to Terms of Service
@@ -1012,8 +915,8 @@ en:
     and: and
     apply_code: Apply Code
     approve: Approve
-    approver: Approver
     approved_at: Approved at
+    approver: Approver
     are_you_sure: Are you sure?
     are_you_sure_delete: Are you sure you want to delete this record?
     authorization_failure: Authorization Failure
@@ -1025,9 +928,8 @@ en:
     avs_response: AVS Response
     back: Back
     back_end: Backend
-    backordered: Backordered
-    back_to_adjustments_list: Back To Adjustments List
     back_to_adjustment_reason_list: Back To Adjustment Reason List
+    back_to_adjustments_list: Back To Adjustments List
     back_to_countries_list: Back To Countries List
     back_to_customer_return: Back To Customer Return
     back_to_customer_return_list: Back To Customer Return List
@@ -1038,12 +940,12 @@ en:
     back_to_payment_methods_list: Back To Payment Methods List
     back_to_payments_list: Back To Payments List
     back_to_products_list: Back To Products List
-    back_to_promotions_list: Back To Promotions List
     back_to_promotion_categories_list: Back To Promotions Categories List
+    back_to_promotions_list: Back To Promotions List
     back_to_properties_list: Back To Property Types List
-    back_to_reports_list: Back To Reports List
     back_to_refund_reason_list: Back To Refund Reason List
     back_to_reimbursement_type_list: Back To Reimbursement Type List
+    back_to_reports_list: Back To Reports List
     back_to_return_authorizations_list: Back To RMA List
     back_to_rma_reason_list: Back To RMA Reason List
     back_to_shipping_categories: Back To Shipping Categories
@@ -1062,6 +964,7 @@ en:
     backorderable: Backorderable
     backorderable_default: Backorderable default
     backorderable_header: Back Orderable
+    backordered: Backordered
     backorders_allowed: backorders allowed
     balance_due: Balance Due
     base_amount: Base Amount
@@ -1074,17 +977,17 @@ en:
     calculator: Calculator
     calculator_settings_warning: If you are changing the calculator type or preference source, you must save first before you can edit the calculator settings
     cancel: Cancel
-    cancel_inventory: 'Cancel Items'
-    canceled: canceled
+    cancel_inventory: Cancel Items
+    canceled: Canceled
     canceled_at: Canceled at
     canceler: Canceler
     cancellation: Cancellation
-    cannot_create_payment_without_payment_methods_html: You cannot create a payment for an order without any payment methods defined. %{link}
     cannot_create_payment_link: Please define some payment methods first.
+    cannot_create_payment_without_payment_methods_html: You cannot create a payment for an order without any payment methods defined. %{link}
     cannot_create_returns: Cannot create returns as this order has no shipped units.
+    cannot_perform_operation: Cannot perform requested operation
     cannot_rebuild_shipments_order_completed: Cannot rebuild shipments for a completed order.
     cannot_rebuild_shipments_shipments_not_pending: Cannot rebuild shipments for an order with non-pending shipments.
-    cannot_perform_operation: Cannot perform requested operation
     cannot_set_shipping_method_without_address: Cannot set shipping method until customer details are provided.
     cannot_update_email: You do not have access to update this user's email address. <br />Please contact a superuser if you need to perform this action.
     capture: Capture
@@ -1095,8 +998,8 @@ en:
     card_type_is: Card type is
     cart: Cart
     cart_subtotal:
-      one: 'Subtotal (1 item)'
-      other: 'Subtotal (%{count} items)'
+      one: Subtotal (1 item)
+      other: Subtotal (%{count} items)
     categories: Categories
     category: Category
     channel: Channel
@@ -1104,14 +1007,14 @@ en:
     charged: Charged
     check: Check
     checkout: Checkout
-    choose_a_customer: Choose a customer
-    choose_a_taxon_to_sort_products_for: "Choose a taxon to sort products for"
+    choose_a_customer: Choose a Customer
+    choose_a_taxon_to_sort_products_for: Choose a taxon to sort products for
     choose_currency: Choose Currency
     choose_dashboard_locale: Choose Dashboard Locale
-    choose_location: Choose location
-    choose_promotion_action: Choose action
-    choose_promotion_rule: Choose rule
-    choose_reason: Choose reason
+    choose_location: Choose Location
+    choose_promotion_action: Choose Action
+    choose_promotion_rule: Choose Rule
+    choose_reason: Choose Reason
     city: City
     clear_cache: Clear Cache
     clear_cache_ok: Cache was flushed
@@ -1156,30 +1059,29 @@ en:
     coupon_code_not_eligible: This coupon code is not eligible for this order
     coupon_code_not_found: The coupon code you entered doesn't exist. Please try again.
     coupon_code_unknown_error: This coupon code could not be applied to the cart at this time.
-    customer: Customer
-    customer_return: Customer Return
-    customer_returns: Customer Returns
     create: Create
     create_a_new_account: Create a new account
+    create_one: Create One.
     create_promotion_code: Create promotion code
     create_reimbursement: Create reimbursement
-    create_one: Create One.
     created_at: Created At
     created_by: Created by
     created_successfully: Created successfully
     credit: Credit
-    credits: Credits
     credit_allowed: Credit Allowed
     credit_card: Credit Card
     credit_cards: Credit Cards
     credit_owed: Credit Owed
+    credits: Credits
     currency: Currency
     currency_settings: Currency Settings
     current: Current
-    current_promotion_usage: ! 'Current Usage: %{count}'
+    current_promotion_usage: 'Current Usage: %{count}'
     customer: Customer
     customer_details: Customer Details
     customer_details_updated: Customer Details Updated
+    customer_return: Customer Return
+    customer_returns: Customer Returns
     customer_search: Customer Search
     cut: Cut
     cvv_response: CVV Response
@@ -1197,14 +1099,14 @@ en:
     date_completed: Date Completed
     date_picker:
       first_day: 0
-      format: ! '%Y/%m/%d'
+      format: "%Y/%m/%d"
       js_format: yy/mm/dd
     date_range: Date Range
     default: Default
     default_refund_amount: Default Refund Amount
     delete: Delete
-    deleted_variants_present: Some line items in this order have products that are no longer available.
     deleted_successfully: Deleted successfully
+    deleted_variants_present: Some line items in this order have products that are no longer available.
     delivery: Delivery
     depth: Depth
     description: Description
@@ -1213,20 +1115,20 @@ en:
     destroy: Destroy
     details: Details
     discount_amount: Discount Amount
-    discount_rules: Discount rules
+    discount_rules: Discount Rules
     dismiss_banner: No. Thanks! I'm not interested, do not display this message again
     display: Display
     download_promotion_codes_list: Download Codes List
     edit: Edit
-    editing_country: Editing Country
+    edit_refund_reason: Edit Refund Reason
     editing_adjustment_reason: Editing Adjustment Reason
+    editing_country: Editing Country
     editing_option_type: Editing Option Type
     editing_payment_method: Editing Payment Method
     editing_product: Editing Product
     editing_promotion: Editing Promotion
     editing_promotion_category: Editing Promotion Category
     editing_property: Editing Property Type
-    edit_refund_reason: Edit Refund Reason
     editing_refund: Editing Refund
     editing_refund_reason: Editing Refund Reason
     editing_reimbursement: Editing Reimbursement
@@ -1271,7 +1173,7 @@ en:
         no_shipping_methods_available: No shipping methods available for selected location, please change your address and try again.
     errors_prohibited_this_record_from_being_saved:
       one: 1 error prohibited this record from being saved
-      other: ! '%{count} errors prohibited this record from being saved'
+      other: "%{count} errors prohibited this record from being saved"
     event: Event
     events:
       spree:
@@ -1288,43 +1190,13 @@ en:
           signup: User signup
     exceptions:
       count_on_hand_setter: Cannot set count_on_hand manually, as it is set automatically by the recalculate_count_on_hand callback. Please use `update_column(:count_on_hand, value)` instead.
-    exchange_for: Exchange for
+    exchange_for: Exchange For
     excl: excl.
+    existing_shipments: Existing shipments
     expected: Expected
     expected_items: Expected Items
     expiration: Expiration
     extension: Extension
-    existing_shipments: Existing shipments
-    hints:
-      spree/price:
-        country: "This determines in what country the price is valid.<br/>Default: Any Country"
-        master_variant: "Changing master variant prices will not change variant prices below, but will be used to populate all new variants"
-        options: "These options are used to create variants in the variants table. They can be changed in the variants tab"
-      spree/product:
-        available_on: "This sets the availability date for the product. If this value is not set, or it is set to a date in the future, then the product is not available on the storefront."
-        promotionable: "This determines whether or not promotions can apply to this product.<br/>Default: Checked"
-        shipping_category: "This determines what kind of shipping this product requires.<br/> Default: Default"
-        tax_category: "This determines what kind of taxation is applied to this product.<br/> Default: None"
-      spree/promotion:
-        starts_at: "This determines when the promotion can be applied to orders. <br/> If no value is specified, the promotion will be immediately available."
-        expires_at: "This determines when the promotion expires. <br/> If no value is specified, the promotion will never expire."
-      spree/stock_location:
-        active: "This determines whether stock from this location can be used when building packages.<br/> Default: Checked"
-        backorderable_default: "When checked, stock items in this location will default to allowing backorders.<br/> Default: Unchecked"
-        propagate_all_variants: "When checked, this will create a stock item for in this stock location.<br/> Default: Checked"
-        restock_inventory: "When checked, returned inventory can be added back to this location's stock levels.<br/> Default: checked"
-        fulfillable: "When unchecked, this indicates that items in this location don't require actual fulfilment. Stock will not be checked when shipping and emails will not be sent.<br/> Default: Checked"
-        check_stock_on_transfer: "When checked, inventory levels will be checked when performing stock transfers.<br/> Default: Checked"
-      spree/store:
-        cart_tax_country_iso: "This determines which country is used for taxes on carts (orders which don't yet have an address).<br/> Default: None."
-        available_locales: "This determines which locales are available for your customers to choose from in the storefront."
-      spree/variant:
-        tax_category: "This determines what kind of taxation is applied to this variant.<br/> Default: Use tax category of the product associated with this variant"
-        deleted: "Deleted Variant"
-        deleted_explanation: "This variant was deleted on %{date}."
-        deleted_explanation_with_replacement: "This variant was deleted on %{date}. It has since been replaced by another with the same SKU."
-      spree/tax_rate:
-        validity_period: "This determines the validity period within which the tax rate is valid and will be applied to eligible items. <br /> If no start date value is specified, the tax rate will be immediately available. <br /> If no expiration date value is specified, the tax rate will never expire"
     failed_payment_attempts: Failed Payment Attempts
     failure: Failure
     filename: Filename
@@ -1332,10 +1204,10 @@ en:
     filter_results: Filter Results
     finalize: Finalize
     finalize_all_adjustments: Finalize All Adjustments
-    find_a_taxon: Find a Taxon
     finalized: Finalized
     finalized_at: Finalized at
     finalized_by: Finalized by
+    find_a_taxon: Find a Taxon
     first_item: First Item
     first_name: First Name
     first_name_begins_with: First Name Begins With
@@ -1365,14 +1237,44 @@ en:
         price_diff_subtract_html: "(Subtract: %{amount_html})"
     hidden: hidden
     hide_out_of_stock: Hide out of stock
+    hints:
+      spree/price:
+        country: "This determines in what country the price is valid.<br/>Default: Any Country"
+        master_variant: "Changing master variant prices will not change variant prices below, but will be used to populate all new variants"
+        options: "These options are used to create variants in the variants table. They can be changed in the variants tab"
+      spree/product:
+        available_on: "This sets the availability date for the product. If this value is not set, or it is set to a date in the future, then the product is not available on the storefront."
+        promotionable: "This determines whether or not promotions can apply to this product.<br/>Default: Checked"
+        shipping_category: "This determines what kind of shipping this product requires.<br/> Default: Default"
+        tax_category: "This determines what kind of taxation is applied to this product.<br/> Default: None"
+      spree/promotion:
+        expires_at: "This determines when the promotion expires. <br/> If no value is specified, the promotion will never expire."
+        starts_at: This determines when the promotion can be applied to orders. <br/> If no value is specified, the promotion will be immediately available.
+      spree/stock_location:
+        active: 'This determines whether stock from this location can be used when building packages.<br/> Default: Checked'
+        backorderable_default: 'When checked, stock items in this location will default to allowing backorders.<br/> Default: Unchecked'
+        check_stock_on_transfer: 'When checked, inventory levels will be checked when performing stock transfers.<br/> Default: Checked'
+        fulfillable: 'When unchecked, this indicates that items in this location don't require actual fulfilment. Stock will not be checked when shipping and emails will not be sent.<br/> Default: Checked'
+        propagate_all_variants: 'When checked, this will create a stock item for in this stock location.<br/> Default: Checked'
+        restock_inventory: 'When checked, returned inventory can be added back to this location's stock levels.<br/> Default: checked'
+      spree/store:
+        available_locales: 'This determines which locales are available for your customers to choose from in the storefront.'
+        cart_tax_country_iso: 'This determines which country is used for taxes on carts (orders which don't yet have an address).<br/> Default: None.'
+      spree/tax_rate:
+        validity_period: 'This determines the validity period within which the tax rate is valid and will be applied to eligible items. <br /> If no start date value is specified, the tax rate will be immediately available. <br /> If no expiration date value is specified, the tax rate will never expire'
+      spree/variant:
+        deleted: Deleted Variant
+        deleted_explanation: This variant was deleted on %{date}.
+        deleted_explanation_with_replacement: This variant was deleted on %{date}. It has since been replaced by another with the same SKU.
+        tax_category: 'This determines what kind of taxation is applied to this variant.<br/> Default: Use tax category of the product associated with this variant'
     home: Home
     i18n:
       available_locales: Available Locales
       fields: Fields
       language: Language
       localization_settings: Localization Settings
-      only_incomplete: Only incomplete
       only_complete: Only complete
+      only_incomplete: Only incomplete
       select_locale: Select locale
       show_only: Show only
       supported_locales: Supported Locales
@@ -1383,17 +1285,17 @@ en:
     identifier: Identifier
     image: Image
     images: Images
-    implement_eligible_for_return: "Must implement #eligible_for_return? for your EligibilityValidator."
-    implement_requires_manual_intervention: "Must implement #requires_manual_intervention? for your EligibilityValidator."
+    implement_eligible_for_return: 'Must implement #eligible_for_return? for your EligibilityValidator.'
+    implement_requires_manual_intervention: 'Must implement #requires_manual_intervention? for your EligibilityValidator.'
     inactive: Inactive
     incl: incl.
     included_in_price: Included in Price
     included_price_validation: cannot be selected unless you have set a Default Tax Zone
     incomplete: Incomplete
-    info_product_has_multiple_skus: "This product has %{count} variants:"
     info_number_of_skus_not_shown:
-      one: "and one other"
-      other: "and %{count} others"
+      one: and one other
+      other: and %{count} others
+    info_product_has_multiple_skus: "This product has %{count} variants:"
     instructions_to_reset_password: Please enter your email on the form below
     insufficient_stock: Insufficient stock available, only %{on_hand} remaining
     insufficient_stock_for_order: Insufficient stock for order
@@ -1429,8 +1331,8 @@ en:
         gte: greater than or equal to
     items_cannot_be_shipped: We are unable to calculate shipping rates for the selected items.
     items_in_rmas: Items in RMA's (Return Merchandise Authorizations)
-    items_to_be_reimbursed: Items to be reimbursed
     items_reimbursed: Items reimbursed
+    items_to_be_reimbursed: Items to be reimbursed
     jirafe: Jirafe
     landing_page_rule:
       path: Path
@@ -1438,7 +1340,7 @@ en:
     last_name_begins_with: Last Name Begins With
     learn_more: Learn More
     lifetime_stats: Lifetime Stats
-    line_item_adjustments: "Line item adjustments"
+    line_item_adjustments: Line item adjustments
     list: List
     listing_countries: Countries
     listing_orders: Orders
@@ -1450,8 +1352,7 @@ en:
     locale_changed: Locale Changed
     location: Location
     lock: Lock
-    log_entries: "Log Entries"
-    logs: "Logs"
+    log_entries: Log Entries
     logged_in_as: Logged in as
     logged_in_succesfully: Logged in successfully
     logged_out: You have been logged out.
@@ -1460,6 +1361,7 @@ en:
     login_failed: Login authentication failed.
     login_name: Login
     logout: Logout
+    logs: Logs
     look_for_similar_items: Look for similar items
     make_refund: Make refund
     make_sure_the_above_reimbursement_amount_is_correct: Make sure the above reimbursement amount is correct
@@ -1760,7 +1662,7 @@ en:
     received_items: Received Items
     received_successfully: Received Successfully
     receiving: Receiving
-    receiving_match: Receiving match
+    receiving_match: Receiving Match
     reception_states:
       awaiting: Awaiting
       cancelled: Canceled
@@ -1907,13 +1809,13 @@ en:
     shipping_address: Shipping Address
     shipping_categories: Shipping Categories
     shipping_category: Shipping Category
-    shipping_flat_rate_per_item: Flat rate per package item
-    shipping_flat_rate_per_order: Flat rate
-    shipping_flexible_rate: Flexible Rate per package item
+    shipping_flat_rate_per_item: Flat Rate per Package Item
+    shipping_flat_rate_per_order: Flat Rate
+    shipping_flexible_rate: Flexible Rate per Package Item
     shipping_instructions: Shipping Instructions
     shipping_method: Shipping Method
     shipping_methods: Shipping Methods
-    shipping_price_sack: Price sack
+    shipping_price_sack: Price Sack
     shipping_rate:
       display_price:
         display_price_with_explanations: "%{price} (%{explanations})"
@@ -2054,9 +1956,9 @@ en:
     to_add_variants_you_must_first_define: To add variants, you must first define
     total: Total
     total_excluding_vat: Pre-Tax Total
-    total_per_item: Total per item
+    total_per_item: Total per Item
     total_pre_tax_refund: Total Pre-Tax Refund
-    total_price: Total price
+    total_price: Total Price
     total_sales: Total Sales
     track_inventory: Track Inventory
     tracking: Tracking
@@ -2079,10 +1981,10 @@ en:
     unfinalize_all_adjustments: Unfinalize All Adjustments
     under_price: Under %{price}
     unlock: Unlock
-    unrecognized_card_type: Unrecognized card type
+    unrecognized_card_type: Unrecognized Card Type
     unshippable_items: Unshippable Items
     update: Update
-    updated_successfully: Updated successfully
+    updated_successfully: Updated Successfully
     updating: Updating
     usage_limit: Usage Limit
     use_app_default: Use App Default
@@ -2092,7 +1994,7 @@ en:
     use_new_cc_or_payment_method: Use a new card / payment method
     user: User
     user_rule:
-      choose_users: Choose users
+      choose_users: Choose Users
     user_role_rule:
       choose_roles: Choose Roles
       label: User must contain %{select} of these roles
@@ -2110,7 +2012,7 @@ en:
     validity_period: Validity Period
     value: Value
     variant: Variant
-    variant_placeholder: Choose a variant
+    variant_placeholder: Choose a Variant
     variant_pricing: Variant Pricing
     variant_properties: Variant Properties
     variant_search: Variant Search
