@@ -6,6 +6,8 @@ require 'shared_examples/calculator_shared_examples'
 module Spree
   module Calculator::Shipping
     RSpec.describe FlatPercentItemTotal, type: :model do
+      subject { FlatPercentItemTotal.new(preferred_flat_percent: 10) }
+
       it_behaves_like 'a calculator with a description'
 
       let(:line_item1) { build(:line_item, price: 10.11) }
@@ -25,10 +27,13 @@ module Spree
         )
       end
 
-      subject { FlatPercentItemTotal.new(preferred_flat_percent: 10) }
-
       it 'rounds result correctly' do
         expect(subject.compute(package)).to eq(4.04)
+      end
+
+      it 'rounds result based on order currency' do
+        package.order.currency = 'JPY'
+        expect(subject.compute(package)).to eq(4)
       end
 
       it 'returns a bigdecimal' do
