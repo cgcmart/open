@@ -7,12 +7,15 @@ describe "Return payment state spec" do
 
   before do
     Spree::RefundReason.create!(name: Spree::RefundReason::RETURN_PROCESSING_REASON, mutable: false)
+    allow_any_instance_of(Spree::Admin::ReimbursementsController).to receive(:try_spree_current_user).
+      and_return(user)
   end
 
   let!(:order) { create(:shipped_order) }
+  let(:user) { create(:admin_user) }
 
   # Regression test for https://github.com/spree/spree/issues/6229
-  it "refunds and has outstanding_balance of zero", js: true do
+  it 'refunds and has outstanding_balance of zero', js: true do
     expect(order).to have_attributes(
       total: 110,
       refund_total: 0,
@@ -22,7 +25,7 @@ describe "Return payment state spec" do
     )
 
     # From an order with a shipped shipment
-    visit "/admin/orders/#{order.number}/edit"
+    visit '/admin/orders/#{order.number}/edit'
 
     # Create a Return Authorization (select the Original Reimbursement type)
     click_on 'RMA'
