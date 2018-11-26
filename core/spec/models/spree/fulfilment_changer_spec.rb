@@ -37,6 +37,39 @@ RSpec.describe Spree::FulfilmentChanger do
     variant.stock_items.first.update_column(:count_on_hand, 100)
   end
 
+  context 'when the current shipment stock location is the same of the target shipment' do
+    let(:current_shipment_inventory_unit_count) { 1 }
+    let(:quantity) { current_shipment_inventory_unit_count }
+
+    context 'when the stock location is empty' do
+      before do
+        variant.stock_items.first.update_column(:count_on_hand, 0)
+      end
+
+      context 'when the inventory unit is backordered' do
+        before do
+          current_shipment.inventory_units.first.update state: :backordered
+        end
+
+        it 'creates a new backordered inventory unit' do
+          subject
+          expect(desired_shipment.inventory_units.first).to be_backordered
+        end
+      end
+
+      context 'when the inventory unit is on hand' do
+        before do
+          current_shipment.inventory_units.first.update state: :on_hand
+        end
+
+        it 'creates a new on hand inventory unit' do
+          subject
+          expect(desired_shipment.inventory_units.first).to be_on_hand
+        end
+      end
+    end
+  end
+
   context 'when the current shipment has enough inventory units' do
     let(:current_shipment_inventory_unit_count) { 2 }
     let(:quantity) { 1 }
@@ -302,24 +335,6 @@ RSpec.describe Spree::FulfilmentChanger do
         subject
         expect(shipment_splitter.errors.messages).to eq(desired_stock_location: ["can't be blank"])
       end
-    end
-  end
-
-  context 'when stock_item is last on_hand' do
-    before do
-      variant.stock_items.first.update_column(:count_on_hand, 1)
-    end
-
-    let(:current_shipment_inventory_unit_count) { 1 }
-    let(:quantity) { 1 }
-
-    it 'is successful' do
-      expect(subject).to be true
-    end
-
-    it 'has inventory unit on_hand' do
-      subject
-      expect(desired_shipment.inventory_units.first.state).to eq('on_hand')
     end
   end
 end
