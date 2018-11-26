@@ -31,7 +31,6 @@ RSpec.describe 'i18n' do
 
   it 'translates within the spree scope' do
     expect(t('spree.foo')).to eql('bar')
-    expect(Spree.translate(:foo)).to eql('bar')
   end
 
   it 'prepends a string scope' do
