@@ -744,6 +744,42 @@ RSpec.describe Spree::Product, type: :model do
     end
   end
 
+  context '#default_variant' do
+    let(:product) { create(:product) }
+
+    context 'product has variants' do
+      let!(:variant) { create(:variant, product: product) }
+
+      it 'returns first non-master variant' do
+        expect(product.default_variant).to eq(variant)
+      end
+    end
+
+    context 'product without variants' do
+      it 'returns master variant' do
+        expect(product.default_variant).to eq(product.master)
+      end
+    end
+  end
+
+  context '#default_variant_id' do
+    let(:product) { create(:product) }
+
+    context 'product has variants' do
+      let!(:variant) { create(:variant, product: product) }
+
+      it 'returns first non-master variant ID' do
+        expect(product.default_variant_id).to eq(variant.id)
+      end
+    end
+
+    context 'product without variants' do
+      it 'returns master variant ID' do
+        expect(product.default_variant_id).to eq(product.master.id)
+      end
+    end
+  end
+
   describe '#gallery' do
     let(:product) { Spree::Product.new }
     subject { product.gallery }
