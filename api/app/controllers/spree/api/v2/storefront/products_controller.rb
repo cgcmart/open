@@ -69,10 +69,6 @@ module Spree
             Spree::Product.includes(scope_includes)
           end
 
-          def resource_includes
-            request_includes || default_resource_includes
-          end
-
           def default_resource_includes
             %i[
               variants
