@@ -5,6 +5,8 @@ module Spree
     module V2
       module Storefront
         class CheckoutController < ::Spree::Api::V2::BaseController
+          before_action :ensure_order
+
           def next
             spree_authorize! :update, spree_current_order, order_token
 
@@ -44,6 +46,10 @@ module Spree
 
           private
 
+          def ensure_order
+            raise ActiveRecord::RecordNotFound if spree_current_order.nil?
+          end
+
           def dependencies
             {
               next_state_procceder: Spree::Checkout::Next,
@@ -66,10 +72,6 @@ module Spree
 
           def serialize_order(order)
             dependencies[:cart_serializer].new(order.reload, include: resource_includes).serializable_hash
-          end
-
-          def resource_includes
-            request_includes || default_resource_includes
           end
 
           def default_resource_includes
