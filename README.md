@@ -1,5 +1,5 @@
 
-<img src="open_logo_l.png" width="240">
+<img src="open_logo_300.png" width="300">
 
 **Open** is the newest approach to the e-commerce solution built with Ruby on Rails. It is a fork of [Spree](https://spreecommerce.org).
 
