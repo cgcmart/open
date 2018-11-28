@@ -42,7 +42,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.datetime 'deleted_at', precision: 6
-      t.index ['slug', 'sluggable_type'], name: 'index_friendly_id_slugs_on_slug_and_sluggable_type', length: { name: 100, slug: 20, sluggable_type: 20 }
       t.index ['slug', 'sluggable_type', 'scope'], name: 'index_friendly_id_slugs_on_slug_and_sluggable_type_and_scope', length: { name: 100, slug: 20, sluggable_type: 20, scope: 20 }, unique: true
       t.index ["sluggable_id"], name: "index_friendly_id_slugs_on_sluggable_id"
       t.index ["sluggable_type"], name: "index_friendly_id_slugs_on_sluggable_type"
@@ -96,7 +95,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.integer "adjustment_reason_id"
       t.boolean "finalized", default: false, null: false
       t.index ['adjustable_id', 'adjustable_type'], name: 'index_adjustments_on_adjustable_id_and_type'
-      t.index ["adjustable_id"], name: "index_adjustments_on_order_id"
       t.index ["eligible"], name: "index_adjustments_on_eligible"
       t.index ["promotion_code_id"], name: "index_adjustments_on_promotion_code_id"
       t.index ["source_id", "source_type"], name: "index_adjustments_on_source_id_and_type"
@@ -230,7 +228,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['prototype_id', 'option_type_id'], name: 'index_option_type_prototypes_on_prototype_and_option_type', unique: true
-      t.index ['prototype_id'], name: 'index_spree_option_type_prototypes_on_prototype_id'
     end
 
     create_table "spree_option_types", force: :cascade do |t|
@@ -259,7 +256,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['variant_id','option_value_id'], name: 'index_option_value_variants_on_variant_and_option_value', unique: true
-      t.index ['variant_id'], name: 'index_spree_option_value_variants_on_variant_id'
     end
 
     create_table "spree_order_mutexes", force: :cascade do |t|
@@ -274,9 +270,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.integer "promotion_code_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ['order_id'], name: 'index_spree_order_promotions_on_order_id'
-      t.index ["promotion_code_id"], name: "index_spree_order_promotions_on_promotion_code_id"
-      t.index ['promotion_id'], name: 'index_spree_order_promotions_on_promotion_id'
+      t.index ["promotion_code_id"], name: 'index_spree_order_promotions_on_promotion_code_id'
       t.index ['promotion_id', 'order_id'], name: 'index_spree_order_promotions_on_oder_promotion'
     end
 
@@ -318,7 +312,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.index ["approver_id"], name: "index_spree_orders_on_approver_id"
       t.index ["bill_address_id"], name: "index_spree_orders_on_bill_address_id"
       t.index ["completed_at"], name: "index_spree_orders_on_completed_at"
-      t.index ["created_by_id"], name: "index_spree_orders_on_created_by_id"
       t.index ['token'], name: 'index_spree_orders_on_token'
       t.index ['number'], name: 'index_spree_orders_on_number', unique: true
       t.index ["ship_address_id"], name: "index_spree_orders_on_ship_address_id"
@@ -409,7 +402,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['promotion_rule_id', 'product_id'], name: 'index_product_promotion_rules_on_promotion_rule_and_product'
-      t.index ["product_id"], name: "index_product_promotion_rules_on_product_id"
     end
 
     create_table "spree_product_properties", force: :cascade do |t|
@@ -528,7 +520,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['user_id', 'promotion_rule_id'], name: 'index_promotion_rule_users_on_user_id_and_promotion_rule_id'
-      t.index ["promotion_rule_id"], name: "index_promotion_rule_users_on_promotion_rule_id"
     end
 
     create_table "spree_promotions", force: :cascade do |t|
@@ -569,8 +560,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['prototype_id', 'property_id'], name: 'index_property_prototypes_on_prototype_and_property', unique: true
-      t.index ['prototype_id'], name: 'index_spree_property_prototypes_on_prototype_id'
-      t.index ['property_id'], name: 'index_spree_property_prototypes_on_property_id'
     end
 
     create_table "spree_prototype_taxons", force: :cascade do |t|
@@ -578,8 +567,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.integer "prototype_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ["taxon_id"], name: "index_spree_prototype_taxons_on_taxon_id"
-      t.index ['prototype_id'], name: 'index_spree_prototypes_taxons_on_prototype_id'
       t.index ['prototype_id', 'taxon_id'], name: 'index_prototypes_taxons_on_prototype_and_taxon'
     end
 
@@ -746,8 +733,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['shipping_method_id', 'shipping_category_id'], name: 'index_spree_shipping_method_categories_on_shipping_method_category_id', unique: true
-      t.index ['shipping_category_id'], name: 'index_spree_shipping_method_categories_on_shipping_category_id'
-      t.index ["shipping_method_id"], name: "index_spree_shipping_method_categories_on_shipping_method_id"
     end
 
     create_table "spree_shipping_method_stock_locations", force: :cascade do |t|
@@ -765,8 +750,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ['shipping_method_id', 'zone_id'], name: 'index_spee_shipping_method_zones_on_shipping_method_zone_id', unique: true
-      t.index ['zone_id'], name: 'index_spee_shipping_method_zones_on_zone_id'
-      t.index ['shipping_method_id'], name: 'index_spee_shipping_method_zones_on_shipping_method_id'
     end
 
     create_table "spree_shipping_methods", force: :cascade do |t|
@@ -803,8 +786,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "updated_at", precision: 6
       t.integer "tax_rate_id"
       t.index ['shipment_id', 'shipping_method_id'], name: 'index_spree_shipping_rates_on_shipment_shipping_method_id', unique: true
-      t.index ['shipment_id'], name: 'index_spree_shipping_rates_on_shipment_id'
-      t.index ['shipping_method_id'], name: 'index_spree_shipping_rates_on_shipping_method_id'
     end
 
     create_table "spree_state_changes", force: :cascade do |t|
@@ -838,7 +819,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "deleted_at"
       t.index ["deleted_at"], name: "index_spree_stock_items_on_deleted_at"
       t.index ['variant_id', 'stock_location_id'], name: 'index_spree_stock_items_on_variant_id_and_stock_location_id', unique: true
-      t.index ['stock_location_id'], name: 'index_spree_stock_items_on_stock_location_id'
     end
 
     create_table "spree_stock_locations", force: :cascade do |t|
@@ -975,13 +955,8 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.references 'tagger', polymorphic: true
       t.string 'context', limit: 128
       t.datetime 'created_at', precision: 6
-      t.index ['tag_id'], name: 'index_spree_taggings_on_tag_id'
-      t.index ['taggable_id'], name: 'index_spree_taggings_on_taggable_id'
-      t.index ['taggable_type'], name: 'index_spree_taggings_on_taggable_type'
-      t.index ['tagger_id'], name: 'index_spree_taggings_on_tagger_id'
-      t.index ['context'], name: 'index_spree_taggings_on_context'
       t.index ['tagger_id', 'tagger_type'], name: 'index_spree_taggings_on_tagger_id_type'
-      t.index ['taggable_id', 'taggable_type', 'tagger_id', 'context'], name: 'index_spree_taggings_on_taggings_id_type'
+      t.index ['taggable_id', 'taggable_type', 'context'], name: 'index_spree_taggings_on_taggable_id_type'
     end
 
 	  create_table 'spree_tags', force: :cascade do |t|
@@ -1064,9 +1039,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.boolean "archived", default: false
       t.datetime "created_at", null: false, precision: 6
       t.datetime "updated_at", null: false, precision: 6
-      t.index ["address_id"], name: "index_spree_user_addresses_on_address_id"
       t.index ["user_id", "address_id"], name: "index_spree_user_addresses_on_user_id_and_address_id", unique: true
-      t.index ["user_id"], name: "index_spree_user_addresses_on_user_id"
     end
 
     create_table "spree_user_stock_locations", force: :cascade do |t|
@@ -1134,7 +1107,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "created_at", null: false, precision: 6
       t.datetime "updated_at", null: false, precision: 6
       t.index ["user_id", "payment_source_id", "payment_source_type"], name: "index_spree_wallet_payment_sources_on_source_and_user", unique: true
-      t.index ["user_id"], name: "index_spree_wallet_payment_sources_on_user_id"
     end
 
     create_table "spree_zone_members", force: :cascade do |t|
