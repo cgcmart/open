@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'rails/all'
-require 'bootstrap-sass'
+require 'bootstrap'
+require 'glyphicons'
+require 'popper_js'
 require 'canonical-rails'
 require 'jquery-rails'
 require 'sassc-rails'
