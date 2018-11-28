@@ -1,17 +1,23 @@
 <% url = spree.product_path(product, taxon_id: taxon.try(:id)) %>
-<div id="product_<%= product.id %>" class="col-md-3 col-sm-6 col-xs-6 product-list-item" data-hook="products_list_item" itemscope itemtype="https://schema.org/Product">
-  <% cache(@taxon.present? ? [I18n.locale, current_pricing_options, @taxon, product] : [I18n.locale, current_pricing_options, product]) do %>
-    <div class="product-image">
-      <%= link_to(render('spree/shared/image', image: product.gallery.images.first, size: :small, itemprop: "image"), url, itemprop: 'url') %>
-    </div>
-    <%= link_to truncate(product.name, length: 50), url, class: 'info', itemprop: "name", title: product.name %>
-    <span itemprop="offers" itemscope itemtype="https://schema.org/Offer">
-      <% if price = product.price_for(current_pricing_options) %>
-        <span class="price selling" itemprop="price" content="<%= price.to_d %>">
-          <%= price.to_html %>
+<div id="product_<%= product.id %>" class="d-flex w-100 col-12 col-md-4 col-sm-6 product-list-item mb-4" data-hook="products_list_item" itemscope itemtype="https://schema.org/Product">
+  <div class="card w-100">
+    <% cache(@taxon.present? ? [I18n.locale, current_pricing_options, @taxon, product] : [I18n.locale, current_pricing_options, product]) do %>
+      <div class="card-body text-center product-body">
+        <%= link_to url, itemprop: "url", class: 'd-block text-center' do %>
+          <%= small_image(product, itemprop: "image", class: "d-block mx-auto") %>
+          <%= content_tag(:span, truncate(product.name, length: 50), class: 'info my-3 d-block', itemprop: "name", title: product.name) %>
+        <% end %>
+      </div>
+      <div class="card-footer text-center">
+        <span itemprop="offers" itemscope itemtype="https://schema.org/Offer">
+          <% if price = product.price_for(current_pricing_options) %>
+            <span class="price selling" itemprop="price" content="<%= price.to_d %>">
+              <%= price.to_html %>
+            </span>
+          <% end %>
+          <span itemprop="priceCurrency" content="<%= current_pricing_options.currency %>"></span>
         </span>
-      <% end %>
-      <span itemprop="priceCurrency" content="<%= current_pricing_options.currency %>"></span>
-    </span>
-  <% end %>
+      </div>
+    <% end %>
+  </div>
 </div>
