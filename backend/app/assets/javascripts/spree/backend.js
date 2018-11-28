@@ -1,5 +1,5 @@
 //= require handlebars
-//= require jquery
+//= require jquery3
 //= require jquery_ujs
 //= require jquery.sticky-kit.min
 //= require prism
