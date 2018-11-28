@@ -225,23 +225,6 @@ footer#footer {
   border-top: $default_border;
 }
 
-// Spree Custom Footer 
-
-#spree-footer {
-  background: $gray-700;
-  padding-top: $spacer;
-  margin-top: $line-height-base;
-  color: #fff;
-}
-
-// Footer links
-#footer-left a {
-  color: lighten($brand-primary, 20);
-
-  &:hover {
-    color: lighten($brand-primary, 10);
-  }
-}
 
 // -- Spree Layout Custom Rules -------------------------
 
