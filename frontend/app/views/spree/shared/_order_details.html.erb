@@ -77,8 +77,8 @@
     <% end %>
   </tbody>
   <tfoot id="order-total" data-hook="order_details_total">
-    <tr class="total">
-      <td colspan="4"><b><%= t('spree.order_total') %>:</b></td>
+    <tr class="table-warning total">
+      <td colspan="4" align="right"><b><%= t('spree.order_total') %>:</b></td>
       <td class="total"><span id="order_total"><%= order.display_order_total_after_store_credit.to_html %></span></td>
     </tr>
   </tfoot>
