@@ -4,8 +4,10 @@
     <div class="col-md-4 col-sm-5" data-hook="product_left_part">
       <div class="row" data-hook="product_left_part_wrap">
         <div id="product-images" data-hook="product_images">
-          <div id="main-image" data-hook>
-            <%= render partial: 'image' %>
+          <div id="main-image" class="card  " data-hook>
+            <div class="card-body text-center">
+              <%= render partial: 'image', itemprop: 'image' %>
+            </div>
           </div>
           <div id="thumbnails" data-hook>
             <%= render partial: 'thumbnails' %>
