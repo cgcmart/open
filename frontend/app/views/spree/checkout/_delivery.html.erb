@@ -1,6 +1,6 @@
 <div class="card  " id='shipping_method' data-hook>
   <div class="card-header">
-    <h3 class="card-title">
+    <h3 class="card-title mb-0">
       <%= t('spree.delivery') %>
     </h3>
   </div>
@@ -60,7 +60,7 @@
 
       <% if @differentiator.try(:missing?) %>
         <div class="shipment unshippable">
-          <h3 class="stock-location" data-hook="stock-location">
+          <h3 class="stock-location mb-0" data-hook="stock-location">
             <%= t('spree.unshippable_items') %>
           </h3>
           <table class="stock-contents" data-hook="stock-missing">
@@ -102,12 +102,14 @@
       </p>
     <% end %>
   </div>
-</fieldset>
+</div>
 
 <br />
 
-<div class="form-buttons" data-hook="buttons">
-  <%= submit_tag t('spree.save_and_continue'), class: 'continue button primary' %>
+<div class="card mt-4 text-right form-buttons" data-hook="buttons">
+  <div class="card-body">
+    <%= submit_tag t('spree.save_and_continue'), class: 'continue button primary' %>
+  </div>
 </div>
 
 <%= javascript_include_tag 'spree/frontend/checkout/shipment' %>
