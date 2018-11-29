@@ -4,7 +4,7 @@
     <% cache(@taxon.present? ? [I18n.locale, current_pricing_options, @taxon, product] : [I18n.locale, current_pricing_options, product]) do %>
       <div class="card-body text-center product-body">
         <%= link_to url, itemprop: "url", class: 'd-block text-center' do %>
-          <%= small_image(product, itemprop: "image", class: "d-block mx-auto") %>
+          <%= render('spree/shared/image', image: product.gallery.images.first, itemprop: "image", class: "small_image d-block mx-auto") %>
           <%= content_tag(:span, truncate(product.name, length: 50), class: 'info my-3 d-block', itemprop: "name", title: product.name) %>
         <% end %>
       </div>
