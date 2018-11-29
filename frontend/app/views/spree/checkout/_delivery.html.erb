@@ -1,14 +1,17 @@
-<fieldset id='shipping_method' data-hook>
-  <legend align="center"><%= t('spree.delivery') %></legend>
-  <div class="inner" data-hook="shipping_method_inner">
+<div class="card  " id='shipping_method' data-hook>
+  <div class="card-header">
+    <h3 class="card-title">
+      <%= t('spree.delivery') %>
+    </h3>
+  </div>
+  <div class="card-body" data-hook="shipping_method_inner">
     <div id="methods">
       <%= form.fields_for :shipments do |ship_form| %>
-
         <div class="shipment">
-          <h3 class="stock-location" data-hook="stock-location">
+          <h4 class="stock-location" data-hook="stock-location">
             <%= t('spree.package_from') %>
             <strong class="stock-location-name" data-hook="stock-location-name"><%= ship_form.object.stock_location.name %></strong>
-          </h3>
+          </h4>
 
           <table class="stock-contents" data-hook="stock-contents">
             <colgroup>
