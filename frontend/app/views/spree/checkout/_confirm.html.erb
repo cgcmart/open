@@ -1,4 +1,4 @@
-<div class="card  " id="order_details" data-hook>
+<div class="card" id="order_details" data-hook>
   <div class="card-header">
     <h3 class="card-title">
       <%= t('spree.confirm') %>
@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<div class="well text-right form-buttons" data-hook="buttons">
+<div class="card text-right form-buttons mt-4" data-hook="buttons">
   <% Spree::Frontend::Config[:require_terms_and_conditions_acceptance].tap do |requires_acceptance| %>
     <% if requires_acceptance %>
       <div class="terms_and_conditions" data-hook="terms_and_conditions">
