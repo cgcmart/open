@@ -2,6 +2,7 @@
 
 @import "./variables";
 @import "bootstrap";
+@import "glyphicons";
 
 @media (max-width: $screen-xs-max) {
   .col-xs-12 {
@@ -33,7 +34,7 @@
 
 // -- Spree Custom Header ---------------------
 #spree-header {
-  background-color: $brand-primary;
+  background-color: $primary;
   margin-bottom: $line-height-base;
   padding-top: 0.25em;
 
