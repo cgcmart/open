@@ -1,12 +1,15 @@
-<fieldset id="order_details" data-hook>
-  <div class="clear"></div>
-  <legend align="center"><%= t('spree.confirm') %></legend>
-  <%= render partial: 'spree/shared/order_details', locals: { order: @order } %>
-</fieldset>
+<div class="card  " id="order_details" data-hook>
+  <div class="card-header">
+    <h3 class="card-title">
+      <%= t('spree.confirm') %>
+   </h3>
+  </div>
+  <div class="card-body">
+    <%= render partial: 'spree/shared/order_details', locals: { order: @order } %>
+  </div>
+</div>
 
-<br />
-
-<div class="form-buttons" data-hook="buttons">
+<div class="well text-right form-buttons" data-hook="buttons">
   <% Spree::Frontend::Config[:require_terms_and_conditions_acceptance].tap do |requires_acceptance| %>
     <% if requires_acceptance %>
       <div class="terms_and_conditions" data-hook="terms_and_conditions">
