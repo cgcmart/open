@@ -51,14 +51,6 @@
     }
   }
 
-  @media (max-width: 767px) {
-    .navbar-nav > li > a {
-      padding-top: 0;
-      padding-bottom: 10px;
-      line-height: $line-height-computed;
-    }
-  }
-
   .nav a {
     color: #fff;
 
@@ -226,6 +218,10 @@ footer#footer {
 .alert-notice { @extend .alert-success; }
 .alert-error { @extend .alert-danger; }
 .alert-alert { @extend .alert-info; }
+
+.list-unstyled {
+  @include list-unstyled();
+}
 
 .progress-steps {
   margin-top: $line-height-base;
