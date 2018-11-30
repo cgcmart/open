@@ -17,12 +17,9 @@ Spree.adminPath = function () {
 }
 
 Spree.pathFor = function (path) {
-  var locationOrigin = (window.location.protocol + '//' + window.location.hostname) + (window.location.port ? ':' + window.location.port : '')
-  return this.url('' + locationOrigin + (this.mountedAt()) + path, this.url_params).toString()
-}
-
-Spree.adminPathFor = function (path) {
-  return this.pathFor('' + (this.adminPath()) + path)
+  var locationOrigin;
+  locationOrigin = (window.location.protocol + '//' + window.location.hostname) + (window.location.port ? ':' + window.location.port : '')
+  return locationOrigin + Spree.mountedAt() + path
 }
 
 Spree.ajax = function (urlOrSettings, settings) {
@@ -39,7 +36,7 @@ Spree.ajax = function (urlOrSettings, settings) {
 Spree.routes = {
   states_search: Spree.pathFor('api/states'),
   apply_coupon_code: function (orderId) {
-    return Spree.pathFor('api/orders/' + orderId + '/apply_coupon_code')
+    return Spree.pathFor('api/orders/' + orderId + '/coupon_code')
   },
   cart: Spree.pathFor('cart')
 }
