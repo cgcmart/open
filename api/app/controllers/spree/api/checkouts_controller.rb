@@ -114,20 +114,6 @@ module Spree
         send(method_name) if respond_to?(method_name, true)
       end
 
-      def after_update_attributes
-        if params[:order] && params[:order][:coupon_code].present?
-          handler = PromotionHandler::Coupon.new(@order)
-          handler.apply
-
-          if handler.error.present?
-            @coupon_message = handler.error
-            respond_with(@order, default_template: 'spree/api/orders/could_not_apply_coupon', status: 422)
-            return true
-          end
-        end
-        false
-      end
-
       def log_state_changes
         if @order.previous_changes[:state]
           @order.log_state_changes(
