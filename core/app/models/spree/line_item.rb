@@ -38,7 +38,7 @@ module Spree
     before_destroy :update_inventory
     before_destroy :destroy_inventory_units
 
-    delegate :name, :description, :sku, :should_track_inventory?, to: :variant
+    delegate :name, :description, :sku, :should_track_inventory?, :slug, to: :variant
     delegate :currency, to: :order, allow_nil: true
 
     attr_accessor :target_shipment
