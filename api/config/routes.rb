@@ -72,9 +72,9 @@ Spree::Core::Engine.routes.draw do
       member do
         put :cancel
         put :empty
-        put :apply_coupon_code
-        put :remove_coupon_code, on: :member
       end
+
+      resources :coupon_codes, only: :create
     end
 
     resources :zones
