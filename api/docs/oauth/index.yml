@@ -60,5 +60,5 @@ paths:
                   description: User password
               example:
                 grant_type: password
-                usernme: spree@example.com
-                password: spree123
+                usernme: admin@example.com
+                password: test123
