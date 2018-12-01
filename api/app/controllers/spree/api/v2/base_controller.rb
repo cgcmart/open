@@ -14,7 +14,7 @@ module Spree
         def render_serialized_payload(payload, status = 200)
           render json: payload, status: status
         rescue ArgumentError => exception
-          render json: { error: exception.message }, status: 400
+          render_error_payload(exception.message, 400)
         end
 
         def render_error_payload(error, status = 422)
