@@ -27,7 +27,7 @@ RSpec.feature "Promotion Code Invalidation", js: true do
   end
 
   scenario "adding the promotion to a cart with two applicable items" do
-    fill_in "coupon code", with: "PROMO"
+    fill_in "coupon_code", with: "PROMO"
     click_button "Apply Code"
 
     expect(page).to have_content("The coupon code was successfully applied to your order")
