@@ -61,20 +61,20 @@ module Spree
           end
 
           def scope
-            Spree::Taxon.includes(:parent, :children).accessible_by(current_ability, :read)
+            Spree::Taxon.accessible_by(current_ability, :read).includes(scope_includes)
           end
 
-          def default_resource_includes
-            %i[
-              parent
-              taxonomy
-              children
-              products
-              image
-            ]
-          end
+          def scope_includes
+            node_includes = %i[icon products parent taxonomy]
 
-          alias collection_includes resource_includes
+            {
+              parent: node_includes,
+              children: node_includes,
+              taxonomy: [root: node_includes],
+              products: [],
+              icon: []
+            }
+          end
         end
       end
     end
