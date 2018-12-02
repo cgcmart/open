@@ -20,10 +20,15 @@ module Spree
     before_update :set_permalink
     after_update :update_child_permalinks, if: :saved_change_to_permalink?
 
-    validates :name, presence: true
-    validates :meta_keywords, length: { maximum: 255 }
-    validates :meta_description, length: { maximum: 255 }
-    validates :meta_title, length: { maximum: 255 }
+    validates :name, presence: true, uniqueness: { scope: [:parent_id, :taxonomy_id], allow_blank: true }
+    validates :permalink, uniqueness: { case_sensitive: false }
+    validates_associated :icon
+    validate :check_for_root, on: :create
+    with_options length: { maximum: 255 }, allow_blank: true do
+      validates :meta_keywords
+      validates :meta_description
+      validates :meta_title
+    end
 
     after_save :touch_ancestors_and_taxonomy
     after_touch :touch_ancestors_and_taxonomy
