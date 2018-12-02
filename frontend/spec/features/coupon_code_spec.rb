@@ -11,7 +11,7 @@ RSpec.describe 'Coupon code promotions', type: :feature, js: true do
   let!(:payment_method) { create(:check_payment_method) }
   let!(:product) { create(:product, name: 'RoR Mug', price: 20) }
 
-  context 'visitor makes checkout' do
+  context 'visitor makes checkou as guest without registrationt' do
     def create_basic_coupon_promotion(code)
       promotion = Spree::Promotion.create!(
         name: code.titleize,
@@ -33,231 +33,39 @@ RSpec.describe 'Coupon code promotions', type: :feature, js: true do
 
     let!(:promotion) { create_basic_coupon_promotion('onetwo') }
 
+    # OrdersController
     context 'on the payment page' do
-      context 'as guest without registration' do
-        before do
-          visit spree.root_path
-          click_link "RoR Mug"
-          click_button "add-to-cart-button"
-          click_button "Checkout"
-          fill_in "order_email", with: "spree@example.com"
-          fill_in "First Name", with: "John"
-          fill_in "Last Name", with: "Smith"
-          fill_in "Street Address", with: "1 John Street"
-          fill_in "City", with: "City of John"
-          fill_in "Zip", with: "01337"
-          select country.name, from: "Country"
-          select state.name, from: "order[bill_address_attributes][state_id]"
-          fill_in "Phone", with: "555-555-5555"
+      include_context 'proceed to payment step'
 
-          # To shipping method screen
-          click_button "Save and Continue"
-          # To payment screen
-          click_button "Save and Continue"
-        end
-
-        it 'informs about an invalid coupon code' do
-          fill_in 'coupon_code', with: 'coupon_codes_rule_man'
-          click_button 'Apply Code'
-          expect(page).to have_content(I18n.t('spree.coupon_code_not_found'))
-        end
-
-        it 'can enter an invalid coupon code, then a real one' do
-          fill_in 'coupon_code', with: 'coupon_codes_rule_man'
-          click_button 'Apply Code'
-          expect(page).to have_content(t('spree.coupon_code_not_found'))
-          fill_in 'coupon_code', with: 'onetwo'
-          click_button 'Apply Code'
-          expect(page).to have_content('Promotion (Onetwo)   -$10.00')
-        end
-
-        context 'with a promotion' do
-          it 'applies a promotion to an order' do
-            fill_in 'coupon_code', with: 'onetwo'
-            click_button 'Apply Code'
-            expect(page).to have_content('Promotion (Onetwo)   -$10.00')
-          end
-        end
-      end
-
-      context 'as logged user' do
-        let!(:user) { create(:user, bill_address: create(:address), ship_address: create(:address)) }
-
-        before do
-          allow_any_instance_of(Spree::CheckoutController).to receive_messages(try_spree_current_user: user)
-          allow_any_instance_of(Spree::OrdersController).to receive_messages(try_spree_current_user: user)
-        end
-
-        context 'with saved credit card' do
-          let(:bogus) { create(:credit_card_payment_method) }
-          let!(:credit_card) do
-            create(:credit_card, user_id: user.id, payment_method: bogus, gateway_customer_profile_id: 'BGS-WEFWF')
-          end
-
-          before do
-            user.wallet.add(credit_card)
-
-            visit spree.root_path
-            click_link 'RoR Mug'
-            click_button 'add-to-cart-button'
-            # To Cart
-            click_button 'Checkout'
-            # To shipping method screen, address is auto-populated
-            # with user's saved addresses
-            click_button 'Save and Continue'
-            # To payment screen
-            click_button 'Save and Continue'
-          end
-
-          it 'shows wallet payments on coupon code errors' do
-            fill_in 'coupon_code', with: 'coupon_codes_rule_man'
-            click_button 'Apply Code'
-
-            expect(page).to have_content("The coupon code you entered doesn't exist. Please try again.")
-            expect(page).to have_content('Use an existing card')
-          end
-        end
-      end
-    end
-
-    # CheckoutController
-    context 'on the cart page' do
-      before do
-        visit spree.root_path
-        click_link 'RoR Mug'
-        click_button 'add-to-cart-button'
-      end
-
-      it 'can enter a coupon code and receives success notification' do
-        fill_in 'coupon_code', with: 'onetwo'
+      it 'informs about an invalid coupon code' do
+        fill_in 'coupon_code', with: 'coupon_codes_rule_man'
         click_button 'Apply Code'
-        expect(page).to have_content(t('spree.coupon_code_applied'))
-      end
-
-      it 'can enter a promotion code with both upper and lower case letters' do
-        fill_in 'coupon_code', with: 'ONETwO'
-        click_button 'Apply Code'
-        expect(page).to have_content(t('spree.coupon_code_applied'))
+        expect(page).to have_content(I18n.t('spree.coupon_code_not_found'))
       end
 
       it 'informs the user about a coupon code which has exceeded its usage' do
-        expect_any_instance_of(Spree::Promotion).to receive(:usage_limit_exceeded?).and_return(true)
+        promotion.update_column(:usage_limit, 5)
+        allow_any_instance_of(promotion.class).to receive_messages(credits_count: 10)
 
         fill_in 'coupon_code', with: 'onetwo'
+        click_button 'Save and Continue'
+        expect(page).to have_content(I18n.t('spree.coupon_code_max_usage'))
+      end
+
+      it 'can enter an invalid coupon code, then a real one' do
+        fill_in 'coupon_code', with: 'coupon_codes_rule_man'
         click_button 'Apply Code'
-        expect(page).to have_content(t('spree.coupon_code_max_usage'))
-      end
-
-      context 'informs the user if the coupon code is not eligible' do
-        before do
-          rule = Spree::Promotion::Rules::ItemTotal.new
-          rule.promotion = promotion
-          rule.preferred_amount = 100
-          rule.save
-        end
-
-        specify do
-          visit spree.cart_path
-
-          fill_in 'coupon_code', with: 'onetwo'
-          click_button 'Apply Code'
-          expect(page).to have_content(I18n.t('item_total_less_than_or_equal', scope: [:spree, :eligibility_errors, :messages], amount: '$100.00'))
-        end
-      end
-
-      it 'informs the user if the coupon is expired' do
-        promotion.expires_at = Date.today.beginning_of_week
-        promotion.starts_at = Date.today.beginning_of_week.advance(day: 3)
-        promotion.save!
+        expect(page).to have_content(t('spree.coupon_code_not_found'))
         fill_in 'coupon_code', with: 'onetwo'
         click_button 'Apply Code'
-        expect(page).to have_content(t('spree.coupon_code_expired'))
+        expect(page).to have_content('Promotion (Onetwo)   -$10.00')
       end
 
-      context 'calculates the correct amount of money saved with flat percent promotions' do
-        before do
-          calculator = Spree::Calculator::FlatPercentItemTotal.new
-          calculator.preferred_flat_percent = 20
-          promotion.actions.first.calculator = calculator
-          promotion.save
-
-          create(:product, name: 'Spree Mug', price: 10)
-        end
-
-        specify do
-          visit spree.root_path
-          click_link 'Spree Mug'
-          click_button 'add-to-cart-button'
-
-          visit spree.cart_path
+      context 'with a promotion' do
+        it 'applies a promotion to an order' do
           fill_in 'coupon_code', with: 'onetwo'
           click_button 'Apply Code'
-
-          fill_in 'order_line_items_attributes_0_quantity', with: 2
-          fill_in 'order_line_items_attributes_1_quantity', with: 2
-          click_button 'Update'
-
-          within '#cart_adjustments' do
-            # 20% of $40 = 8
-            # 20% of $20 = 4
-            # Therefore: promotion discount amount is $12.
-            expect(page).to have_content('Promotion (Onetwo) -$12.00')
-          end
-
-          within '.cart-total' do
-            expect(page).to have_content('$48.00')
-          end
-        end
-      end
-
-      context 'calculates the correct amount of money saved with flat 100% promotions on the whole order' do
-        before do
-          calculator = Spree::Calculator::FlatPercentItemTotal.new
-          calculator.preferred_flat_percent = 100
-
-          promotion.promotion_actions.first.discard
-
-          Spree::Promotion::Actions::CreateAdjustment.create!(
-            calculator: calculator,
-            promotion: promotion
-          )
-
-          create(:product, name: 'Spree Mug', price: 10)
-        end
-
-        specify do
-          visit spree.root_path
-          click_link 'Spree Mug'
-          click_button 'add-to-cart-button'
-
-          visit spree.cart_path
-
-          within '.cart-total' do
-            expect(page).to have_content('$30.00')
-          end
-
-          fill_in 'coupon_code', with: 'onetwo'
-          click_button 'Apply Code'
-
-          within '#cart_adjustments' do
-            expect(page).to have_content('Promotion (Onetwo) -$30.00')
-          end
-
-          within '.cart-total' do
-            expect(page).to have_content('$0.00')
-          end
-
-          fill_in 'order_line_items_attributes_0_quantity', with: 2
-          fill_in 'order_line_items_attributes_1_quantity', with: 2
-          click_button 'Update'
-
-          within '#cart_adjustments' do
-            expect(page).to have_content('Promotion (Onetwo) -$60.00')
-          end
-
-          within '.cart-total' do
-            expect(page).to have_content('$0.00')
-          end
+          expect(page).to have_content('Promotion (Onetwo)   -$10.00')
         end
       end
     end
