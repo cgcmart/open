@@ -13,26 +13,20 @@
 
 
 <% content_for(:image_2) do %>
-
-<% if @flag == 'yes' %>
-	<% size = :large %>
-<% else %>
-	<% size = :product %>
-<% end %>
-
-<%#= controller.action_name %>
-
-<%# size ||= :large %>
-<% itemprop ||= nil %>
-<%#= @flag %>
-<% if image && image.attachment? %>
-  <% if itemprop %>
-    <%= image_tag image.attachment(:product), itemprop: itemprop %>
+  <% if @flag == 'yes' %>
+    <% size = :large %>
   <% else %>
-    <%= image_tag image.attachment(:large) %>
+	  <% size = :product %>
   <% end %>
-<% else %>
-  <span class="image-placeholder <%= size %>"></span>
-<% end %>
 
+  <% itemprop ||= nil %>
+  <% if image && image.attachment? %>
+    <% if itemprop %>
+      <%= image_tag image.attachment(:product), itemprop: itemprop %>
+    <% else %>
+      <%= image_tag image.attachment(:large) %>
+    <% end %>
+  <% else %>
+    <span class="image-placeholder <%= size %>"></span>
+  <% end %>
 <% end %>
