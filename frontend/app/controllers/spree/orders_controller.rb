@@ -43,10 +43,7 @@ module Spree
     end
 
     def empty
-      if @order = current_order
-        authorize! :update, @order, cookies.signed[:token]
-        @order.empty!
-      end
+      current_order.try(:empty!)
 
       redirect_to spree.cart_path
     end
