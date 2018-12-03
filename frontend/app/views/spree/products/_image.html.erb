@@ -1,8 +1,8 @@
 <% if defined?(image) && image %>
-  <%= render 'spree/shared/image', image: image, size: :product, itemprop: "image" %>
+  <%= render 'spree/shared/image', image: image, size: :large, itemprop: "image" %>
 <% else %>
   <%= render 'spree/shared/image',
     image: @product.gallery.images.first,
-    size: :product,
+    size: :large,
     itemprop: "image" %>
 <% end %>
