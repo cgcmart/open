@@ -6,11 +6,11 @@ module Spree
       module CollectionOptionsHelpers
         def collection_links(collection)
           {
-            self: collection.current_page,
-            next: collection.next_page || collection.total_pages,
-            prev: collection.prev_page || 1,
-            last: collection.total_pages,
-            first: 1
+            self: request.original_url,
+            next: pagination_url(collection.next_page || collection.total_pages),
+            prev: pagination_url(collection.prev_page || 1),
+            last: pagination_url(collection.total_pages),
+            first: pagination_url(1)
           }
         end
 
