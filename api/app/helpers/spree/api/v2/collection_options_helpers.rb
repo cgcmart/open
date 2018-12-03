@@ -21,6 +21,18 @@ module Spree
             total_pages: collection.total_pages
           }
         end
+
+        # leaving this method in public scope so it's still possible to modify
+        # those params to support non-standard non-JSON API parameters
+        def collection_permitted_params
+          params.permit(:page, :per_page, :sort, :include, :fields, filter: {})
+        end
+
+        private
+
+        def pagination_url(page)
+          url_for(collection_permitted_params.merge(page: page))
+        end
       end
     end
   end
