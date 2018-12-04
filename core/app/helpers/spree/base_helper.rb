@@ -19,11 +19,6 @@ module Spree
       link_to text.html_safe, spree.cart_path, class: "cart-info #{css_class}"
     end
 
-    # human readable list of variant options
-    def variant_options(variant, _options = {})
-      variant.options_text
-    end    
-
     def meta_data
       object = instance_variable_get('@' + controller_name.singularize)
       meta = {}
