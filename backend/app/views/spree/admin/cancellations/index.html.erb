@@ -30,7 +30,9 @@
               size: :mini %>
           </td>
           <td class="inventory-unit-name">
-            <%= inventory_unit.variant.product.name %><br><%= "(" + variant_options(inventory_unit.variant) + ")" unless inventory_unit.variant.option_values.empty? %>
+            <%= inventory_unit.variant.product.name %>
+            <br>
+            <%= "(#{item.variant.options_text})" if inventory_unit.variant.option_text.present? %>
             <% if inventory_unit.variant.sku.present? %>
               <strong><%= Spree::Variant.human_attribute_name(:sku) %>:</strong> <%= inventory_unit.variant.sku %>
             <% end %>
