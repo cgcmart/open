@@ -16,8 +16,10 @@
               image: (item.variant.gallery.images.first || item.variant.product.gallery.images.first),
               size: :mini %>
           </td>
-          <td class="line-item-name">
-            <%= item.variant.product.name %><br><%= "(" + variant_options(item.variant) + ")" unless item.variant.option_values.empty? %>
+          <td class="line-item-name text-center">
+            <%= item.variant.product.name %>
+            <br>
+            <%= "(#{item.options_text})" if item.options_text.present? %>
           </td>
           <td class="line-item-price">
             <%= item.single_money.to_html %>
