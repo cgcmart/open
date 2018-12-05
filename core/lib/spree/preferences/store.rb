@@ -26,7 +26,7 @@ module Spree::Preferences
       @cache.write(key, value)
       persist(key, value)
     end
-    alias :[]=, :set
+    alias []= set
 
     def exist?(key)
       @cache.exist?(key) ||
