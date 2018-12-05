@@ -43,7 +43,9 @@
                   size: :mini %>
               </td>
               <td class="item-name">
-                <%= item.product.name %><br><%= "(" + variant_options(item.variant) + ")" unless item.variant.option_values.empty? %>
+                <%= item.product.name %>
+                <br>
+                <%= "(#{item.options_text})" if item.options_text.present? %>
                 <% if item.variant.sku.present? %>
                   <strong><%= t('spree.sku') %>:</strong> <%= item.variant.sku %>
                 <% end %>
