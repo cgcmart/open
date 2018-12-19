@@ -164,6 +164,7 @@ Spree::Core::Engine.routes.draw do
           patch :complete
         end
 
+        resources :countries, only: %i[index show]
         resources :products, only: %i[index show]
         resources :taxons, only: %i[index show]
       end
