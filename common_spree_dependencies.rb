@@ -33,7 +33,7 @@ group :test do
   gem 'factory_bot_rails', '~> 4.8'
   gem 'i18n-tasks', '~> 0.9', require: false
   gem 'launchy'
-  gem 'rspec-activemodel-mocks', '~> 1.0'
+  gem 'rspec-activemodel-mocks', '~> 1.1'
   gem 'rspec-collection_matchers'
   gem 'rspec-its'
   gem 'rspec-rails', '~> 3.7.2'

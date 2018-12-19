@@ -63,15 +63,15 @@ RSpec.describe Spree::Payment::Cancellation do
       end
     end
 
-    context 'if the payment_method does not respond to `try_void`' do
+    context "if the payment_method does not respond to 'try_void'", partial_double_verification: false do
       before do
         allow(payment_method).to receive(:respond_to?) { false }
-        expect(payment_method).to receive(:cancel) { double }
-        expect(payment).to receive(:handle_void_response)
+        allow(payment_method).to receive(:cancel) { double }
+        allow(payment).to receive(:handle_void_response)
       end
 
       it 'calls cancel instead' do
-        Spree::Deprecation.silence { subject }
+        expect(payment_method).to receive(:cancel)
       end
 
       it 'prints depcrecation warning' do
