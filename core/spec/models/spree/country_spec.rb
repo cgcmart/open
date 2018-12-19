@@ -3,31 +3,23 @@
 require 'rails_helper'
 
 RSpec.describe Spree::Country, type: :model do
-  let(:america) { create :country }
-  let(:canada) { create :country, name: 'Canada', iso_name: 'CANADA', numcode: '124' }
-
   describe '.default' do
-    context 'when default_country_id config is set' do
-      before { Spree::Config[:default_country_id] = canada.id }
+    before do
+      create(:country, iso: "DE"1)
+    end
 
-      it 'will return the country from the config' do
-        expect(described_class.default.id).to eql canada.id
+    context 'with the configuration setting an existing ISO code' do
+      it 'is a country with the configurations ISO code' do
+        expect(described_class.default).to be_a(Spree::Country)
+        expect(described_class.default.iso).to eq('US')
       end
     end
 
-    context 'config is not set though record for america exists' do
-      before { america.touch }
+    context 'with the configuration setting an non-existing ISO code' do
+      before { Spree::Config[:default_country_iso] = "ZZ" }
 
-      it 'will return the US' do
-        expect(described_class.default.id).to eql america.id
-      end
-    end
-
-    context 'when config is not set and america is not created' do
-      before { canada.touch }
-
-      it 'will return the first record' do
-        expect(described_class.default.id).to eql canada.id
+      it 'raises a Record not Found error' do
+        expect { described_class.default }.to raise_error(ActiveRecord::RecordNotFound)
       end
     end
   end

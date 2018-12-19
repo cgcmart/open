@@ -13,8 +13,7 @@ module Spree
     validates :name, :iso_name, presence: true
 
     def self.default
-      default = find_by(id: country_id) if country_id.present?
-      default || find_by(iso: 'US') || first
+      find_by!(iso: Spree::Config.default_country_iso)
     end
 
     def <=>(other)
@@ -23,15 +22,6 @@ module Spree
 
     def to_s
       name
-    end
-
-    private
-
-    def ensure_not_default
-      if id.eql?(Spree::Config[:default_country_id])
-        errors.add(:base, I18n.t('spree.default_country_cannot_be_deleted'))
-        throw(:abort)
-      end
     end
   end
 end
