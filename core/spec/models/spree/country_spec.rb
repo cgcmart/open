@@ -5,7 +5,7 @@ require 'rails_helper'
 RSpec.describe Spree::Country, type: :model do
   describe '.default' do
     before do
-      create(:country, iso: "DE"1)
+      create(:country, iso: 'DE')
     end
 
     context 'with the configuration setting an existing ISO code' do
@@ -25,7 +25,7 @@ RSpec.describe Spree::Country, type: :model do
   end
 
   describe 'ensure default country in not deleted' do
-    before { Spree::Config[:default_country_id] = america.id }
+    before { Spree::Config[:default_country_iso] = america.iso }
 
     context 'will not destroy country if it is default' do
       subject { america.destroy }
@@ -35,7 +35,7 @@ RSpec.describe Spree::Country, type: :model do
       context 'error should be default country cannot be deleted' do
         before { subject }
 
-        it { expect(america.errors[:base]).to include(Spree.t(:default_country_cannot_be_deleted)) }
+        it { expect(america.errors[:base]).to include(t('spree.default_country_cannot_be_deleted')) }
       end
     end
 

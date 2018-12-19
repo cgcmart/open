@@ -8,7 +8,7 @@ module Spree
                    :zipcode_required
 
         attribute :default do |object|
-          object.default?
+          object == Spree::Country.default
         end
 
         has_many :states, if: proc { |_record, params| params && params[:include_states] }
