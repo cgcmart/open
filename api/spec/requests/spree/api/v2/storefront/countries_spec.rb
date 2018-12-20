@@ -5,8 +5,8 @@ describe 'Storefront API v2 Countries spec', type: :request do
   let!(:country) { create(:country) }
   let!(:states)    { create_list(:state, 2, country: country) }
   let!(:default_country) do
-    country = create(:country, iso3: 'GBR')
-    Spree::Config[:default_country_id] = country.id
+    country = create(:country, iso: 'GB')
+    Spree::Config[:default_country_iso] = country.iso
     country
   end
 
@@ -80,7 +80,6 @@ describe 'Storefront API v2 Countries spec', type: :request do
       it_behaves_like 'returns valid country resource JSON'
 
       it 'returns default country' do
-        expect(json_response['data']).to have_id(default_country.id.to_s)
         expect(json_response['data']).to have_attribute(:iso).with_value(default_country.iso)
         expect(json_response['data']).to have_attribute(:default).with_value(true)
       end
@@ -92,7 +91,7 @@ describe 'Storefront API v2 Countries spec', type: :request do
       it_behaves_like 'returns 200 HTTP status'
 
       it 'returns country with included states' do
-        expect(json_response['data']).to have_id(country.id.to_s)
+        expect(json_response['data']).to have_iso(country.iso.to_s)
         expect(json_response['included']).to   include(have_type('state').and(have_attribute(:abbr).with_value(states.first.abbr)))
         expect(json_response['included']).to   include(have_type('state').and(have_attribute(:name).with_value(states.first.name)))
       end

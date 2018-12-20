@@ -115,21 +115,12 @@ module Spree
     #   @return [String] ISO 4217 Three letter currency code
     preference :currency, :string, default: "USD"
 
-    # @!attribute [rw] default_country_id
-    #   @deprecated Use the default country ISO preference instead
-    #   @return [Integer,nil] id of {Spree::Country} to be selected by default in dropdowns (default: nil)
-    preference :default_country_id, :integer
 
     # @!attribute [rw] default_country_iso
     #   Default customer country ISO code
     #   @return [String] Two-letter ISO code of a {Spree::Country} to assumed as the country of an unidentified customer (default: "US")
     preference :default_country_iso, :string, default: 'US'
 
-    # @!attribute [rw] admin_vat_country_iso
-    #   Set this if you want to enter prices in the backend including value added tax.
-    #   @return [String, nil] Two-letter ISO code of that {Spree::Country} for which
-    #      prices are entered in the backend (default: nil)
-    # preference :admin_vat_country_iso, :string, default: nil
 
     # @!attribute [rw] generate_api_key_for_all_roles
     #   @return [Boolean] Allow generating api key automatically for user

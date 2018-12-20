@@ -2,5 +2,5 @@
 
 json.(@country, *country_attributes)
 json.states(@country.states) do |state|
-  json.(state, :id, :name, :abbr, :country_id)
+  json.(state, :id, :name, :abbr, :country_iso)
 end
