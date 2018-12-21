@@ -1,27 +1,38 @@
 en:
   spree:
     api:
-      must_specify_api_key: "You must specify an API key."
-      invalid_api_key: "Invalid API key (%{key}) specified."
-      unauthorized: "You are not authorized to perform that action."
-      invalid_resource: "Invalid resource. Please fix errors and try again."
-      resource_not_found: "The resource you were looking for could not be found."
-      gateway_error: "There was a problem with the payment gateway: %{text}"
-      delete_restriction_error: "Cannot delete record."
-      key_generated: "Key generated"
-      key_cleared: "Key cleared"
+      access: API Access
+      clear_key: Clear key
+      delete_restriction_error: Cannot delete record.
+      gateway_error: 'There was a problem with the payment gateway: %{text}'
+      generate_key: Generate API key
+      invalid_api_key: Invalid API key (%{key}) specified.
+      invalid_resource: Invalid resource. Please fix errors and try again.
+      invalid_taxonomy_id: Invalid taxonomy id.
+      key: Key
+      key_cleared: Key cleared
+      key_generated: Key generated
+      must_specify_api_key: You must specify an API key.
+      negative_quantity: Quantity is negative.
+      no_key: No key
       order:
-        could_not_transition: "The order could not be transitioned. Please fix the errors and try again."
-        invalid_shipping_method: "Invalid shipping method specified."
-        expected_total_mismatch: "Expected total does not match actual total."
-        quantity_is_not_available: "Quantity is not available for items in your order"
+        could_not_transition: The order could not be transitioned. Please fix the
+          errors and try again.
+        expected_total_mismatch: Expected total does not match actual total.
         insufficient_quantity: An item in your cart has become unavailable.
+        invalid_shipping_method: Invalid shipping method specified.
+        quantity_is_not_available: Quantity is not available for items in your order
       payment:
-        credit_over_limit: "This payment can only be credited up to %{limit}. Please specify an amount less than or equal to this number."
-        update_forbidden: "This payment cannot be updated because it is %{state}."
+        credit_over_limit: This payment can only be credited up to %{limit}. Please
+          specify an amount less than or equal to this number.
+        update_forbidden: This payment cannot be updated because it is %{state}.
+      regenerate_key: Regenerate Key
+      resource_not_found: The resource you were looking for could not be found.
       shipment:
-        cannot_ready: "Cannot ready shipment."
-      invalid_taxonomy_id: "Invalid taxonomy id."
+        cannot_ready: Cannot ready shipment.
+      stock_location_required: A stock_location_id parameter must be provided in order to retrieve stock movements.
+      unauthorized: You are not authorized to perform that action.
       v2:
         cart:
-          wrong_quantity: "Quantity has to be greater than 0"
+          wrong_quantity: Quantity has to be greater than 0.
+      wrong_shipment_target: Target shipment is the same as original shipment.
