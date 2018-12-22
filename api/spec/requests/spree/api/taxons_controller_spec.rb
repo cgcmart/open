@@ -2,18 +2,24 @@
 
 require 'spec_helper'
 
+def expect_single_taxon_result(taxon_name)
+  expect(json_response['taxons'].count).to eq(1)
+  expect(json_response['taxons'].first['name']).to eq(taxon_name)
+end
+
 module Spree
   describe Api::TaxonsController, type: :request do
+    render_views
+
     let!(:taxonomy) { create(:taxonomy) }
-    let!(:taxon) { create(:taxon, name: 'Ruby', taxonomy: taxonomy) }
-    let!(:taxon2) { create(:taxon, name: 'Rails', taxonomy: taxonomy) }
-    let(:attributes) { ['id', 'name', 'pretty_name', 'permalink', 'parent_id', 'taxonomy_id'] }
+    let!(:taxon) { create(:taxon, name: 'Ruby', taxonomy: taxonomy, parent_id: taxonomy.root.id) }
+    let!(:rust_taxon) { create(:taxon, name: 'Rust', taxonomy: taxonomy, parent_id: taxonomy.root.id) }
+    let!(:taxon2) { create(:taxon, name: 'Rails', taxonomy: taxonomy, parent_id: taxon.id) }
+    let(:attributes) { ['id', 'name', 'pretty_name', 'permalink', 'parent_id', 'taxonomy_id', 'meta_title', 'meta_description'] }
 
     before do
+      create(:taxon, name: 'React', taxonomy: taxonomy, parent_id: taxon2.id) # taxon3
       stub_authentication!
-      taxon2.children << create(:taxon, name: 'React', taxonomy: taxonomy)
-      taxon.children << taxon2
-      taxonomy.root.children << taxon
     end
 
     context 'as a normal user' do
@@ -35,19 +41,19 @@ module Spree
       end
 
       it 'paginates through taxons' do
-        new_taxon = create(:taxon, name: 'Go', taxonomy: taxonomy)
+        new_taxon = create(:taxon, name: 'Go', taxonomy: taxonomy, parent_id: taxonomy.root.id)
         taxonomy.root.children << new_taxon
-        expect(taxonomy.root.children.count).to eq(2)
-        get spree.api_taxonomy_taxons_path(taxonomy), params: { page: 1, per_page: 1 }
+        expect(taxonomy.root.children.count).to eq(3)
+        get spree.api_taxonomy_taxons_path(taxonomy), taxonomy_id: taxonomy_id, params: { page: 1, per_page: 1 }
         expect(json_response['count']).to eq(1)
-        expect(json_response['total_count']).to eq(2)
+        expect(json_response['total_count']).to eq(3)
         expect(json_response['current_page']).to eq(1)
         expect(json_response['per_page']).to eq(1)
-        expect(json_response['pages']).to eq(2)
+        expect(json_response['pages']).to eq(3)
       end
 
       describe 'searching' do
-        context 'within a taxonomy' do
+        context 'with a name' do
           before do
             get spree.api_taxons_path, params: { q: { name_cont: name } }
           end
@@ -84,39 +90,31 @@ module Spree
       end
 
       it 'gets a single taxon' do
-        get spree.api_taxonomy_taxon_path(taxonomy, taxon.id)
+        get spree.api_taxonomy_taxon_path(taxonomy_id, taxon.id)
 
         expect(json_response['name']).to eq taxon.name
         expect(json_response['taxons'].count).to eq 1
       end
 
-      it 'gets all taxons in JSTree form' do
-        get spree.jstree_api_taxonomy_taxon_path(taxonomy, taxon.id)
-        response = json_response.first
-        expect(response['data']).to eq(taxon2.name)
-        expect(response['attr']).to eq('name' => taxon2.name, 'id' => taxon2.id)
-        expect(response['state']).to eq('closed')
-      end
-
       it 'can learn how to create a new taxon' do
-        get spree.new_api_taxonomy_taxon_path(taxonomy)
+        get spree.new_api_taxonomy_taxon_path(taxonomy_id)
         expect(json_response['attributes']).to eq(attributes.map(&:to_s))
         required_attributes = json_response['required_attributes']
         expect(required_attributes).to include('name')
       end
 
       it 'cannot create a new taxon if not an admin' do
-        post spree.api_taxonomy_taxons_path(taxonomy), params: { taxon: { name: 'Location' } }
+        post spree.api_taxonomy_taxons_path(taxonomy_id), params: { taxon: { name: 'Location' } }
         assert_unauthorized!
       end
 
       it 'cannot update a taxon' do
-        put spree.api_taxonomy_taxon_path(taxonomy, taxon.id), params: { taxon: { name: 'I hacked your store!' } }
+        put spree.api_taxonomy_taxon_path(taxonomy_id, taxon.id), params: { taxon: { name: 'I hacked your store!' } }
         assert_unauthorized!
       end
 
       it 'cannot delete a taxon' do
-        delete spree.api_taxonomy_taxon_path(taxonomy, taxon.id)
+        delete spree.api_taxonomy_taxon_path(taxonomy_id, taxon.id)
         assert_unauthorized!
       end
 
@@ -150,7 +148,7 @@ module Spree
       sign_in_as_admin!
 
       it 'can create' do
-        post spree.api_taxonomy_taxons_path(taxonomy), params: { taxon: { name: 'Colors' } }
+        post spree.api_taxonomy_taxons_path(taxonomy_id), params: { taxon: { name: 'Colors' } }
         expect(json_response).to have_attributes(attributes)
         expect(response.status).to eq(201)
 
@@ -163,17 +161,22 @@ module Spree
 
       it 'can update the position in the list' do
         taxonomy.root.children << taxon2
-        put spree.api_taxonomy_taxon_path(taxonomy, taxon.id), params: { taxon: { parent_id: taxon.parent_id, child_index: 2 } }
+        put spree.api_taxonomy_taxon_path(taxonomy_id, taxon.id), params: { taxon: { parent_id: taxon.parent_id, child_index: 2 } }
         expect(response.status).to eq(200)
         expect(taxonomy.reload.root.children[0]).to eql taxon2
         expect(taxonomy.reload.root.children[1]).to eql taxon
       end
 
       it 'cannot create a new taxon with invalid attributes' do
-        post spree.api_taxonomy_taxons_path(taxonomy), params: { taxon: { foo: :bar } }
+        post spree.api_taxonomy_taxons_path(taxonomy_id), params: { taxon: { foo: :bar } }
         expect(response.status).to eq(422)
         expect(json_response['error']).to eq('Invalid resource. Please fix errors and try again.')
         expect(taxonomy.reload.root.children.count).to eq 1
+      end
+
+      it 'cannot create another root taxon' do
+        post spree.api_taxonomy_taxons_path(taxonomy_id), params: {  taxon: { name: 'foo', parent_id: nil } }
+        expect(json_response[:errors][:root_conflict].first).to eq 'this taxonomy already has a root taxon'
       end
 
       it 'cannot create a new taxon with invalid taxonomy_id' do

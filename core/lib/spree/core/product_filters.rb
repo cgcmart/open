@@ -153,28 +153,6 @@ module Spree
         }
       end
 
-      # Provide filtering on the immediate children of a taxon
-      #
-      # This doesn't fit the pattern of the examples above, so there's a few changes.
-      # Firstly, it uses an existing scope which was not built for filtering - and so
-      # has no need of a conditions mapping, and secondly, it has a mapping of name
-      # to the argument type expected by the other scope.
-      #
-      # This technique is useful for filtering on objects (by passing ids) or with a
-      # scope that can be used directly (eg. testing only ever on a single property).
-      #
-      # This scope selects products in any of the active taxons or their children.
-      #
-      def self.taxons_below(taxon)
-        return Spree::Core::ProductFilters.all_taxons if taxon.nil?
-        {
-          name:   'Taxons under ' + taxon.name,
-          scope:  :taxons_id_in_tree_any,
-          labels: taxon.children.sort_by(&:position).map { |t| [t.name, t.id] },
-          conds:  nil
-        }
-      end
-
       # Filtering by the list of all taxons
       #
       # Similar idea as above, but we don't want the descendants' products, hence

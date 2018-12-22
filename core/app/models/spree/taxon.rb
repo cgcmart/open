@@ -37,16 +37,11 @@ module Spree
 
     self.whitelisted_ransackable_associations = %w[taxonomy]
 
-    # indicate which filters should be used for a taxon
-    # this method should be customized to your own site
-    def applicable_filters
-      fs = []
-      # fs << ProductFilters.taxons_below(self)
-      ## unless it's a root taxon? left open for demo purposes
+    scope :ancestors_of, ->(node) do
+      left_condition  = arel_table[left_column_name].lt(node.left)
+      right_condition = arel_table[right_column_name].gt(node.right)
 
-      fs << Spree::Core::ProductFilters.price_filter if Spree::Core::ProductFilters.respond_to?(:price_filter)
-      fs << Spree::Core::ProductFilters.brand_filter if Spree::Core::ProductFilters.respond_to?(:brand_filter)
-      fs
+      where(left_condition).where(right_condition)
     end
 
     # Return meta_title if set otherwise generates from root name and/or taxon name
@@ -105,9 +100,14 @@ module Spree
     # @return [String] this taxon's ancestors names followed by its own name,
     #   separated by arrows
     def pretty_name
-      ancestor_chain = ancestors.map(&:name)
-      ancestor_chain << name
-      ancestor_chain.join(" -> ")
+      if parent.present?
+        [
+          parent.pretty_name,
+          name
+        ].compact.join(" -> ")
+      else
+        name
+      end
     end
 
     # @see https://github.com/spree/spree/issues/3390
@@ -140,6 +140,12 @@ module Spree
       self.class.where(id: ancestors.pluck(:id)).update_all(updated_at: Time.current)
       # Have taxonomy touch happen in #touch_ancestors_and_taxonomy rather than association option in order for imports to override.
       taxonomy.try!(:touch)
+    end
+
+    def check_for_root
+      if taxonomy.try(:root).present? && parent_id.nil?
+        errors.add(:root_conflict, 'this taxonomy already has a root taxon')
+      end
     end
   end
 end

@@ -13,6 +13,7 @@ module Spree
         end
 
         @taxons = paginate(@taxons)
+        preload_taxon_parents(@taxons)
         respond_with(@taxons)
       end
 
@@ -22,11 +23,6 @@ module Spree
       def show
         @taxon = taxon
         respond_with(@taxon)
-      end
-
-      def jstree
-        Spree::Deprecation.warn("Please don't use `/api/taxonomies/:taxonomy_id/taxons/:taxon_id/jstree` endpoint. It is deprecated and will be removed in the next future.", caller)
-        show
       end
 
       def create
@@ -80,7 +76,7 @@ module Spree
           }
           @product_attributes = %i(id name display_price)
         end
-        render "spree/api/products/index"
+        render 'spree/api/products/index'
       end
 
       private
@@ -105,6 +101,16 @@ module Spree
         else
           {}
         end
+      end
+
+      def preload_taxon_parents(taxons)
+        parents = Spree::Taxon.none
+
+        taxons.map do |taxon|
+          parents = parents.or(Spree::Taxon.ancestors_of(taxon))
+        end
+
+        Spree::Taxon.associate_parents(taxons + parents)
       end
     end
   end
