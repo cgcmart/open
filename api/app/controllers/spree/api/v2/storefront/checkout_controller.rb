@@ -76,7 +76,11 @@ module Spree
           end
 
           def serialize_order(order)
-            dependencies[:cart_serializer].new(order.reload, include: resource_includes).serializable_hash
+            dependencies[:cart_serializer].new(order.reload, include: resource_includes, fields: sparse_fields).serializable_hash
+          end
+
+          def serialize_payment_methods(payment_methods)
+            dependencies[:payment_methods_serializer].new(payment_methods).serializable_hash
           end
 
           def default_resource_includes
