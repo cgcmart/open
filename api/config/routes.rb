@@ -142,7 +142,7 @@ Spree::Core::Engine.routes.draw do
     namespace :storefront do
       resource :cart, controller: :cart, only: %i[show create] do
           post   :add_item
-          post   :empty
+          patch  :empty
           delete 'remove_line_item/:line_item_id', to: 'cart#remove_line_item', as: :cart_remove_line_item
           patch  :set_quantity
           patch  :apply_coupon_code
@@ -153,7 +153,10 @@ Spree::Core::Engine.routes.draw do
           patch :next
           patch :advance
           patch :complete
+          get :payment_methods
         end
+
+        resource :account, controller: :account, only: %i[show]
 
         resources :countries, only: %i[index]
         get '/countries/:iso', to: 'countries#show', as: :country

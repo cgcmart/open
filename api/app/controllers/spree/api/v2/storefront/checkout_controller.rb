@@ -44,6 +44,10 @@ module Spree
             render_order(result)
           end
 
+          def payment_methods
+            render_serialized_payload { serialize_payment_methods(spree_current_order.available_payment_methods) }
+          end
+
           private
 
           def ensure_order
@@ -57,6 +61,7 @@ module Spree
               completer:            Spree::Checkout::Complete,
               updater:              Spree::Checkout::Update,
               cart_serializer:      Spree::V2::Storefront::CartSerializer,
+              payment_methods_serializer: Spree::V2::Storefront::PaymentMethodSerializer,
               # defined in https://github.com/spree/spree/blob/master/core/lib/spree/core/controller_helpers/strong_parameters.rb#L19
               permitted_attributes: permitted_checkout_attributes
             }
@@ -64,7 +69,7 @@ module Spree
 
           def render_order(result)
             if result.success?
-              render_serialized_payload serialize_order(result.value)
+              render_serialized_payload { serialize_order(result.value) }
             else
               render_error_payload(result.error)
             end
