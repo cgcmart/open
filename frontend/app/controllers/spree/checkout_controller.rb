@@ -168,7 +168,7 @@ module Spree
       @order.assign_default_user_addresses
       # if the user has a default address, a callback takes care of setting
       # that; but if he doesn't, we need to build an empty one here
-      default = { country_id: Spree::Country.default.id }
+      default = { country_iso: Spree::Country.default.iso }
       @order.build_bill_address(default) unless @order.bill_address
       @order.build_ship_address(default) if @order.checkout_steps.include?('delivery') && !@order.ship_address
 
@@ -193,6 +193,27 @@ module Spree
         @default_wallet_payment_source = @wallet_payment_sources.detect(&:default) ||
                                          @wallet_payment_sources.first
         @payment_sources = try_spree_current_user.wallet.wallet_payment_sources.map(&:payment_source).select { |ps| ps.is_a?(Spree::CreditCard) }
+      end
+    end
+
+    def add_store_credit_payments
+      if params.key?(:apply_store_credit)
+        Spree::Checkout::AddStoreCredit.call(order: @order)
+
+        # Remove other payment method parameters.
+        params[:order].delete(:payments_attributes)
+        params[:order].delete(:existing_card)
+        params.delete(:payment_source)
+
+        # Return to the Payments page if additional payment is needed.
+        redirect_to checkout_state_path(@order.state) and return if @order.payments.valid.sum(:amount) < @order.total
+      end
+    end
+
+    def remove_store_credit_payments
+      if params.key?(:remove_store_credit)
+        @order.remove_store_credit_payments
+        redirect_to checkout_state_path(@order.state) and return
       end
     end
 

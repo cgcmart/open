@@ -15,7 +15,9 @@ info:
       Please read our introduction to the API v2 [insert link here]
     </p>
     <p>
-      Click here to download Postman collection with example operations
+      <a href="https://raw.githubusercontent.com/99cm/open/master/api/docs/v2/storefront/index.yaml" target="_blank" rel="noopener">
+        Import this documentation to Postman
+      </a>
     </p>
 paths:
   '/cart':
@@ -38,13 +40,14 @@ paths:
                 $ref: '#/components/schemas/Cart'
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
     get:
       description: Returns contents of the cart
       tags:
         - Cart
       responses:
         '200':
-          description: 200 response means that correct cart was returned
+          description: Correct cart was returned
           content:
             application/json:
               schema:
@@ -56,6 +59,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
 
   '/cart/add_item':
     post:
@@ -74,7 +78,7 @@ paths:
         - Cart
       responses:
         '200':
-          description: 200 response means that the item was added to the cart successfully
+          description: Item was added to the cart successfully
           content:
             application/json:
               schema:
@@ -86,6 +90,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       requestBody:
         required: true
         content:
@@ -115,13 +120,13 @@ paths:
         - Cart
       responses:
         '200':
-          description: 200 response means that a new quantity has been successfully set for a requested line item
+          description: New quantity has been successfully set for a requested line item
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
         '422':
-          description: 422 response means that stock quantity is not sufficient for this request to be fulfielled
+          description: Stock quantity is not sufficient for this request to be fulfielled
           content:
             application/json:
               schema:
@@ -131,6 +136,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       requestBody:
         required: true
         content:
@@ -154,9 +160,10 @@ paths:
       parameters:
         - $ref: '#/components/parameters/LineItemId'
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       responses:
         '200':
-          description: 200 response means that the requested line item has been removed from the order
+          description: Requested line item has been removed from the order
           content:
             application/json:
               schema:
@@ -174,7 +181,7 @@ paths:
         - Cart
       responses:
         '200':
-          description: 200 response means that the cart has been successfully emptied
+          description: Cart has been successfully emptied
           content:
             application/json:
               schema:
@@ -186,6 +193,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
 
   '/cart/apply_coupon_code':
     patch:
@@ -194,13 +202,13 @@ paths:
         - Cart
       responses:
         '200':
-          description: 200 response means that coupon code was applied successfully
+          description: Coupon code was applied successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
         '422':
-          description: 422 response means that coupon code couldn't be applied
+          description: Coupon code couldn't be applied
           content:
             application/json:
               schema:
@@ -210,6 +218,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       requestBody:
         required: true
         content:
@@ -235,15 +244,16 @@ paths:
             type: string
           example: 'DISCOUNT10'
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       responses:
         '200':
-          description: 200 response means that coupon code was removed successfully
+          description: Coupon code was removed successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
         '422':
-          description: 422 response means that coupon code couldn't be removed
+          description: Coupon code couldn't be removed
           content:
             application/json:
               schema:
@@ -259,13 +269,13 @@ paths:
         - Checkout
       responses:
         '200':
-          description: 200 response means that the Checkout was transitioned to the next step
+          description: Checkout transitioned to the next step
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
         '422':
-          description: 422 response means that Checkout couldn't transition to the next step
+          description: Checkout couldn't transition to the next step
           content:
             application/json:
               schema:
@@ -277,6 +287,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
 
   '/checkout/advance':
     patch:
@@ -285,13 +296,13 @@ paths:
         - Checkout
       responses:
         '200':
-          description: 200 response means that the Checkout was transitioned to the next step
+          description: Checkout was advanced to the furthest step
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cart'
         '422':
-          description: 422 response means that Checkout couldn't transition to the next step
+          description: Checkout couldn't transition to the next step
           content:
             application/json:
               schema:
@@ -303,6 +314,7 @@ paths:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
 
   '/checkout/complete':
     patch:
@@ -311,13 +323,13 @@ paths:
           - Checkout
         responses:
           '200':
-            description: 200 response means that the Checkout was completed
+            description: Checkout was completed
             content:
               application/json:
                 schema:
                   $ref: '#/components/schemas/Cart'
           '422':
-            description: 422 response means that Checkout couldn't be completed
+            description: Checkout couldn't be completed
             content:
               application/json:
                 schema:
@@ -328,6 +340,41 @@ paths:
           - orderToken: []
           - bearerAuth: []
         parameters:
+        - $ref: '#/components/parameters/CartIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
+
+  '/checkout/add_store_credit':
+    post:
+      description: Adds StoreCredit payments if a user has any
+      tags:
+        - Checkout
+      responses:
+        '200':
+          description: StoreCredit payment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '422':
+          description: StoreCredit couldn't be created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+      security:
+        - orderToken: []
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: amount
+          description: >-
+            Amount of StoreCredit to use.
+            As much as possible StoreCredit will be applied if no amount is passed.
+          schema:
+            type: string
+          example: 100.0
         - $ref: '#/components/parameters/CartIncludeParam'
 
   '/checkout/payment_methods':
@@ -355,14 +402,8 @@ paths:
         Returns a list of Products
       tags:
         - Products
-      operationId: index
       parameters:
-        - in: query
-          name: filter[ids]
-          schema:
-            type: string
-          example: 1,2,3
-          description: Filter Prodcuts based on IDs of Prodcuts
+        - $ref: '#/components/parameters/FilterByIds'
         - in: query
           name: filter[price]
           schema:
@@ -405,9 +446,10 @@ paths:
         - $ref: '#/components/parameters/PageParam'
         - $ref: '#/components/parameters/PerPageParam'
         - $ref: '#/components/parameters/ProductIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       responses:
         '200':
-          description: ok
+          description: Returns a list of Products
           content:
             application/json:
               schema:
@@ -422,19 +464,58 @@ paths:
         permalink lookup before an ID lookup.
       tags:
         - Products
-      operationId: show
       parameters:
         - $ref: '#/components/parameters/IdOrPermalink'
         - $ref: '#/components/parameters/ProductIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       responses:
         '200':
-          description: ok
+          description: Returns the requested Product
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
         '404':
           $ref: '#/components/responses/404NotFound'
+
+  '/taxons':
+    get:
+      description: >-
+        Returns a list of Taxons. You can filter out taxons by...
+      tags:
+        - Taxons
+      parameters:
+        - $ref: '#/components/parameters/FilterByIds'
+        - $ref: '#/components/parameters/FilterByName'
+        - in: query
+          name: filter[parent_id]
+          schema:
+            type: string
+          example: '1'
+          description: Fetch children nodes of specified Taxon
+        - in: query
+          name: filter[taxonomy_id]
+          schema:
+            type: string
+          example: '1'
+          description: Fetch Taxons in a specified Taxonomy
+        - in: query
+          name: filter[roots]
+          schema:
+            type: boolean
+          example: false
+          description: Fetch only root Taxons (Taxonomies)
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - $ref: '#/components/parameters/TaxonIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
+      responses:
+        '200':
+          description: Returns a list of Taxons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxonsList'
 
   '/taxons/{id}':
     get:
@@ -446,12 +527,13 @@ paths:
         permalink lookup before an ID lookup.
       tags:
         - Taxons
-      operationId: show
       parameters:
         - $ref: '#/components/parameters/IdOrPermalink'
+        - $ref: '#/components/parameters/TaxonIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'  
       responses:
         '200':
-          description: ok
+          description: Returns the reqested Taxon
           content:
             application/json:
               schema:
@@ -465,7 +547,6 @@ paths:
         Returns a list of all Countries
       tags:
         - Countries
-      operationId: index
       responses:
         '200':
           description: Returns a list of all Countries
@@ -485,7 +566,9 @@ paths:
       tags:
         - Countries
       parameters:
+        - $ref: '#/components/parameters/IsoOrIso3'
         - $ref: '#/components/parameters/CountryIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       responses:
         '200':
           description: Returns a list of all Countries
@@ -503,7 +586,9 @@ paths:
         By default this will be the US.
       tags:
         - Countries
-      operationId: show
+      parameters:
+        - $ref: '#/components/parameters/CountryIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
       responses:
         '200':
           description: Returns a list of all Countries
@@ -513,6 +598,27 @@ paths:
                 $ref: '#/components/schemas/Country'
         '404':
           $ref: '#/components/responses/404NotFound'
+
+  '/account':
+    get:
+      description: >-
+        Returns current user information
+      tags:
+        - Account
+      parameters:
+        - $ref: '#/components/parameters/AccountIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
+      responses:
+        '200':
+          description: Returns current user information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+      security:
+        - bearerAuth: []
 
 components:
   securitySchemes:
@@ -661,7 +767,7 @@ components:
                   example: 'R123456789'
                 email:
                   type: string
-                  example: 'spree@example.com'
+                  example: 'open@example.com'
                 item_total:
                   type: string
                   example: '19.99'
@@ -733,7 +839,7 @@ components:
                   type: string
                   example: abcdef123456
                   description: >-
-                    Used for authorizing any action for an order within Spree’s
+                    Used for authorizing any action for an order within Open’s
                     API
             relationships:
               type: object
@@ -843,7 +949,7 @@ components:
               properties:
                 email:
                   type: string
-                  example: 'spree@example.com'
+                  example: 'open@example.com'
     LineItem:
       required:
         - data
@@ -1217,6 +1323,54 @@ components:
           $ref: '#/components/schemas/TaxonAttributes'
         relationships:
           $ref: '#/components/schemas/TaxonRelationships'
+    TaxonsList:
+      required:
+        - links
+        - data
+        - included
+      properties:
+        links:
+          $ref: '#/components/schemas/ListLinks'
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxonAttributesAndRelationships'
+        included:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/TaxonAttributesAndRelationships'
+              - $ref: '#/components/schemas/TaxonImage'
+              - $ref: '#/components/schemas/TaxonomyAttributesAndRelationships'
+              - $ref: '#/components/schemas/ProductAttributesAndRelationships'
+    TaxonImage:
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              example: '1'
+            type:
+              type: string
+              default: 'taxon_image'
+              example: 'taxon_image'
+            attributes:
+              type: object
+              properties:
+                position:
+                  type: integer
+                  example: 0
+                  description: 'Sort order of images set in the Admin Panel'
+                styles:
+                  type: array
+                  description: 'An array of pre-scaled image styles'
+                  items:
+                    $ref: '#/components/schemas/ImageStyle'
     TaxonomyAttributesAndRelationships:
       type: object
       properties:
@@ -1563,6 +1717,58 @@ components:
             description:
               type: string
               example: 'Stripe Payments'
+    Account:
+      required:
+        - data
+        - included
+      properties:
+        data:
+          $ref: '#/components/schemas/AccountAttributesAndRelationships'
+        included:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/Address'
+    AccountAttributes:
+      type: object
+      properties:
+        email:
+          type: string
+          example: 'spree@example.com'
+        store_credits:
+          type: number
+          example: 150.75
+        completed_orders:
+          type: number
+          example: 3
+    AccountRelationships:
+      type: object
+      properties:
+        default_billing_address:
+          type: object
+          description: 'Default billing address associated with this Account'
+          properties:
+            data:
+              $ref: '#/components/schemas/Relation'
+        default_shipping_address:
+          type: object
+          description: 'Default shipping address associated with this Account'
+          properties:
+            data:
+              $ref: '#/components/schemas/Relation'
+    AccountAttributesAndRelationships:
+      properties:
+        id:
+          type: string
+          example: '1'
+        type:
+          type: string
+          default: 'user'
+          example: 'user'
+        attributes:
+          $ref: '#/components/schemas/AccountAttributes'
+        relationships:
+          $ref: '#/components/schemas/AccountRelationships'
 
   parameters:
     IdOrPermalink:
@@ -1573,8 +1779,10 @@ components:
       schema:
         type: string
       examples:
-        ID: '1'
-        Permalink: 'some-product'
+        ID:
+          value: '1'
+        Permalink:
+          value: 'some-product'
     LineItemId:
       name: line_item_id
       in: path
@@ -1590,7 +1798,6 @@ components:
       schema:
         type: integer
       example: 1
-      minimum: 1
     PerPageParam:
       name: per_page
       in: query
@@ -1598,7 +1805,6 @@ components:
       schema:
         type: integer
       example: 10
-      minimum: 1
     CartIncludeParam:
       name: include
       in: query
@@ -1615,7 +1821,9 @@ components:
           </ul>
         <p>
           More information:
-          <a href="https://jsonapi.org/format/#fetching-includes">https://jsonapi.org/format/#fetching-includes</a>
+          <a href="https://jsonapi.org/format/#fetching-includes" target="_blank" rel="noopener">
+            https://jsonapi.org/format/#fetching-includes
+          </a>
         </p>
       example: 'line_items,variants,variants.images,billing_address,shipping_address,user,payments,shipments,promotions'
     ProductIncludeParam:
@@ -1634,9 +1842,34 @@ components:
           </ul>
         <p>
           More information:
-          <a href="https://jsonapi.org/format/#fetching-includes">https://jsonapi.org/format/#fetching-includes</a>
+          <a href="https://jsonapi.org/format/#fetching-includes" target="_blank" rel="noopener">
+            https://jsonapi.org/format/#fetching-includes
+          </a>
         </p>
       example: 'default_variant,variants,option_types,product_properties,taxons,images'
+    TaxonIncludeParam:
+      name: include
+      in: query
+      schema:
+        type: string
+      description: >-
+        <p>Specify what related resources (relationships) you would like to receive in the response body.</p>
+        <p>You can also fetch relationships of relationships.</p>
+        <p>
+          Format:
+          <ul>
+            <li>parent,taxonomy,children,image,products</li>
+            <li>children.children</li>
+            <li>parent.children</li>
+            <li>children,products.default_variant</li>
+          </ul>
+        <p>
+          More information:
+          <a href="https://jsonapi.org/format/#fetching-includes" target="_blank" rel="noopener">
+            https://jsonapi.org/format/#fetching-includes
+          </a>
+        </p>
+      example: 'parent,taxonomy,children,image,products'
     IsoOrIso3:
       name: iso
       in: path
@@ -1652,6 +1885,48 @@ components:
       description: >-
         Pass `states` as value to include States / Regions for each Country
       example: 'states'
+    AccountIncludeParam:
+      name: include
+      in: query
+      schema:
+        type: string
+      description: >-
+        Pass `default_billing_address` and/or `default_shipping_address` as value to include selected addresses information
+      example: 'default_billing_address,default_shipping_address'
+    FilterByIds:
+      in: query
+      name: filter[ids]
+      schema:
+        type: string
+      example: 1,2,3
+      description: Fetch only resources with corresponding IDs
+    FilterByName:
+      in: query
+      name: filter[name]
+      schema:
+        type: string
+      example: rails
+      description: Find resources with matching name (supports wild-card, partial-word match search)
+    SparseFieldsParam:
+      in: query
+      name: fields
+      style: deepObject
+      description: >-
+        <p>Specify what attributes for given types you would like to receive in the response body.</p>
+        <p>
+          Format:
+          <ul>
+            <li>fields[cart]=total,currency,number</li>
+          </ul>
+        <p>
+          More information:
+          <a href="https://jsonapi.org/format/#fetching-sparse-fieldsets" target="_blank" rel="noopener">
+            https://jsonapi.org/format/#fetching-sparse-fieldsets
+          </a>
+        </p>
+      example: { "cart": "total,currency,number" }
+      schema:
+        type: object
   responses:
     404NotFound:
       description: Resource not found

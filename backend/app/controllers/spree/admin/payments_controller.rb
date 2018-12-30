@@ -24,12 +24,17 @@ module Spree
       end
 
       def create
-        @payment = PaymentCreate.new(@order, object_params).build
-        if @payment.payment_method.source_required? && params[:card].present? && params[:card] != 'new'
-          @payment.source = @payment.payment_method.payment_source_class.find_by(id: params[:card])
-        end
-
         begin
+          if @payment_method.store_credit?
+            Spree::Checkout::AddStoreCredit.call(order: @order)
+            payments = @order.payments.store_credits.valid
+          else
+            @payment = PaymentCreate.new(@order, object_params).build
+            if @payment.payment_method.source_required? && params[:card].present? && params[:card] != 'new'
+              @payment.source = @payment.payment_method.payment_source_class.find_by(id: params[:card])
+            end
+          end
+
           if @payment.save
             if @order.completed?
               # If the order was already complete then go ahead and process the payment
