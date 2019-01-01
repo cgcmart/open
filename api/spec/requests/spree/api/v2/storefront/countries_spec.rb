@@ -65,7 +65,7 @@ describe 'Storefront API v2 Countries spec', type: :request do
         new_shipping_method.zones.first.countries << new_country
         to_return << new_country
         get shippable_url
-        expect(json_response['data'].pluck(:id)).to include(new_country.id.to_s)
+        expect(json_response['data'].pluck(:id)).to include(new_country.iso.to_s)
       end
     end
   end

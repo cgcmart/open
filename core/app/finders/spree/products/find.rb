@@ -65,7 +65,7 @@ module Spree
           distinct.
           where(
             spree_prices: {
-              amount:   price.min..price.max,
+              amount: price.min..price.max,
               currency: currency
             }
           )
@@ -74,7 +74,7 @@ module Spree
       def by_taxons(products)
         return products unless taxons?
 
-        products.where(spree_taxons: { id: taxons })
+        products.joins(:taxons).distinct.where(spree_taxons: { id: taxons })
       end
 
       def by_name(products)

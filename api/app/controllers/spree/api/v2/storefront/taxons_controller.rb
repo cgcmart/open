@@ -43,8 +43,8 @@ module Spree
 
           def collection_options(collection)
             {
-              links:   collection_links(collection),
-              meta:    collection_meta(collection),
+              links: collection_links(collection),
+              meta: collection_meta(collection),
               include: resource_includes,
               fields: sparse_fields
             }
