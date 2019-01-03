@@ -436,7 +436,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.index ["slug"], name: "index_spree_products_on_slug", unique: true
     end
 
-    create_table "spree_products_taxons", force: :cascade do |t|
+    create_table "spree_product_taxons", force: :cascade do |t|
       t.integer "product_id"
       t.integer "taxon_id"
       t.integer "position"
@@ -444,7 +444,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "updated_at", precision: 6
       t.index ["position"], name: "index_spree_products_taxons_on_position"
       t.index ["product_id"], name: "index_spree_products_taxons_on_product_id"
-      t.index ["taxon_id"], name: "index_spree_products_taxons_on_taxon_id"
+      t.index ["taxon_id"], name: "index_spree_product_taxons_on_taxon_id"
     end
 
     create_table "spree_promotion_action_line_items", force: :cascade do |t|
@@ -486,7 +486,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.index ["value"], name: "index_spree_promotion_codes_on_value", unique: true
     end
 
-    create_table 'spree_promotion_rules_stores', force: :cascade do |t|
+    create_table 'spree_promotion_rule_stores', force: :cascade do |t|
       t.references 'store', null: false
       t.references 'promotion_rule', null: false
       t.datetime 'created_at', precision: 6
@@ -694,12 +694,12 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.index ['name'], name: 'index_spree_roles_on_name', unique: true
     end
 
-    create_table "spree_roles_users", force: :cascade do |t|
+    create_table "spree_role_users", force: :cascade do |t|
       t.integer "role_id"
       t.integer "user_id"
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
-      t.index ['role_id', 'user_id'], name: 'index_spree_roles_users_on_role_user_id', unique: true
+      t.index ['role_id', 'user_id'], name: 'index_spree_role_users_on_role_user_id', unique: true
     end
 
     create_table "spree_shipments", force: :cascade do |t|
@@ -959,7 +959,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.index ['taggable_id', 'taggable_type', 'context'], name: 'index_spree_taggings_on_taggable_id_type'
     end
 
-	  create_table 'spree_tags', force: :cascade do |t|
+    create_table 'spree_tags', force: :cascade do |t|
       t.string 'name'
       t.integer 'taggings_count', default: 0
       t.index ['name'], name: 'index_spree_tags_on_name', unique: true

@@ -6,7 +6,7 @@ module Spree
       class PromotionSerializer < BaseSerializer
         set_type   :promotion
 
-        attributes :name, :description, :amount, :display_amount
+        attributes :name, :description, :amount, :display_amount, :code
       end
     end
   end
