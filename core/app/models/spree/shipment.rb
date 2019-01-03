@@ -106,6 +106,7 @@ module Spree
       inventory_units.any?(&:backordered?)
     end
 
+    # TODO: delegate currency to Order, order.currency is mandatory
     def currency
       order ? order.currency : Spree::Config[:currency]
     end
@@ -134,13 +135,18 @@ module Spree
       !shipped?
     end
 
+    def free?
+      return true if total == BigDecimal(0)
+
+      adjustments.promotion.any? { |p| p.source.type == 'Spree::Promotion::Actions::FreeShipping' }
+    end
+
+    # Decrement the stock counts for all pending inventory units in this
+    # shipment and mark.
+    # Any previous non-pending inventory units are skipped as their stock had
+    # already been allocated.
     def finalize!
-      transaction do
-        pending_units = inventory_units.select(&:pending?)
-        pending_manifest = Spree::ShippingManifest.new(inventory_units: pending_units)
-        pending_manifest.items.each { |item| manifest_unstock(item) }
-        Spree::InventoryUnit.finalize_units!(pending_units)
-      end
+      finalize_pending_inventory_units
     end
 
     def include?(variant)

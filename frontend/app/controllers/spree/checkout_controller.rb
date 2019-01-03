@@ -212,7 +212,7 @@ module Spree
 
     def remove_store_credit_payments
       if params.key?(:remove_store_credit)
-        @order.remove_store_credit_payments
+        Spree::Checkout::RemoveStoreCredit.call(order: @order)
         redirect_to checkout_state_path(@order.state) and return
       end
     end

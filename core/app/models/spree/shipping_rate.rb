@@ -14,7 +14,7 @@ module Spree
              inverse_of: :shipping_rate,
              dependent: :destroy
 
-    delegate :order, :currency, to: :shipment
+    delegate :order, :currency, :free?,  to: :shipment
     delegate :name, :tax_category, :tax_category_id, to: :shipping_method
     delegate :code, to: :shipping_method, prefix: true
     alias_attribute :amount, :cost
