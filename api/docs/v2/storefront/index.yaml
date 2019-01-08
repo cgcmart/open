@@ -20,6 +20,76 @@ info:
       </a>
     </p>
 paths:
+  '/account':
+    get:
+      description: >-
+        Returns current user information
+      tags:
+        - Account
+      operationId: 'Account Information'
+      parameters:
+        - $ref: '#/components/parameters/AccountIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+      security:
+        - bearerAuth: []
+
+  '/account/credit_cards':
+    get:
+      description: >-
+        Returns a list of Credit Cards for the signed in User
+      tags:
+        - Account
+      operationId: 'Credit Cards list'
+      responses:
+        '200':
+          description: Listing user credit cards.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditCardList'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: filter[payment_method_id]
+          schema:
+            type: integer
+          example: 2
+          description: Filter based on payment method ID
+        - $ref: '#/components/parameters/CreditCardIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
+  '/account/credit_cards/default':
+    get:
+      description: >-
+        Return the User's default Credit Card
+      tags:
+        - Account
+      operationId: 'Default Credit Card'
+      responses:
+        '200':
+          description: Listing user default credit card.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditCard'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+      parameters:
+        - $ref: '#/components/parameters/CreditCardIncludeParam'
+        - $ref: '#/components/parameters/SparseFieldsParam'
+      security:
+        - bearerAuth: []
   '/cart':
     post:
       description: >-
@@ -31,6 +101,7 @@ paths:
         </p>
       tags:
         - Cart
+      operationId: 'Create Cart'
       responses:
         '201':
           description: 201 response means that that a Cart was successfully created
@@ -45,6 +116,7 @@ paths:
       description: Returns contents of the cart
       tags:
         - Cart
+      operationId: 'Get Cart'
       responses:
         '200':
           description: Correct cart was returned
@@ -76,6 +148,7 @@ paths:
         </blockquote>
       tags:
         - Cart
+      operationId: 'Add Item'
       responses:
         '200':
           description: Item was added to the cart successfully
@@ -118,6 +191,7 @@ paths:
       description: Sets the quantity of a given line item. It has to be a positive integer greater than 0.
       tags:
         - Cart
+      operationId: 'Set Quantity'
       responses:
         '200':
           description: New quantity has been successfully set for a requested line item
@@ -157,6 +231,7 @@ paths:
       description: Removes line item from current order
       tags:
         - Cart
+      operationId: 'Remove Line Item'
       parameters:
         - $ref: '#/components/parameters/LineItemId'
         - $ref: '#/components/parameters/CartIncludeParam'
@@ -176,9 +251,10 @@ paths:
 
   '/cart/empty':
     patch:
-      description: Empties the order
+      description: Empties the Cart
       tags:
         - Cart
+      operationId: 'Empty Cart'
       responses:
         '200':
           description: Cart has been successfully emptied
@@ -200,6 +276,7 @@ paths:
       description: Applies a coupon code to the Cart
       tags:
         - Cart
+      operationId: 'Apply Coupon Code'
       responses:
         '200':
           description: Coupon code was applied successfully
@@ -235,6 +312,7 @@ paths:
       description: Removes a coupon code from the Cart
       tags:
         - Cart
+      operationId: 'Remove Coupon Code'
       parameters:
         - name: coupon_code
           in: path
@@ -314,6 +392,7 @@ paths:
         <p>
           Each Shipment can have different Shipping Method/Rate selected.
         </p>
+
         <h3>3. Select shipping method(s)</h3>
         <pre>PATCH /checkout</pre>
         <br />
@@ -368,6 +447,7 @@ paths:
         </p>
       tags:
         - Checkout
+      operationId: 'Update Checkout'
       responses:
         '200':
           description: Checkout was updated
@@ -424,6 +504,7 @@ paths:
       description: Goes to the next Checkout step
       tags:
         - Checkout
+      operationId: 'Checkout Next'
       responses:
         '200':
           description: Checkout transitioned to the next step
@@ -451,6 +532,7 @@ paths:
       description: Advances Checkout to the furthest Checkout step validation allows, until the Complete step
       tags:
         - Checkout
+      operationId: 'Advance Checkout'
       responses:
         '200':
           description: Checkout was advanced to the furthest step
@@ -478,6 +560,7 @@ paths:
       description: Completes the Checkout
       tags:
         - Checkout
+      operationId: 'Complete Checkout'
       responses:
         '200':
           description: Checkout was completed
@@ -504,6 +587,7 @@ paths:
       description: Adds StoreCredit payments if a user has any
       tags:
         - Checkout
+      operationId: 'Add Store Credit'
       responses:
         '200':
           description: StoreCredit payment created
@@ -533,12 +617,12 @@ paths:
           example: 100.0
         - $ref: '#/components/parameters/CartIncludeParam'
         - $ref: '#/components/parameters/SparseFieldsParam'
-
   '/checkout/remove_store_credit':
     post:
       description: Remove StoreCredit payments if any applied
       tags:
         - Checkout
+      operationId: 'Remove Store Credit'
       responses:
         '200':
           description: StoreCredit payment removed
@@ -567,6 +651,7 @@ paths:
         Returns a list of available Payment Methods
       tags:
         - Checkout
+      operationId: 'Payment Methods'
       responses:
         '200':
           description: Returns a list of available Payment Methods
@@ -589,6 +674,7 @@ paths:
         in stock and will be send out instantly and some needs to be backordered.
       tags:
         - Checkout
+      operationId: 'Shipping Rates'
       responses:
         '200':
           description: Returns a list of available Shipping Rates for Checkout
@@ -608,6 +694,7 @@ paths:
         Returns a list of Products
       tags:
         - Products
+      operationId: 'Products List'
       parameters:
         - $ref: '#/components/parameters/FilterByIds'
         - in: query
@@ -670,6 +757,7 @@ paths:
         permalink lookup before an ID lookup.
       tags:
         - Products
+      operationId: 'Show Product'
       parameters:
         - $ref: '#/components/parameters/IdOrPermalink'
         - $ref: '#/components/parameters/ProductIncludeParam'
@@ -690,6 +778,7 @@ paths:
         Returns a list of Taxons. You can filter out taxons by...
       tags:
         - Taxons
+      operationId: 'Taxons List'
       parameters:
         - $ref: '#/components/parameters/FilterByIds'
         - $ref: '#/components/parameters/FilterByName'
@@ -733,6 +822,7 @@ paths:
         permalink lookup before an ID lookup.
       tags:
         - Taxons
+      operationId: 'Show Taxon'
       parameters:
         - $ref: '#/components/parameters/IdOrPermalink'
         - $ref: '#/components/parameters/TaxonIncludeParam'
@@ -753,6 +843,7 @@ paths:
         Returns a list of all Countries
       tags:
         - Countries
+      operationId: 'Countries List'
       responses:
         '200':
           description: Returns a list of all Countries
@@ -771,6 +862,7 @@ paths:
         iso lookup before an iso3 lookup.
       tags:
         - Countries
+      operationId: 'Show Country'
       parameters:
         - $ref: '#/components/parameters/IsoOrIso3'
         - $ref: '#/components/parameters/CountryIncludeParam'
@@ -792,6 +884,7 @@ paths:
         By default this will be the US.
       tags:
         - Countries
+      operationId: 'Default Country'
       parameters:
         - $ref: '#/components/parameters/CountryIncludeParam'
         - $ref: '#/components/parameters/SparseFieldsParam'
@@ -802,29 +895,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Country'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-
-  '/account':
-    get:
-      description: >-
-        Returns current user information
-      tags:
-        - Account
-      parameters:
-        - $ref: '#/components/parameters/AccountIncludeParam'
-        - $ref: '#/components/parameters/SparseFieldsParam'
-      responses:
-        '200':
-          description: Returns current user information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Account'
-        '404':
-          $ref: '#/components/responses/404NotFound'
-      security:
-        - bearerAuth: []
 
 components:
   securitySchemes:
@@ -899,7 +969,6 @@ components:
         type:
           type: string
           default: 'address'
-          example: 'address'
         attributes:
           type: object
           properties:
@@ -957,7 +1026,6 @@ components:
               example: '1'
             type:
               type: string
-              example: 'cart'
               default: 'cart'
             attributes:
               type: object
@@ -1101,6 +1169,71 @@ components:
               - $ref: '#/components/schemas/User'
               - $ref: '#/components/schemas/Address'
               - $ref: '#/components/schemas/ShipmentAttributesWithoutRelationsips'
+    CreditCardList:
+      required:
+        - data
+        - included
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreditCardAttributesWithRelationships'
+        included:
+          type: array
+          items:
+            type: object
+            oneOf:
+              - $ref: '#/components/schemas/PaymentMethod'
+    CreditCard:
+      required:
+        - data
+        - included
+      properties:
+        data:
+          type: object
+          $ref: '#/components/schemas/CreditCardAttributesWithRelationships'
+        included:
+          type: array
+          items:
+            type: object
+            oneOf:
+              - $ref: '#/components/schemas/PaymentMethod'
+    CreditCardAttributes:
+      properties:
+        cc_type:
+          type: string
+          example: 'visa'
+        last_digits:
+          type: string
+          example: '1232'
+        month:
+          type: integer
+          example: 10
+        year:
+          type: integer
+          example: 2019
+        name:
+          type: string
+          example: 'John Doe'
+    CreditCardAttributesWithRelationships:
+      properties:
+        id:
+          type: string
+          example: '1'
+        type:
+          type: string
+          example: 'credit_card'
+        attributes:
+          type: object
+          $ref: '#/components/schemas/CreditCardAttributes'
+        relationships:
+          type: object
+          properties:
+            payment_method:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/Relation'
     Image:
       required:
         - data
@@ -1114,7 +1247,6 @@ components:
             type:
               type: string
               default: 'image'
-              example: 'image'
             attributes:
               type: object
               properties:
@@ -1149,7 +1281,6 @@ components:
         type:
           type: string
           default: 'user'
-          example: 'user'
         attributes:
           type: object
           properties:
@@ -1164,7 +1295,6 @@ components:
         type:
           type: string
           default: 'line_item'
-          example: 'line_item'
         attributes:
           type: object
           properties:
@@ -1230,11 +1360,12 @@ components:
               type: string
               example: '$0.00'
         relationships:
-          variant:
-            type: object
-            properties:
-              data:
-                $ref: '#/components/schemas/Relation'
+          properties:
+            variant:
+              type: object
+              properties:
+                data:
+                  $ref: '#/components/schemas/Relation'
     Promotion:
       properties:
         id:
@@ -1242,7 +1373,6 @@ components:
           example: '1'
         type:
           type: string
-          example: 'promotion'
           default: 'promotion'
         attributes:
           type: object
@@ -1395,7 +1525,6 @@ components:
         type:
           type: string
           default: 'product'
-          example: 'product'
         attributes:
           $ref: '#/components/schemas/ProductAttributes'
         relationships:
@@ -1520,7 +1649,6 @@ components:
         type:
           type: string
           default: 'taxon'
-          example: 'taxon'
         attributes:
           $ref: '#/components/schemas/TaxonAttributes'
         relationships:
@@ -1560,7 +1688,6 @@ components:
             type:
               type: string
               default: 'taxon_image'
-              example: 'taxon_image'
             attributes:
               type: object
               properties:
@@ -1582,7 +1709,6 @@ components:
         type:
           type: string
           default: 'taxonomy'
-          example: 'taxonomy'
         attributes:
           $ref: '#/components/schemas/TaxonomyAttributes'
     TaxonomyAttributes:
@@ -1607,7 +1733,6 @@ components:
             type:
               type: string
               default: 'option_type'
-              example: 'option_type'
             attributes:
               type: object
               properties:
@@ -1633,7 +1758,6 @@ components:
             type:
               type: string
               default: 'option_value'
-              example: 'option_value'
             attributes:
               type: object
               properties:
@@ -1667,7 +1791,6 @@ components:
             type:
               type: string
               default: 'property'
-              example: 'property'
             attributes:
               type: object
               properties:
@@ -1690,7 +1813,6 @@ components:
             type:
               type: string
               default: 'product_property'
-              example: 'product_property'
             attributes:
               type: object
               properties:
@@ -1810,7 +1932,6 @@ components:
         type:
           type: string
           default: 'variant'
-          example: 'variant'
         attributes:
           $ref: '#/components/schemas/VariantAttributes'
         relationships:
@@ -1876,7 +1997,6 @@ components:
         type:
           type: string
           default: 'country'
-          example: 'country'
         attributes:
           $ref: '#/components/schemas/CountryAttributes'
         relationships:
@@ -1906,7 +2026,6 @@ components:
         type:
           type: string
           default: 'payment_method'
-          example: 'payment_method'
         attributes:
           type: object
           properties:
@@ -1927,7 +2046,6 @@ components:
         type:
           type: string
           default: 'shipment'
-          example: 'shipment'
         attributes:
           $ref: '#/components/schemas/ShipmentAttributes'
         relationships:
@@ -1940,7 +2058,6 @@ components:
         type:
           type: string
           default: 'shipment'
-          example: 'shipment'
         attributes:
           $ref: '#/components/schemas/ShipmentAttributes'
         relationships:
@@ -2008,7 +2125,6 @@ components:
         type:
           type: string
           default: 'shipping_rate'
-          example: 'shipping_rate'
         attributes:
           type: object
           properties:
@@ -2094,984 +2210,6 @@ components:
         type:
           type: string
           default: 'user'
-          example: 'user'
-        attributes:
-          $ref: '#/components/schemas/AccountAttributes'
-        relationships:
-          $ref: '#/components/schemas/AccountRelationships'
-    AddressPayload:
-      properties:
-        firstname:
-          type: string
-        lastname:
-          type: string
-        address1:
-          type: string
-          description: 'Street address'
-        address2:
-          type: string
-          description: 'Additional address information, floor no etc'
-        city:
-          type: string
-          description: 'City, town'
-        phone:
-          type: string
-        zipcode:
-          type: string
-          description: 'Valid zipcode, will be validated against the selected Country'
-        state_name:
-          type: string
-          description: 'State/region/province 2 letter abbrevation'
-        country_id:
-          type: number
-          description: 'ID number of Country in the database'
-      example:
-        firstname: 'John'
-        lastname: 'Snow'
-        address1: '7735 Old Georgetown Road'
-        address2: '2nd Floor'
-        city: 'Bethesda'
-        phone: '3014445002'
-        zipcode: '20814'
-        state_name: 'MD'
-country_id: 232      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'line_item'
-          example: 'line_item'
-        attributes:
-          type: object
-          properties:
-            name:
-              type: string
-              example: 'Sample product'
-            quantity:
-              type: integer
-              example: 1
-            slug:
-              type: string
-              example: 'sample-product'
-            options_text:
-              type: string
-              example: 'Size: small, Color: red'
-            price:
-              type: string
-              example: '125.0'
-              description: Price of Product per quantity
-            currency:
-              type: string
-              example: 'USD'
-            display_price:
-              type: string
-              example: '$125.00'
-              description: Price of Product per quantity
-            total:
-              type: string
-              example: '250.0'
-              description: >-
-                Total price of Line Item including adjastments, promotions
-                and taxes
-            display_total:
-              type: string
-              example: '$250.00'
-              description: >-
-                Total price of Line Item including adjastments, promotions
-                and taxes
-            adjustment_total:
-              type: string
-              example: '10.0'
-              description: TBD
-            display_adjustment_total:
-              type: string
-              example: '$10.00'
-              description: TBD
-            additional_tax_total:
-              type: string
-              example: '5.0'
-            display_additional_tax_total:
-              type: string
-              example: '$5.00'
-            promo_total:
-              type: string
-              example: '-5.0'
-            display_promo_total:
-              type: string
-            included_tax_total:
-              type: string
-              example: '0.0'
-              description: 'Taxes included in the price, eg. VAT'
-            display_inluded_tax_total:
-              type: string
-              example: '$0.00'
-        relationships:
-          variant:
-            type: object
-            properties:
-              data:
-                $ref: '#/components/schemas/Relation'
-    Promotion:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          example: 'promotion'
-          default: 'promotion'
-        attributes:
-          type: object
-          properties:
-            name:
-              type: string
-              example: '10% Discount'
-            descriptiom:
-              type: string
-              example: 'Super discount for you'
-            amount:
-              type: string
-              example: '-10.0'
-            display_amount:
-              type: string
-              example: '-$10.00'
-    Product:
-      required:
-        - data
-        - included
-      properties:
-        data:
-          $ref: '#/components/schemas/ProductAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/OptionType'
-              - $ref: '#/components/schemas/OptionValue'
-              - $ref: '#/components/schemas/ProductProperty'
-              - $ref: '#/components/schemas/Property'
-              - $ref: '#/components/schemas/VariantAttributesAndRelationships'
-              - $ref: '#/components/schemas/Image'
-              - $ref: '#/components/schemas/TaxonAttributesAndRelationships'
-    ProductsList:
-      required:
-        - links
-        - data
-        - included
-      properties:
-        links:
-          $ref: '#/components/schemas/ListLinks'
-        meta:
-          $ref: '#/components/schemas/ListMeta'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProductAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/OptionType'
-              - $ref: '#/components/schemas/OptionValue'
-              - $ref: '#/components/schemas/ProductProperty'
-              - $ref: '#/components/schemas/Property'
-              - $ref: '#/components/schemas/VariantAttributesAndRelationships'
-              - $ref: '#/components/schemas/Image'
-              - $ref: '#/components/schemas/TaxonAttributesAndRelationships'
-    ProductAttributes:
-      type: object
-      properties:
-        name:
-          type: string
-          example: 'Example product'
-        description:
-          type: string
-          example: 'Example description'
-        price:
-          type: string
-          example: '15.99'
-        currency:
-          type: string
-          example: 'USD'
-        display_price:
-          type: string
-          example: $15.99
-        available_on:
-          type: string
-          example: '2012-10-17T03:43:57Z'
-        purchasable:
-          type: boolean
-          example: true
-          description: 'Indicates if any of Variants are in stock or backorderable'
-        in_stock:
-          type: boolean
-          example: true
-          description: 'Indicates if any of Variants are in stock'
-        backorderable:
-          type: boolean
-          example: true
-          description: 'Indicates if any of Variants are backeorderable'
-        slug:
-          type: string
-          example: 'example-product'
-        meta_description:
-          type: string
-          example: 'Example product'
-        meta_keywords:
-          type: string
-          example: 'example, product'
-        updated_at:
-          $ref: '#/components/schemas/Timestamp'
-    ProductRelationships:
-      type: object
-      properties:
-        default_variant:
-          type: object
-          description: 'The default Variant for given product'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-        product_properties:
-          type: object
-          description: 'List of Product Properties'
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-        option_types:
-          type: object
-          description: 'List of Product Option Types'
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-        variants:
-          type: object
-          description: 'List of Product Variants, excluding Master Variant'
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-        taxons:
-          type: object
-          description: 'List of Taxons associated with Product'
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-    ProductAttributesAndRelationships:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'product'
-          example: 'product'
-        attributes:
-          $ref: '#/components/schemas/ProductAttributes'
-        relationships:
-          $ref: '#/components/schemas/ProductRelationships'
-    Relation:
-      required:
-        - id
-        - type
-      properties:
-        id:
-          type: string
-        type:
-          type: string
-    Taxon:
-      required:
-        - data
-        - included
-      properties:
-        data:
-          $ref: '#/components/schemas/TaxonAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/ProductAttributesAndRelationships'
-              - $ref: '#/components/schemas/TaxonAttributesAndRelationships'
-              - $ref: '#/components/schemas/TaxonomyAttributesAndRelationships'
-              - $ref: '#/components/schemas/Image'
-    TaxonAttributes:
-      type: object
-      properties:
-        name:
-          type: string
-          example: 'T-shirts'
-        pretty_name:
-          type: string
-          example: 'Clothes > T-shirts'
-        permalink:
-          type: string
-          example: 't-shirts'
-        seo_title:
-          type: string
-          example: 'Clothes - T-shirts'
-        meta_title:
-          type: string
-          example: 'T-shirts'
-        meta_description:
-          type: string
-          example: 'A list of cool t-shirts '
-        meta_keywords:
-          type: string
-          example: 't-shirts, cool'
-        left:
-          type: integer
-          example: 1
-        right:
-          type: integer
-          example: 2
-        position:
-          type: integer
-          example: 0
-        depth:
-          type: integer
-          example: 1
-        is_root:
-          type: boolean
-          example: true
-          description: 'Indicates if the Taxon is the root node of this Taxonomy tree'
-        is_child:
-          type: boolean
-          example: true
-          description: 'Returns true is this is a child node of this Taxonomy tree'
-        is_leaf:
-          type: boolean
-          example: false
-          description: 'Returns true if this is the end of a branch of this Taxonomy tree'
-        updated_at:
-          type: string
-          example: '2018-06-18T10:57:29.704Z'
-    TaxonRelationships:
-      type: object
-      properties:
-        parent:
-          type: object
-          description: 'Parent node'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-        children:
-          type: object
-          description: 'List of child nodes'
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-        taxonomy:
-          type: object
-          description: 'Taxonomy associated with this Taxon'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-        image:
-          type: object
-          description: 'Image associated with Taxon'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-        products:
-          type: object
-          description: 'List of active and available Products associated with this Taxon'
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-    TaxonAttributesAndRelationships:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'taxon'
-          example: 'taxon'
-        attributes:
-          $ref: '#/components/schemas/TaxonAttributes'
-        relationships:
-          $ref: '#/components/schemas/TaxonRelationships'
-    TaxonsList:
-      required:
-        - links
-        - data
-        - included
-      properties:
-        links:
-          $ref: '#/components/schemas/ListLinks'
-        meta:
-          $ref: '#/components/schemas/ListMeta'
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/TaxonAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/TaxonAttributesAndRelationships'
-              - $ref: '#/components/schemas/TaxonImage'
-              - $ref: '#/components/schemas/TaxonomyAttributesAndRelationships'
-              - $ref: '#/components/schemas/ProductAttributesAndRelationships'
-    TaxonImage:
-      required:
-        - data
-      properties:
-        data:
-          type: object
-          properties:
-            id:
-              type: string
-              example: '1'
-            type:
-              type: string
-              default: 'taxon_image'
-              example: 'taxon_image'
-            attributes:
-              type: object
-              properties:
-                position:
-                  type: integer
-                  example: 0
-                  description: 'Sort order of images set in the Admin Panel'
-                styles:
-                  type: array
-                  description: 'An array of pre-scaled image styles'
-                  items:
-                    $ref: '#/components/schemas/ImageStyle'
-    TaxonomyAttributesAndRelationships:
-      type: object
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'taxonomy'
-          example: 'taxonomy'
-        attributes:
-          $ref: '#/components/schemas/TaxonomyAttributes'
-    TaxonomyAttributes:
-      type: object
-      properties:
-        name:
-          type: string
-          example: 'Categories'
-        position:
-          type: integer
-          example: 0
-    OptionType:
-      required:
-        - data
-      properties:
-        data:
-          type: object
-          properties:
-            id:
-              type: string
-              example: '1'
-            type:
-              type: string
-              default: 'option_type'
-              example: 'option_type'
-            attributes:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: 'color'
-                presentation:
-                  type: string
-                  example: 'Color'
-                position:
-                  type: integer
-                  example: 1
-    OptionValue:
-      required:
-        - data
-      properties:
-        data:
-          type: object
-          properties:
-            id:
-              type: string
-              example: '1'
-            type:
-              type: string
-              default: 'option_value'
-              example: 'option_value'
-            attributes:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: 'red'
-                presentation:
-                  type: string
-                  example: 'Red'
-                position:
-                  type: integer
-                  example: 1
-            relationships:
-              type: object
-              properties:
-                option_type:
-                  type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/Relation'
-    Property:
-      required:
-        - data
-      properties:
-        data:
-          type: object
-          properties:
-            id:
-              type: string
-              example: '1'
-            type:
-              type: string
-              default: 'property'
-              example: 'property'
-            attributes:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: 'material'
-                presentation:
-                  type: string
-                  example: 'Material'
-    ProductProperty:
-      required:
-        - data
-      properties:
-        data:
-          type: object
-          properties:
-            id:
-              type: string
-              example: '1'
-            type:
-              type: string
-              default: 'product_property'
-              example: 'product_property'
-            attributes:
-              type: object
-              properties:
-                name:
-                  type: string
-                  example: 'silk'
-                presentation:
-                  type: string
-                  example: 'Silk'
-            relationships:
-              type: object
-              properties:
-                property:
-                  type: object
-                  properties:
-                    data:
-                      $ref: '#/components/schemas/Property'
-    Variant:
-      required:
-        - data
-        - included
-      properties:
-        data:
-          $ref: '#/components/schemas/VariantAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/Image'
-              - $ref: '#/components/schemas/OptionValue'
-              - $ref: '#/components/schemas/OptionType'
-    VariantAttributes:
-      type: object
-      properties:
-        name:
-          type: string
-          example: 'Example product'
-          description: 'Product name'
-        sku:
-          type: string
-          example: 'SKU-1001'
-        price:
-          type: string
-          example: '15.99'
-        currency:
-          type: string
-          example: 'USD'
-        display_price:
-          type: string
-          example: '$15.99'
-        weight:
-          type: string
-          example: '10'
-        height:
-          type: string
-          example: '10'
-        width:
-          type: string
-          example: '10'
-        depth:
-          type: string
-          example: '10'
-        is_master:
-          type: boolean
-          example: false
-          description: 'Indicates if Variant is the master Variant'
-        options_text:
-          type: string
-          example: 'Size: small, Color: red'
-        slug:
-          type: string
-          example: 'example-product'
-          description: 'Product slug'
-        description:
-          type: string
-          example: 'Example description'
-          description: 'Product description'
-        purchasable:
-          type: boolean
-          example: true
-          description: 'Indicates if Variant is in stock or backorderable'
-        in_stock:
-          type: boolean
-          example: true
-          description: 'Indicates if Variant is in stock'
-        backorderable:
-          type: boolean
-          example: true
-          description: 'Indicates if Variant is backorderable'
-    VariantRelationships:
-      type: object
-      properties:
-        product:
-          type: object
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-        images:
-          type: object
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-        option_values:
-          type: object
-          properties:
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/Relation'
-    VariantAttributesAndRelationships:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'variant'
-          example: 'variant'
-        attributes:
-          $ref: '#/components/schemas/VariantAttributes'
-        relationships:
-          $ref: '#/components/schemas/VariantRelationships'
-    Country:
-      required:
-        - data
-        - included
-      properties:
-        data:
-          $ref: '#/components/schemas/CountryAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/State'
-    CountriesList:
-      required:
-        - data
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/CountryAttributesAndRelationships'
-    CountryAttributes:
-      type: object
-      properties:
-        iso:
-          type: string
-          example: 'us'
-        iso3:
-          type: string
-          example: 'usa'
-        iso_name:
-          type: string
-          example: 'UNITED STATES'
-        name:
-          type: string
-          example: 'United States'
-        states_required:
-          type: boolean
-          example: true
-        zipcode_required:
-          type: boolean
-          example: true
-        default:
-          type: boolean
-          example: true
-    CountryRelationships:
-      type: object
-      properties:
-        states:
-          type: object
-          description: 'States associated with this Country'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-    CountryAttributesAndRelationships:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'country'
-          example: 'country'
-        attributes:
-          $ref: '#/components/schemas/CountryAttributes'
-        relationships:
-          $ref: '#/components/schemas/CountryRelationships'
-    State:
-      type: object
-      properties:
-        abbr:
-          type: string
-          example: 'NY'
-        name:
-          type: string
-          example: 'New York'
-    PaymentMethodsList:
-      required:
-        - data
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/PaymentMethod'
-    PaymentMethod:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'payment_method'
-          example: 'payment_method'
-        attributes:
-          type: object
-          properties:
-            type:
-              type: string
-              example: 'Spree::Gateway::StripeGateway'
-            name:
-              type: string
-              example: 'Stripe'
-            description:
-              type: string
-              example: 'Stripe Payments'
-    ShipmentAttributesWithoutRelationsips:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'shipment'
-          example: 'shipment'
-        attributes:
-          $ref: '#/components/schemas/ShipmentAttributes'
-        relationships:
-          type: object
-    ShipmentAttributesAndRelationsips:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'shipment'
-          example: 'shipment'
-        attributes:
-          $ref: '#/components/schemas/ShipmentAttributes'
-        relationships:
-          properties:
-            shipping_rates:
-              properties:
-                data:
-                  type: array
-                  items:
-                    oneOf:
-                      - $ref: '#/components/schemas/Relation'
-    ShipmentAttributes:
-      properties:
-        number:
-          type: string
-          example: 'H121354'
-          descriptipon: 'Unique Shipment identifier'
-        free:
-          type: boolean
-          example: true
-          description: 'Indicates if the Shipping Rate is free, eg. when Free shipping promo applied to Cart'
-        final_price:
-          type: string
-          example: '10.0'
-          description: 'Price to be presented for the Customer'
-        display_final_price:
-          type: string
-          example: '$10.00'
-        tracking_url:
-          type: string
-          example: 'https://tools.usps.com/go/TrackConfirmAction?tRef=fullpage&tLc=2&text28777=&tLabels=4123412434%2C'
-          description: 'Tracking URL to the service provider website'
-        state:
-          type: string
-          example: 'shipped'
-          description: >-
-            Status of the Shipment. For list of all available statuses please refer:
-            <a href="https://guides.spreecommerce.org/developer/shipments.html#overview" target="_blank" rel="noopener">
-              Shipment section in Spree Guides
-            </a>
-        shipped_at:
-          type: string
-          format: 'date-time'
-          example: '2019-01-02 13:42:12 UTC'
-          description: 'Date when Shipment was being sent from the warehouse'
-    ShippingRatesList:
-      required:
-        - data
-        - included
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/ShipmentAttributesAndRelationsips'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/ShippingRate'
-    ShippingRate:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'shipping_rate'
-          example: 'shipping_rate'
-        attributes:
-          type: object
-          properties:
-            name:
-              type: string
-              example: 'USPS Ground'
-            selected:
-              type: boolean
-              example: true
-            free:
-              type: boolean
-              example: true
-              description: 'Indicates if the Shipping Rate is free, eg. when Free shipping promo applied to Cart'
-            final_price:
-              type: string
-              example: '10.0'
-              description: 'Price to be presented for the Customer'
-            display_final_price:
-              type: string
-              example: '$10.00'
-            cost:
-              type: string
-              example: '10.0'
-              description: 'Price of the service without discounts applied'
-            display_cost:
-              type: string
-              example: '$10.00'
-            tax_amount:
-              type: string
-              example: '0.0'
-              description: 'Eligible tax for service (if any)'
-            display_tax_amount:
-              type: string
-              example: '$0.00'
-            shipping_method_id:
-              type: integer
-              example: 1
-              description: 'ID of a Shipping Method. You will need this for the Checkout Update action'
-    Account:
-      required:
-        - data
-        - included
-      properties:
-        data:
-          $ref: '#/components/schemas/AccountAttributesAndRelationships'
-        included:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/Address'
-    AccountAttributes:
-      type: object
-      properties:
-        email:
-          type: string
-          example: 'spree@example.com'
-        store_credits:
-          type: number
-          example: 150.75
-        completed_orders:
-          type: number
-          example: 3
-    AccountRelationships:
-      type: object
-      properties:
-        default_billing_address:
-          type: object
-          description: 'Default billing address associated with this Account'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-        default_shipping_address:
-          type: object
-          description: 'Default shipping address associated with this Account'
-          properties:
-            data:
-              $ref: '#/components/schemas/Relation'
-    AccountAttributesAndRelationships:
-      properties:
-        id:
-          type: string
-          example: '1'
-        type:
-          type: string
-          default: 'user'
-          example: 'user'
         attributes:
           $ref: '#/components/schemas/AccountAttributes'
         relationships:
@@ -3114,6 +2252,27 @@ country_id: 232      properties:
         country_id: 232
 
   parameters:
+    CreditCardIncludeParam:
+      name: include
+      in: query
+      required: false
+      schema:
+        type: string
+      example: 'payment_method'
+      description: >-
+        <p>Specify what related resources (relationships) you would like to receive in the response body.</p>
+          <p>You can also fetch relationships of relationships.</p>
+          <p>
+            Format:
+            <ul>
+              <li>payment_method</li>
+            </ul>
+          <p>
+          More information:
+          <a href="https://jsonapi.org/format/#fetching-includes" target="_blank" rel="noopener">
+              https://jsonapi.org/format/#fetching-includes
+          </a>
+        </p>
     IdOrPermalink:
       name: id
       in: path
@@ -3273,6 +2432,12 @@ country_id: 232      properties:
   responses:
     404NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    403Forbidden:
+      description: You are not authorized to access this page.
       content:
         application/json:
           schema:

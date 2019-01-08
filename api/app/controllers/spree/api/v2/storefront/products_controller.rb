@@ -41,7 +41,7 @@ module Spree
           end
 
           def collection
-            dependencies[:collection_finder].new(scope, params, current_pricing_currency).call
+            dependencies[:collection_finder].new(scope: scope, params: params, current_pricing_currency: current_pricing_currency).execute
           end
 
           def resource
