@@ -48,12 +48,12 @@ RSpec.describe 'New Order', type: :feature do
     click_on 'Payments'
     click_on 'Update'
 
-    expect(page).to have_current_path(spree.admin_order_payments_path(Spree::Order.last))
+    expect(current_path).to eql(spree.admin_order_payments_path(Spree::Order.last))
 
     click_on 'Confirm'
     click_on 'Complete Order'
 
-    expect(page).to have_current_path(spree.edit_admin_order_path(Spree::Order.last))
+    expect(current_path).to eql(spree.edit_admin_order_path(Spree::Order.last))
 
     click_on 'Payments'
     click_icon 'capture'
@@ -196,6 +196,123 @@ RSpec.describe 'New Order', type: :feature do
       click_on 'Customer'
       targetted_select2_search user.email, from: '#s2id_customer_search'
       expect(page).to have_field('Customer E-Mail', with: xss_string)
+    end
+  end
+
+  context 'with a checkout_zone set as the country of Canada' do
+    let!(:canada) { create(:country, iso: 'CA', states_required: true) }
+    let!(:canada_state) { create(:state, country: canada) }
+    let!(:checkout_zone) { create(:zone, name: 'Checkout Zone', countries: [canada]) }
+
+    before do
+      Spree::Country.update_all(states_required: true)
+      Spree::Config.checkout_zone = checkout_zone.name
+    end
+
+    context 'and default_country_iso of the United States' do
+      before do
+        Spree::Config.default_country_iso = Spree::Country.find_by!(iso: 'US').iso
+      end
+
+      it 'the shipping address country select includes only options for Canada' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#shipping' do
+          expect(page).to have_select(
+            'Country',
+            options: ['Canada']
+          )
+        end
+      end
+
+      it 'does not show any shipping address state' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#shipping' do
+          expect(page).to have_select(
+            'State',
+            disabled: true,
+            visible: false,
+            options: ['']
+          )
+        end
+      end
+
+      it 'the billing address country select includes only options for Canada' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#billing' do
+          expect(page).to have_select(
+            'Country',
+            options: ['Canada']
+          )
+        end
+      end
+
+      it 'does not show any billing address state' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#billing' do
+          expect(page).to have_select(
+            'State',
+            disabled: true,
+            visible: false,
+            options: ['']
+          )
+        end
+      end
+    end
+
+    context 'and default_country_iso of Canada' do
+      before do
+        Spree::Config.default_country_iso = Spree::Country.find_by!(iso: 'CA').iso
+      end
+
+      it 'defaults the shipping address country to Canada' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#shipping' do
+          expect(page).to have_select(
+            'Country',
+            selected: 'Canada',
+            options: ['Canada']
+          )
+        end
+      end
+
+      it 'shows relevant shipping address states' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#shipping' do
+          expect(page).to have_select(
+            'State',
+            options: [''] + canada.states.map(&:name)
+          )
+        end
+      end
+
+      it 'defaults the billing address country to Canada' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#billing' do
+          expect(page).to have_select(
+            'Country',
+            selected: 'Canada',
+            options: ['Canada']
+          )
+        end
+      end
+
+      it 'shows relevant billing address states' do
+        visit spree.new_admin_order_path
+        click_link 'Customer'
+        within '#billing' do
+          expect(page).to have_select(
+            'State',
+            options: [''] + canada.states.map(&:name)
+          )
+        end
+      end
     end
   end
 

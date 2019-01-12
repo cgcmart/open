@@ -13,12 +13,13 @@ module Spree
         end
 
         def edit
-          country_id = Address.default.country.id
-          @order.build_bill_address(country_id: country_id) if @order.bill_address.nil?
-          @order.build_ship_address(country_id: country_id) if @order.ship_address.nil?
+          country_iso = default_country_iso
 
-          @order.bill_address.country_id = country_id if @order.bill_address.country.nil?
-          @order.ship_address.country_id = country_id if @order.ship_address.country.nil?
+          @order.build_bill_address(country_iso: country_iso) if @order.bill_address.nil?
+          @order.build_ship_address(country_iso: country_iso) if @order.ship_address.nil?
+
+          @order.bill_address.country_iso = iso if @order.bill_address.country.nil?
+          @order.ship_address.country_iso = iso if @order.ship_address.country.nil?
         end
 
         def update
