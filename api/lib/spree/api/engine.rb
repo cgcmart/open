@@ -18,6 +18,10 @@ module Spree
       initializer 'spree.api.environment', before: :load_config_initializers do |_app|
         Spree::Api::Config = Spree::ApiConfiguration.new
       end
+
+      initializer 'spree.api.checking_migrations' do
+        Migrations.new(config, engine_name).check
+      end
     end
   end
 end
