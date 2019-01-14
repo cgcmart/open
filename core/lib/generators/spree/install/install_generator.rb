@@ -12,7 +12,6 @@ module Spree
     class_option :migrate, type: :boolean, default: true, banner: 'Run Open migrations'
     class_option :seed, type: :boolean, default: true, banner: 'load seed data (migrations must be run)'
     class_option :sample, type: :boolean, default: true, banner: 'load sample data (migrations must be run)'
-    class_option :copy_views, type: :boolean, default: true, banner: 'copy frontend views from spree to your application for easy customization'
     class_option :auto_accept, type: :boolean
     class_option :user_class, type: :string
     class_option :admin_email, type: :string
@@ -32,7 +31,6 @@ module Spree
       @run_migrations = options[:migrate]
       @load_seed_data = options[:seed]
       @load_sample_data = options[:sample]
-      @copy_views = options[:copy_views]
 
       unless @run_migrations
         @load_seed_data = false
@@ -46,7 +44,6 @@ module Spree
 
     def additional_tweaks
       return unless File.exist? 'public/robots.txt'
-
       append_file 'public/robots.txt', <<-ROBOTS.strip_heredoc
         User-agent: *
         Disallow: /checkout
@@ -81,24 +78,18 @@ module Spree
       empty_directory 'app/overrides'
     end
 
-    def copy_views
-      if @copy_views && Spree::Core::Engine.frontend_available?
-        generate 'spree:frontend:copy_views'
-      end
-    end
-
     def configure_application
       config.to_prepare do
         application <<-APP
      
         # Load application's model / class decorators
         Dir.glob(File.join(File.dirname(__FILE__), "../app/**/*_decorator*.rb")) do |c|
-          Rails.configuration.cache_classes ? require(c) : load(c)
+          require_dependency(c)
         end
 
         # Load application's view overrides
         Dir.glob(File.join(File.dirname(__FILE__), "../app/overrides/*.rb")) do |c|
-          Rails.configuration.cache_classes ? require(c) : load(c)
+          require_dependency(c)
         end
         APP
       end

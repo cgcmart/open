@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'spree/order/checkout'
-require 'spree/order/number_generator'
-
 module Spree
   class Order < Spree::Base
     ORDER_NUMBER_LENGTH  = 9
