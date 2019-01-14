@@ -99,11 +99,6 @@ module Spree
     self.whitelisted_ransackable_associations = %w[option_values product prices default_price]
     self.whitelisted_ransackable_attributes = %w[weight sku]
 
-    def self.active(currency = nil)
-      Spree::Deprecation.warn("`Variant.active(currency)` is deprecated. Please use `Variant.with_prices(pricing_options)` instead.", caller)
-      joins(:prices).where(deleted_at: nil).where('spree_prices.currency' => currency || Spree::Config[:currency]).where('spree_prices.amount IS NOT NULL')
-    end
-
     def self.with_prices(pricing_options = Spree::Config.default_pricing_options)
       where(
         Spree::Price.

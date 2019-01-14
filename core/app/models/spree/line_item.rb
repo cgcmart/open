@@ -81,7 +81,7 @@ module Spree
     end
 
     def sufficient_stock?
-      Stock::Quantifier.new(variant).can_supply? quantity
+      Spree::Stock::Quantifier.new(variant).can_supply? quantity
     end
 
     def insufficient_stock?
@@ -160,7 +160,7 @@ module Spree
     end
 
     def recalculate_adjustments
-      Adjustable::AdjustmentsUpdater.update(self)
+      Spree::Adjustable::AdjustmentsUpdater.update(self)
     end
 
     def update_tax_charge
