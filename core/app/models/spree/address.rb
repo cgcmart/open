@@ -7,14 +7,22 @@ module Spree
   class Address < Spree::Base
     extend ActiveModel::ForbiddenAttributesProtection
 
+    NO_ZIPCODE_ISO_CODES ||= [
+      'AO', 'AG', 'AW', 'BS', 'BZ', 'BJ', 'BM', 'BO', 'BW', 'BF', 'BI', 'CM', 'CF', 'KM', 'CG',
+      'CD', 'CK', 'CUW', 'CI', 'DJ', 'DM', 'GQ', 'ER', 'FJ', 'TF', 'GAB', 'GM', 'GH', 'GD', 'GN',
+      'GY', 'HK', 'IE', 'KI', 'KP', 'LY', 'MO', 'MW', 'ML', 'MR', 'NR', 'AN', 'NU', 'KP', 'PA',
+      'QA', 'RW', 'KN', 'LC', 'ST', 'SC', 'SL', 'SB', 'SO', 'SR', 'SY', 'TZ', 'TL', 'TK', 'TG',
+      'TO', 'TV', 'UG', 'AE', 'VU', 'YE', 'ZW'
+    ].freeze
+
     belongs_to :country, class_name: 'Spree::Country'
-    belongs_to :state, class_name: 'Spree::State'
+    belongs_to :state, class_name: 'Spree::State', optional: true
 
     validates :firstname, :address1, :city, :country_id, presence: true
     validates :zipcode, presence: true, if: :require_zipcode?
     validates :phone, presence: true, if: :require_phone?
 
-    validate :state_validate, :postal_code_validate
+    validate :state_validate
     validate :validate_state_matches_country
 
     delegate :name, :iso3, to: :country, prefix: true
@@ -94,6 +102,10 @@ module Spree
       state.try(:abbr) || state.try(:name) || state_name
     end
 
+    def state_name_text
+      state_name.present? ? state_name : state&.name
+    end
+
     def to_s
       "#{full_name}: #{address1}"
     end
@@ -119,11 +131,11 @@ module Spree
     end
 
     def require_phone?
-      true
+      Spree::Config[:address_requires_phone]
     end
 
     def require_zipcode?
-      true
+      country ? country.zipcode_required? : true
     end
 
     # This is set in order to preserve immutability of Addresses. Use #dup to create

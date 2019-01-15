@@ -18,8 +18,8 @@ RSpec.describe Spree::Address, type: :model do
   end
 
   context 'validation' do
-    let(:country) { create :country, states_required: true }
-    let(:state) { Spree::State.new name: 'maryland', abbr: 'md', country: country }
+    let(:country) { stub_model(Spree::Country, states: [state], states_required: true) }
+    let(:state) { stub_model(Spree::State, name: 'maryland', abbr: 'md' }
     let(:address) { build(:address, country: country) }
 
     before do
@@ -117,6 +117,54 @@ RSpec.describe Spree::Address, type: :model do
       address.zipcode = ''
       address.valid?
       expect(address.errors['zipcode']).to include("can't be blank")
+    end
+
+    context 'zipcode validation' do
+      it 'validates the zipcode' do
+        allow(address.country).to receive(:iso).and_return('US')
+        address.zipcode = 'abc'
+        address.valid?
+        expect(address.errors['zipcode']).to include('is invalid')
+      end
+
+      it 'accepts a zip code with surrounding white space' do
+        allow(address.country).to receive(:iso).and_return('US')
+        address.zipcode = ' 12345 '
+        address.valid?
+        expect(address.errors['zipcode']).not_to include('is invalid')
+      end
+
+      context 'does not validate' do
+        it 'does not have a country' do
+          address.country = nil
+          address.valid?
+          expect(address.errors['zipcode']).not_to include('is invalid')
+        end
+
+        it 'country does not requires zipcode' do
+          allow(address.country).to receive(:zipcode_required?).and_return(false)
+          address.valid?
+          expect(address.errors['zipcode']).not_to include('is invalid')
+        end
+
+        it 'does not have an iso' do
+          allow(address.country).to receive(:iso).and_return(nil)
+          address.valid?
+          expect(address.errors['zipcode']).not_to include('is invalid')
+        end
+
+        it 'does not have a zipcode' do
+          address.zipcode = ''
+          address.valid?
+          expect(address.errors['zipcode']).not_to include('is invalid')
+        end
+
+        it 'does not have a supported country iso' do
+          allow(address.country).to receive(:iso).and_return('BO')
+          address.valid?
+          expect(address.errors['zipcode']).not_to include('is invalid')
+        end
+      end
     end
 
     context 'phone not required' do
@@ -365,6 +413,28 @@ RSpec.describe Spree::Address, type: :model do
       let(:state) { Spree::State.new name: 'virginia', abbr: nil }
       let(:address) { Spree::Address.new state: state }
       specify { expect(address.state_text).to eq('virginia') }
+    end
+  end
+
+  context '#state_name_text' do
+    context 'state_name is blank' do
+      let(:state) { create(:state, name: 'virginia', abbr: nil) }
+      let(:address) { create(:address, state: state, state_name: nil) }
+
+      specify { expect(address.state_name_text).to eq('virginia') }
+    end
+
+    context 'state is blank' do
+      let(:address) { create(:address, state: nil, state_name: 'virginia') }
+
+      specify { expect(address.state_name_text).to eq('virginia') }
+    end
+
+    context 'state and state_name are present' do
+      let(:state) { create(:state, name: 'virginia', abbr: nil) }
+      let(:address) { create(:address, state: state, state_name: 'virginia') }
+
+      specify { expect(address.state_name_text).to eq('virginia') }
     end
   end
 

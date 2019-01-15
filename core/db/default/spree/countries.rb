@@ -2,8 +2,6 @@
 
 require 'carmen'
 
-require 'carmen'
-
 Carmen::Country.all.each do |country|
   Spree::Country.where(
     name: country.name,
