@@ -7,8 +7,6 @@ module Spree
     ORDER_TOKEN = 'ORDER_TOKEN'
 
     let!(:store) { create(:store) }
-    let(:user) { create(:user) }
-    let(:guest_user) { create(:user) }
     let(:order) { Spree::Order.create }
     let(:variant) { create(:variant) }
 
@@ -22,7 +20,6 @@ module Spree
       before do
         cookies.signed[:token] = token
         allow(controller).to receive_messages current_order: order
-        allow(controller).to receive_messages spree_current_user: user
       end
 
       context '#populate' do

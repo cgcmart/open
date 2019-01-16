@@ -24,6 +24,7 @@ end
 
 require 'rspec/core'
 
+require 'spree/testing_support/partial_double_verification'
 require 'spree/testing_support/preferences'
 require 'spree/config'
 require 'with_model'
@@ -37,7 +38,6 @@ RSpec.configure do |config|
   end
   config.mock_with :rspec do |c|
     c.syntax = :expect
-    c.verify_partial_doubles = true
   end
 
   # If you're not using ActiveRecord, or you'd prefer not to run each of your

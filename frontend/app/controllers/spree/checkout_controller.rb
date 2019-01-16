@@ -6,8 +6,8 @@ module Spree
   # checkout which has nothing to do with updating an order that this approach
   # is waranted.
   class CheckoutController < Spree::StoreController
-    before_action :load_order
-    around_action :lock_order
+    before_action :set_cache_header, only: [:edit]
+    before_action :load_order_with_lock
     before_action :set_state_if_present
 
     before_action :ensure_order_not_completed
@@ -225,6 +225,10 @@ module Spree
 
     def check_authorization
       authorize!(:edit, current_order, cookies.signed[:token])
+    end
+
+    def set_cache_header
+      response.headers['Cache-Control'] = 'no-store'
     end
   end
 end
