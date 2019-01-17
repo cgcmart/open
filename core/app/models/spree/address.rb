@@ -25,7 +25,7 @@ module Spree
     validate :state_validate
     validate :validate_state_matches_country
 
-    delegate :name, :iso3, to: :country, prefix: true
+    delegate :name, :iso3, :iso, :country_iso_name, to: :country, prefix: true
     delegate :abbr, to: :state, prefix: true, allow_nil: true
 
     alias_attribute :first_name, :firstname
@@ -92,6 +92,9 @@ module Spree
 
     def taxation_attributes
       self.class.value_attributes(attributes.slice(*TAXATION_ATTRS))
+    end
+
+    def country_iso_name
     end
 
     def full_name

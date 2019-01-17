@@ -259,7 +259,7 @@ module Spree
     end
 
     def shipping_method
-      selected_shipping_rate.try(:shipping_method)
+      selected_shipping_rate&.shipping_method || shipping_rates.first&.shipping_method
     end
 
     # Only one of either included_tax_total or additional_tax_total is set
@@ -285,7 +285,7 @@ module Spree
     def tracking_url
       return nil unless tracking && shipping_method
 
-      @tracking_url ||= shipping_method.build_tracking_url(tracking)
+      @tracking_url ||= shipping_method&.build_tracking_url(tracking)
     end
 
     def update_amounts

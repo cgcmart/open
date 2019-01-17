@@ -51,9 +51,9 @@ en:
         preferred_currency: Currency
         preferred_tiers: Tiers
       spree/country:
+        country_iso_name: Country ISO Name
         iso: ISO
         iso3: ISO3
-        iso_name: ISO Name
         name: Name
         numcode: ISO Code
         states_required: States Required
@@ -1139,6 +1139,7 @@ v        spree/price:
     countries: Countries
     country: Country
     country_based: Country Based
+    country_iso_name: ISO Name
     country_name: Name
     country_names:
       CA: Canada
@@ -1422,7 +1423,6 @@ v        spree/price:
       returned: Returned
       shipped: Shipped
     is_not_available_to_shipment_address: is not available to shipment address
-    iso_name: Iso Name
     item: Item
     item_description: Item Description
     item_total: Item Total

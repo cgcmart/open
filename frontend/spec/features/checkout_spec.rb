@@ -665,7 +665,7 @@ describe 'Checkout', type: :feature, inaccessible: true do
     shared_examples 'safe from XSS' do
       # We need a country with states required but no states so that we have
       # access to the state_name input
-      let!(:canada) { create(:country, name: 'Canada', iso: "CA", states_required: true) }
+      let!(:canada) { create(:country, name: 'Canada', iso: CA', states_required: true) }
 
       before do
         canada.states.destroy_all

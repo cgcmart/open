@@ -485,7 +485,7 @@ module Spree
                                  city: "Sao Paulo", zipcode: "01310-300", phone: "12345678",
                                  country_id: country.id }
       }
-      let(:country) { create(:country, { name: "Brazil", iso_name: "BRAZIL", iso: "BR", iso3: "BRA", numcode: 76 }) }
+      let(:country) { create(:country, { name: "Brazil", country_iso_name: "BRAZIL", iso: "BR", iso3: "BRA", numcode: 76 }) }
 
       before { allow_any_instance_of(Order).to receive_messages user: current_api_user }
 

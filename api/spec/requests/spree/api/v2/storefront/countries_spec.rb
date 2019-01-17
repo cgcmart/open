@@ -18,7 +18,7 @@ describe 'Storefront API v2 Countries spec', type: :request do
 
       expect(json_response['data']).to have_attribute(:iso)
       expect(json_response['data']).to have_attribute(:iso3)
-      expect(json_response['data']).to have_attribute(:iso_name)
+      expect(json_response['data']).to have_attribute(:country_iso_name)
       expect(json_response['data']).to have_attribute(:name)
       expect(json_response['data']).to have_attribute(:default)
       expect(json_response['data']).to have_attribute(:states_required)
@@ -82,7 +82,7 @@ describe 'Storefront API v2 Countries spec', type: :request do
         expect(json_response['data']).to have_id(country.id.to_s)
         expect(json_response['data']).to have_attribute(:iso).with_value(country.iso)
         expect(json_response['data']).to have_attribute(:iso3).with_value(country.iso3)
-        expect(json_response['data']).to have_attribute(:iso_name).with_value(country.iso_name)
+        expect(json_response['data']).to have_attribute(:country_iso_name).with_value(country.country_iso_name)
         expect(json_response['data']).to have_attribute(:name).with_value(country.name)
         expect(json_response['data']).to have_attribute(:default).with_value(country == Spree::Country.default)
         expect(json_response['data']).to have_attribute(:states_required).with_value(country.states_required)

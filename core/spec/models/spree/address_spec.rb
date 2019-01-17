@@ -4,7 +4,38 @@ require 'rails_helper'
 
 RSpec.describe Spree::Address, type: :model do
   subject { Spree::Address }
-  
+
+  describe 'delegated method' do
+    context 'Country' do
+      let(:country) { create(:country, name: 'United States', country_iso_name: 'UNITED STATES', iso: 'US', iso3: 'USA') }
+      let(:address) { create(:address, country: country) }
+
+      context '#country_name' do
+        it 'return proper country_iso_name' do
+          expect(address.country_name).to eq 'United States'
+        end
+      end
+
+      context '#country_iso_name' do
+        it 'return proper country_iso_name' do
+          expect(address.country_iso_name).to eq 'UNITED STATES'
+        end
+      end
+
+      context '#country_iso' do
+        it 'return proper country_iso_name' do
+          expect(address.country_iso).to eq 'US'
+        end
+      end
+
+      context '#country_iso3' do
+        it 'return proper country_iso_name' do
+          expect(address.country_iso3).to eq 'USA'
+        end
+      end
+    end
+  end
+
   context 'aliased attributes' do
     let(:address) { Spree::Address.new firstname: 'Ryan', lastname: 'Bigg' }
 

@@ -132,7 +132,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
     end
 
     create_table "spree_countries", force: :cascade do |t|
-      t.string "iso_name"
+      t.string "country_iso_name"
       t.string "iso"
       t.string "iso3"
       t.string "name"
@@ -140,7 +140,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.boolean "states_required", default: false
       t.datetime "updated_at", precision: 6
       t.datetime "created_at", precision: 6
-      t.index ['name', 'iso_name'], name: 'index_spree_countries_on_name_iso', unique: true
+      t.index ['name', 'country_iso_name'], name: 'index_spree_countries_on_name_iso', unique: true
     end
 
     create_table "spree_credit_cards", force: :cascade do |t|

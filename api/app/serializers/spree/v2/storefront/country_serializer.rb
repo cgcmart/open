@@ -4,7 +4,7 @@ module Spree
       class CountrySerializer < BaseSerializer
         set_type :country
 
-        attributes :iso, :iso3, :iso_name, :name, :states_required,
+        attributes :iso, :iso3, :country_iso_name, :name, :states_required,
                    :zipcode_required
 
         attribute :default do |object|

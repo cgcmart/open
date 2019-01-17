@@ -5,7 +5,7 @@ require 'spec_helper'
 describe 'Delivery', type: :feature, inaccessible: true, js: true do
   include_context 'checkout setup'
 
-  let(:country) { create(:country, name: 'United States of America', iso_name: 'UNITED STATES') }
+  let(:country) { create(:country, name: 'United States of America', country_iso_name: 'UNITED STATES') }
   let(:state) { create(:state, name: 'Alabama', abbr: 'AL', country: country) }
   let(:user) { create(:user) }
   let!(:shipping_method2) do

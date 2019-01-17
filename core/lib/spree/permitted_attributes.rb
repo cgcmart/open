@@ -38,9 +38,9 @@ module Spree
 
     @@address_attributes = [
       :id, :firstname, :lastname, :first_name, :last_name,
-      :address1, :address2, :city, :country_id, :state_id,
-      :zipcode, :phone, :state_name, :country_iso, :alternative_phone, :company,
-      country: [:iso, :name, :iso3, :iso_name],
+      :address1, :address2, :city, :country_iso, :country_id, :state_id,
+      :zipcode, :phone, :state_name, :alternative_phone, :company,
+      country: [:iso, :name, :iso3, :country_iso_name],
       state: [:name, :abbr]
     ]
 

@@ -169,7 +169,7 @@ module Spree
           search = {}
           if name = address[:country]['name']
             search[:name] = name
-          elsif iso_name = address[:country]['iso_name']
+          elsif country_iso_name = address[:country]['country_iso_name']
             search[:iso_name] = iso_name.upcase
           elsif iso = address[:country]['iso']
             search[:iso] = iso.upcase
