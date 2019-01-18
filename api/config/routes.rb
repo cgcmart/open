@@ -163,6 +163,7 @@ Spree::Core::Engine.routes.draw do
 
         namespace :account do
           resources :credit_cards, controller: :credit_cards, only: %i[index show]
+          resources :orders, controller: :orders, only: %i[index show]
         end
 
         resources :countries, only: %i[index]
