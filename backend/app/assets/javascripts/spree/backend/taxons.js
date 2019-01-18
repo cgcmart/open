@@ -30,7 +30,7 @@ Spree.ready(function() {
       url: Spree.routes.taxons_api,
       params: {
         "headers": {
-          "X-Spree-Token": Spree.api_key
+          'Authorization': 'Bearer ' + Spree.api_key
         }
       },
       data: function(term, page) {
@@ -98,7 +98,4 @@ Spree.ready(function() {
   })
   $('.variant_autocomplete').variantAutocomplete()
 
-  function formatTaxon (taxon) {
-    return Select2.util.escapeMarkup(taxon.pretty_name)
-  }
-})
+  })

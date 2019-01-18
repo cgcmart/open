@@ -8,7 +8,7 @@
   }
 
   $.fn.variantAutocomplete = function(searchOptions) {
-    if (searchOptions == null) {
+    if (searchOptions === null) {
       searchOptions = {};
     }
     this.select2({
@@ -26,7 +26,7 @@
         quietMillis: 500,
         params: {
           "headers": {
-            "X-Spree-Token": Spree.api_key
+            'Authorization': 'Bearer ' + Spree.api_key
           }
         },
         data: function(term, page) {

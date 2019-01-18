@@ -22,6 +22,7 @@ Spree.ready(function () {
         url: Spree.routes.option_types_api,
         quietMillis: 200,
         datatype: 'json',
+        params: { "headers": {  'Authorization': 'Bearer ' + Spree.api_key } },
         data: function (term) {
           return {
             q: {
