@@ -1,6 +1,4 @@
 //= require handlebars
-//= require jquery3
-//= require jquery_ujs
 //= require jquery.sticky-kit.min
 //= require prism
 //= require solidus_admin/backbone
