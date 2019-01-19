@@ -890,10 +890,11 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.index ["priority"], name: "index_spree_store_credit_types_on_priority"
     end
 
-    create_table "spree_store_credit_update_reasons", force: :cascade do |t|
-      t.string "name"
-      t.datetime "created_at", precision: 6
-      t.datetime "updated_at", precision: 6
+    create_table "spree_store_credit_reasons", force: :cascade do |t|
+      t.string :name
+      t.boolean :active, default: true
+
+      t.timestamps
     end
 
     create_table "spree_store_credits", force: :cascade do |t|
