@@ -7,10 +7,11 @@ module Spree
         locale = params[:locale].to_s.presence
 
         if locale && I18n.available_locales.include?(locale.to_sym)
-          session[:locale] = locale
+          I18n.locale = locale
+          session[set_user_language_locale_key] = locale
 
           respond_to do |format|
-            format.json { render json: { locale: locale } }
+            format.json { render json: { locale: locale, location: spree.admin_url } }
           end
         else
           respond_to do |format|

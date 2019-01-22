@@ -15,38 +15,39 @@ module Spree
           layout :get_layout
 
           before_action :set_user_language
+        end
 
-          protected
+        protected
 
-          # can be used in views as well as controllers.
-          # e.g. <% self.title = 'This is a custom title for this view' %>
-          attr_writer :title
+        # can be used in views as well as controllers.
+        # e.g. <% self.title = 'This is a custom title for this view' %>
+        attr_writer :title
 
-          def title
-            title_string = @title.present? ? @title : accurate_title
-            if title_string.present?
-              if Spree::Config[:always_put_site_name_in_title]
-                [title_string, default_title].join(' - ')
-              else
-                title_string
-              end
+        def title
+          title_string = @title.present? ? @title : accurate_title
+          if title_string.present?
+            if Spree::Config[:always_put_site_name_in_title]
+              [title_string, default_title].join(' - ')
             else
-              default_title
+              title_string
             end
+          else
+            default_title
           end
+        end
 
-          def default_title
-            current_store.name
-          end
+        def default_title
+          current_store.name
+        end
 
-          # this is a hook for subclasses to provide title
-          def accurate_title
-            current_store.seo_title
-          end
+        # this is a hook for subclasses to provide title
+        def accurate_title
+          current_store.seo_title
+        end
 
-          private
+        private
 
-          def set_user_language_locale_key
+        def set_user_language_locale_key
           :locale
         end
 
@@ -61,20 +62,19 @@ module Spree
             candidate &&
               available_locales.include?(candidate.to_sym)
           end
-          session[:locale] = locale
+          session[set_user_language_locale_key] = locale
           I18n.locale = locale
           Carmen.i18n_backend.locale = locale
         end
 
-          # Returns which layout to render.
-          #
-          # You can set the layout you want to render inside your Spree configuration with the +:layout+ option.
-          #
-          # Default layout is: +app/views/spree/layouts/spree_application+
-          #
-          def get_layout
-            layout ||= Spree::Config[:layout]
-          end
+        # Returns which layout to render.
+        #
+        # You can set the layout you want to render inside your Spree configuration with the +:layout+ option.
+        #
+        # Default layout is: +app/views/spree/layouts/spree_application+
+        #
+        def get_layout
+          layout ||= Spree::Config[:layout]
         end
       end
     end
