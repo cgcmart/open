@@ -60,7 +60,6 @@ end
 
 group :utils do
   gem 'pry'
-  gem 'launchy', require: false
   gem 'i18n-tasks', '~> 0.9', require: false
   gem 'rubocop', '~> 0.60.0', require: false
 end
