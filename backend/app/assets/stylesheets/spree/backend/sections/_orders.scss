@@ -1,3 +1,4 @@
+
 // Customize orders filter
 [data-hook="admin_orders_index_search"] {
   select[data-placeholder="Status"] {
@@ -46,6 +47,14 @@
 
 [data-hook="adjustments_new_coupon_code"] {
   margin-bottom: 18px;
+}
+
+[data-hook="complete-order-button"] {
+  margin-bottom: 15px;
+}
+
+label[for="order_bill_address_attributes_firstname"] {
+  margin-top: 45px;
 }
 
 #risk_analysis legend {
