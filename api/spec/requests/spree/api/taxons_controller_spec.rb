@@ -17,10 +17,7 @@ module Spree
     let!(:taxon2) { create(:taxon, name: 'Rails', taxonomy: taxonomy, parent_id: taxon.id) }
     let(:attributes) { ['id', 'name', 'pretty_name', 'permalink', 'parent_id', 'taxonomy_id', 'meta_title', 'meta_description'] }
 
-    before do
-      create(:taxon, name: 'React', taxonomy: taxonomy, parent_id: taxon2.id) # taxon3
-      stub_authentication!
-    end
+    before { stub_authentication! }
 
     context 'as a normal user' do
       it 'gets all taxons for a taxonomy' do
