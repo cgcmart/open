@@ -54,8 +54,9 @@ module Spree
       autosave: true
 
     before_validation :set_cost_currency
-    before_validation :set_price
+    before_validation :set_price, if: -> { product && product.master }
 
+    validates :product, presence: true
     validate :check_price
 
     validates :cost_price, numericality: { greater_than_or_equal_to: 0, allow_nil: true }
@@ -312,10 +313,7 @@ module Spree
 
     # Ensures a new variant takes the product master price when price is not supplied
     def set_price
-      if price.nil? && Spree::Config[:require_master_price] && !is_master?
-        raise 'No master variant found to infer price' unless product && product.master
-        self.price = product.master.price
-      end
+      self.price = product.master.price if price.nil? && Spree::Config[:require_master_price] && !is_master?
     end
 
     def check_price
