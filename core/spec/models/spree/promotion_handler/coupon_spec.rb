@@ -45,16 +45,32 @@ module Spree
         describe "#set_error_code" do
           subject { coupon.set_error_code status }
 
-          let(:status) { :coupon_code_not_found }
+          context 'not found' do
+            let(:status) { :coupon_code_not_found }
 
-          it 'has status_code' do
-            subject
-            expect(coupon.status_code).to eq(status)
+            it 'has status_code' do
+              subject
+              expect(coupon.status_code).to eq(status)
+            end
+
+            it 'has error message' do
+              subject
+              expect(coupon.error).to eq(I18n.t(status, scope: 'spree'))
+            end
           end
 
-          it 'has error message' do
-            subject
-            expect(coupon.error).to eq(I18n.t(status, scope: 'spree'))
+          context 'not present' do
+            let(:status) { :coupon_code_not_present }
+
+            it 'has status_code' do
+              subject
+              expect(coupon.status_code).to eq(status)
+            end
+
+            it 'has error message' do
+              subject
+              expect(coupon.error).to eq(I18n.t(status, scope: 'spree'))
+            end
           end
         end
       end
@@ -359,6 +375,44 @@ module Spree
               expect(order.reload.total).to eq(0)
               expect(order.additional_tax_total).to eq(0)
             end
+          end
+        end
+      end
+
+      context 'removing a coupon code from an order' do
+        let!(:promotion) { promotion_code.promotion }
+        let(:promotion_code) { create(:promotion_code, value: '10off') }
+        let!(:action) { Promotion::Actions::CreateItemAdjustments.create(promotion: promotion, calculator: calculator) }
+        let(:calculator) { Calculator::FlatRate.new(preferred_amount: 10) }
+        let(:order) { create(:order_with_line_items, line_items_count: 3) }
+
+        context 'with an already applied coupon' do
+          before do
+            order.coupon_code = '10off'
+            subject.apply
+            order.reload
+            expect(order.total).to eq(100)
+          end
+
+          it 'successfully removes the coupon code from the order' do
+            subject.remove
+            expect(subject.error).to eq nil
+            expect(subject.success).to eq I18n.t('spree.coupon_code_removed')
+            expect(order.reload.total).to eq(130)
+          end
+        end
+
+        context 'with a coupon code not applied to an order' do
+          before do
+            order.coupon_code = '10off'
+            expect(order.total).to eq(130)
+          end
+
+          it 'returns an error' do
+            subject.remove
+            expect(subject.success).to eq nil
+            expect(subject.error).to eq I18n.t('spree.coupon_code_not_present')
+            expect(order.reload.total).to eq(130)
           end
         end
       end
