@@ -14,27 +14,32 @@ module Spree
       def apply
         if order.coupon_code.present?
           if promotion.present? && promotion.actions.exists?
-            handle_present_promotion(promotion)
-          elsif promotion_code && promotion_code.promotion.inactive?
+            handle_present_promotion
+          elsif Promotion.with_coupon_code(order.coupon_code).try(:expired?)
             set_error_code :coupon_code_expired
           else
             set_error_code :coupon_code_not_found
           end
+        else
+          set_error_code :coupon_code_not_found
         end
         self
       end
 
-      def remove
-        if promotion.blank?
-          set_error_code :coupon_code_not_found
-        elsif !promotion_exists_on_order?(order, promotion)
-          set_error_code :coupon_code_not_present
-        else
-          promotion.remove_from(order)
-          order.recalculate
-          set_success_code :coupon_code_removed
-        end
+      def remove(coupon_code)
+        promotion = order.promotions.with_coupon_code(coupon_code)
 
+        if promotion.present?
+          # Order promotion has to be destroyed before line item removing
+          order.order_promotions.find_by!(promotion_id: promotion.id).destroy
+
+          remove_promotion_adjustments(promotion)
+          order.update_with_updater!
+
+          set_success_code :adjustments_deleted
+        else
+          set_error_code :coupon_code_not_found
+        end
         self
       end
 
@@ -64,6 +69,12 @@ module Spree
 
       def promotion_code
         @promotion_code ||= Spree::PromotionCode.where(value: coupon_code).first
+      end
+
+      def remove_promotion_adjustments(promotion)
+        promotion_actions_ids = promotion.actions.pluck(:id)
+        order.all_adjustments.where(source_id: promotion_actions_ids,
+                                    source_type: 'Spree::PromotionAction').destroy_all
       end
 
       def handle_present_promotion(promotion)

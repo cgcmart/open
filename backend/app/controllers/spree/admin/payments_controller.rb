@@ -26,7 +26,7 @@ module Spree
       def create
         begin
           if @payment_method.store_credit?
-            Spree::Checkout::AddStoreCredit.call(order: @order)
+            Spree::Dependencies.checkout_add_store_credit_service.constantize.call(order: @order)
             payments = @order.payments.store_credits.valid
           else
             @payment = PaymentCreate.new(@order, object_params).build

@@ -42,10 +42,10 @@ module Spree
         authorize! :create, Shipment
         quantity = params[:quantity].to_i
         @shipment = @order.shipments.create(stock_location_id: params.fetch(:stock_location_id))
-        @line_item = Spree::Cart::AddItem.call(order: @order,
-          variant: variant,
-          quantity: quantity,
-          options: { shipment: @shipment }).value
+        @line_item = Spree::Dependencies.cart_add_item_service.constantize.call(order: @order,
+                                                                                variant: variant,
+                                                                                quantity: quantity,
+                                                                                options: { shipment: @shipment }).value
 
         respond_with(@shipment.reload, default_template: :show)
       end
@@ -80,10 +80,11 @@ module Spree
       def add
         quantity = params[:quantity].to_i
 
-        Spree::Cart::AddItem.call(order: @shipment.order,
-          variant: variant,
-          quantity: quantity,
-          options: { shipment: @shipment })
+        Spree::Dependencies.cart_add_item_service.constantize.call(order: @shipment.order,
+                                                                   variant: variant,
+                                                                   quantity: quantity,
+                                                                   options: { shipment: @shipment })
+
         respond_with(@shipment, default_template: :show)
       end
 
@@ -94,7 +95,11 @@ module Spree
           @shipment.errors.add(:base, :cannot_remove_items_shipment_state, state: @shipment.state)
           invalid_resource!(@shipment)
         else
-          Spree::Cart::RemoveItem.call(order: @shipment.order, variant: variant, quantity: quantity, options: { shipment: @shipment })
+          Spree::Dependencies.cart_remove_item_service.constantize.call(order: @shipment.order,
+                                                                        variant: variant,
+                                                                        quantity: quantity,
+                                                                        options: { shipment: @shipment })
+
           @shipment.reload if @shipment.persisted?
           respond_with(@shipment, default_template: :show)
         end

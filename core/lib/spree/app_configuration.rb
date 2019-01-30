@@ -441,6 +441,10 @@ module Spree
 
     def environment
       @environment ||= Spree::Core::Environment.new(self).tap do |env|
+        env.dependencies = %w[
+          Spree::Dependencies
+        ]
+
         env.calculators.shipping_methods = %w[
           Spree::Calculator::Shipping::FlatPercentItemTotal
           Spree::Calculator::Shipping::FlatRate

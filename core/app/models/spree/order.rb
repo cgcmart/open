@@ -294,9 +294,7 @@ module Spree
     def line_item_options_match(line_item, options)
       return true unless options
 
-      line_item_comparison_hooks.all? { |hook|
-        send(hook, line_item, options)
-      }
+      Spree::Dependencies.cart_compare_line_items_service.constantize.new.call(order: self, line_item: line_item, options: options).value
     end
 
     def reimbursement_total

@@ -16,18 +16,9 @@ module Spree
       end
 
       initializer 'spree.environment', before: :load_config_initializers do |app|
-        app.config.spree = Spree::Config.environment
+        app.config.spree = Spree::AppDependencies.new
+        Spree::Dependencies = app.config.spree.dependencies
       end
-
-      initializer 'spree.default_permissions', before: :load_config_initializers do; end
-      initializer 'spree.register.calculators', before: :load_config_initializers do; end
-      initializer 'spree.register.stock_splitters', before: :load_config_initializers do; end
-      initializer 'spree.register.payment_methods',  before: :load_config_initializers do; end
-      initializer 'spree.promo.environment', before: :load_config_initializers do; end
-      initializer 'spree.promo.register.promotion.calculators', before: :load_config_initializers do; end
-      initializer 'spree.promo.register.promotion.rules', before: :load_config_initializers do; end
-      initializer 'spree.promo.register.promotions.actions', before: :load_config_initializers do; end
-      initializer 'spree.promo.register.promotions.shipping_actions', before: :load_config_initializers do; end
 
       # filter sensitive information during logging
       initializer 'spree.params.filter', before: :load_config_initializers do |app|

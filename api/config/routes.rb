@@ -70,6 +70,7 @@ Spree::Core::Engine.routes.draw do
 
     resources :orders, concerns: :order_routes do
       member do
+        put :remove_coupon_code
         put :cancel
         put :empty
       end
