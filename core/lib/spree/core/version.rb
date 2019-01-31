@@ -4,7 +4,7 @@ module Spree
   def self.open_version
   VERSION = "2.5.0"
 
-  def self.solidus_version
+  def self.open_version
     VERSION
   end
 
