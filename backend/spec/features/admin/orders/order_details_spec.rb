@@ -204,10 +204,14 @@ describe 'Order Details', type: :feature, js: true do
       end
 
       context 'splitting to location' do
-        before { visit spree.edit_admin_order_path(order) }
-        # can not properly implement until poltergeist supports checking alert text
-        # see https://github.com/teampoltergeist/poltergeist/pull/516
-        it 'warns you if you have not selected a location or shipment'
+        it 'warns you if you have not selected a location or shipment' do
+          visit spree.edit_admin_order_path(order)
+
+          within('tr', text: line_item.sku) { click_icon 'arrows-h' }
+          accept_alert 'Please select the split destination.' do
+            click_icon :ok
+          end
+        end
 
         context 'there is enough stock at the other location' do
           it 'allows me to make a split' do

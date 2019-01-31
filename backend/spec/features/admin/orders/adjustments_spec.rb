@@ -116,7 +116,7 @@ describe 'Adjustments', type: :feature do
         end
       end
 
-      expect(page).to have_content(/Total: ?\$170\.00/)
+      expect(page).to have_content('Total: $170.00', normalize_ws: true)
     end
   end
 end

@@ -58,14 +58,14 @@ RSpec.describe 'Coupon code promotions', type: :feature, js: true do
         expect(page).to have_content(t('spree.coupon_code_not_found'))
         fill_in 'coupon_code', with: 'onetwo'
         click_button 'Apply Code'
-        expect(page).to have_content('Promotion (Onetwo)   -$10.00')
+        expect(page).to have_content('Promotion (Onetwo)   -$10.00', normalize_ws: true)
       end
 
       context 'with a promotion' do
         it 'applies a promotion to an order' do
           fill_in 'coupon_code', with: 'onetwo'
           click_button 'Apply Code'
-          expect(page).to have_content('Promotion (Onetwo)   -$10.00')
+          expect(page).to have_content('Promotion (Onetwo)   -$10.00', normalize_ws: true)
         end
       end
     end
