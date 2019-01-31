@@ -530,7 +530,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.string "type"
       t.integer "usage_limit"
       t.string "match_policy", default: "all"
-      t.string "code"
       t.boolean "advertise", default: false
       t.string "path"
       t.datetime "created_at", precision: 6
@@ -540,7 +539,6 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.boolean "apply_automatically", default: false
       t.index ["advertise"], name: "index_spree_promotions_on_advertise"
       t.index ["apply_automatically"], name: "index_spree_promotions_on_apply_automatically"
-      t.index ['code'], name: 'index_spree_promotions_on_code', unique: true
       t.index ["expires_at"], name: "index_spree_promotions_on_expires_at"
       t.index ["id", "type"], name: "index_spree_promotions_on_id_and_type"
       t.index ["promotion_category_id"], name: "index_spree_promotions_on_promotion_category_id"

@@ -49,6 +49,19 @@ RSpec.describe Spree::Promotion, type: :model do
     end
   end
 
+  describe ".coupons" do
+    let(:promotion_code) { create(:promotion_code) }
+    let!(:promotion_with_code) { promotion_code.promotion }
+    let!(:another_promotion_code) { create(:promotion_code, promotion: promotion_with_code) }
+    let!(:promotion_without_code) { create(:promotion) }
+
+    subject { described_class.coupons }
+
+    it "returns only distinct promotions with a code associated" do
+      expect(subject).to eq [promotion_with_code]
+    end
+  end
+
   describe '#apply_automatically' do
     subject { build(:promotion) }
 
@@ -886,7 +899,7 @@ RSpec.describe Spree::Promotion, type: :model do
       expect(line_item.adjustments.size).to eq(1)
       expect(order.adjustment_total).to eq(-5)
 
-      other_line_item = Spree::Cart::AddItem.call(order: order, variant: variant, options: { currency: order.currency }).value
+      other_line_item = cart_add_item_service.call(order: order, variant: variant, options: { currency: order.currency }).value
 
       expect(other_line_item).not_to eq line_item
       expect(other_line_item.adjustments.size).to eq(1)
