@@ -2,7 +2,10 @@
 
 module Spree
   def self.open_version
-    "2.5.0"
+  VERSION = "2.5.0"
+
+  def self.solidus_version
+    VERSION
   end
 
   def self.open_gem_version
