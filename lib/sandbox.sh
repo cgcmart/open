@@ -28,7 +28,6 @@ bundle exec rails new sandbox --database="$RAILSDB" \
   --skip-spring \
   --skip-test \
   --skip-yarn \
-  --skip-coffee
 
 if [ ! -d "sandbox" ]; then
   echo 'sandbox rails application failed'
@@ -41,11 +40,12 @@ cat <<RUBY >> Gemfile
 gem 'open', path: '..'
 gem 'open_auth_devise', '>= 2.5.0'
 gem 'rails-i18n'
-gem 'spree_i18n'
+gem 'open_i18n'
 
 group :test, :development do
   platforms :mri do
     gem 'pry-byebug'
+  gem 'awesome_print'
   end
 end
 RUBY
@@ -55,3 +55,4 @@ bundle exec rails db:drop || true
 bundle exec rails db:create
 bundle exec rails g spree:install --auto-accept --user_class=Spree::User --enforce_available_locales=true --copy_views=false
 bundle exec rails g open:auth:install
+bundle exec rails g open_gateway:install

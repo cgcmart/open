@@ -62,6 +62,16 @@ FactoryBot.define do
       end
     end
     factory :promotion_with_item_total_rule, traits: [:with_item_total_rule]
+        trait :with_first_order_rule do
+      after(:create) do |promotion, _evaluator|
+        rule = Spree::Promotion::Rules::FirstOrder.create!(
+          promotion: promotion,
+        )
+        promotion.rules << rule
+        promotion.save!
+      end
+    end
+    factory :promotion_with_first_order_rule, traits: [:with_first_order_rule]
   end
 
   factory :free_shipping_promotion, class: Spree::Promotion do
