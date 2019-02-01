@@ -3,6 +3,20 @@
 require 'discard'
 
 module Spree
+  # == Master Variant
+  #
+  # Every product has one master variant, which stores master price and SKU,
+  # size and weight, etc. The master variant does not have option values
+  # associated with it. Contains on_hand inventory levels only when there are
+  # no variants for the product.
+  #
+  # == Variants
+  #
+  # All variants can access the product properties directly (via reverse
+  # delegation). Inventory units are tied to Variant.  The master variant can
+  # have inventory units, but not option values. All other variants have
+  # option values and may have inventory units. Sum of on_hand each variant's
+  # inventory level determine "on_hand" level for the product.
   class Variant < Spree::Base
     acts_as_paranoid
     acts_as_list scope: :product
@@ -94,7 +108,7 @@ module Spree
         Spree::StockItem.arel_table[:count_on_hand].gt(0),
         Spree::StockItem.arel_table[:backorderable].eq(true)
       ]
-      joins(:stock_items).where(arel_conditions.inject(:or))
+      joins(:stock_items).where(arel_conditions.inject(:or)).distinct
     end
 
     self.whitelisted_ransackable_associations = %w[option_values product prices default_price]
