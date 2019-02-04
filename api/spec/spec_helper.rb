@@ -46,6 +46,8 @@ require 'spree/testing_support/authorization_helpers'
 require 'spree/api/testing_support/caching'
 require 'spree/api/testing_support/helpers'
 require 'spree/api/testing_support/setup'
+require 'spree/api/testing_support/v2/base'
+require 'spree/api/testing_support/v2/current_order'
 
 ActiveJob::Base.queue_adapter = :test
 

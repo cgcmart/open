@@ -1,17 +1,16 @@
 require 'spec_helper'
-require 'shared_examples/api_v2/base'
 
 describe 'API V2 Storefront Products Spec', type: :request do
-  let!(:products)           { create_list(:product, 5) }
-  let(:taxon)               { create(:taxon) }
-  let(:product_with_taxon)  { create(:product, taxons: [taxon]) }
-  let(:product_with_name)   { create(:product, name: 'Test Product') }
-  let(:product_with_price)  { create(:product, price: 13.44) }
-  let!(:option_type)        { create(:option_type) }
-  let!(:option_value)       { create(:option_value, option_type: option_type) }
+  let!(:products) { create_list(:product, 5) }
+  let(:taxon) { create(:taxon) }
+  let(:product_with_taxon) { create(:product, taxons: [taxon]) }
+  let(:product_with_name) { create(:product, name: 'Test Product') }
+  let(:product_with_price) { create(:product, price: 13.44) }
+  let!(:option_type) { create(:option_type) }
+  let!(:option_value) { create(:option_value, option_type: option_type) }
   let(:product_with_option) { create(:product, option_types: [option_type]) }
-  let!(:variant)            { create(:variant, product: product_with_option, option_values: [option_value]) }
-  let(:product)             { create(:product) }
+  let!(:variant) { create(:variant, product: product_with_option, option_values: [option_value]) }
+  let(:product) { create(:product) }
 
   describe 'products#index' do
     context 'with no params' do
@@ -75,8 +74,8 @@ describe 'API V2 Storefront Products Spec', type: :request do
 
       it 'returns products with specified options' do
         expect(json_response['data'].first).to have_id(product_with_option.id.to_s)
-        expect(json_response['included']).to   include(have_type('option_type').and(have_attribute(:name).with_value(option_type.name)))
-        expect(json_response['included']).to   include(have_type('option_value').and(have_attribute(:name).with_value(option_value.name)))
+        expect(json_response['included']).to include(have_type('option_type').and(have_attribute(:name).with_value(option_type.name)))
+        expect(json_response['included']).to include(have_type('option_value').and(have_attribute(:name).with_value(option_value.name)))
       end
     end
 
@@ -99,7 +98,7 @@ describe 'API V2 Storefront Products Spec', type: :request do
           it_behaves_like 'returns 200 HTTP status'
 
           it 'returns products sorted by price' do
-            expect(json_response['data'].count).to      eq Spree::Product.count
+            expect(json_response['data'].count).to eq Spree::Product.count
             expect(json_response['data'].pluck(:id)).to eq Spree::Product.joins(master: :prices).select("#{Spree::Product.table_name}.*, #{Spree::Price.table_name}.amount").distinct.order("#{Spree::Price.table_name}.amount").map(&:id).map(&:to_s)
           end
         end
@@ -110,7 +109,7 @@ describe 'API V2 Storefront Products Spec', type: :request do
           it_behaves_like 'returns 200 HTTP status'
 
           it 'returns products sorted by price with descending order' do
-            expect(json_response['data'].count).to      eq Spree::Product.count
+            expect(json_response['data'].count).to eq Spree::Product.count
             expect(json_response['data'].pluck(:id)).to eq Spree::Product.joins(master: :prices).select("#{Spree::Product.table_name}.*, #{Spree::Price.table_name}.amount").distinct.order("#{Spree::Price.table_name}.amount DESC").map(&:id).map(&:to_s)
           end
         end
@@ -123,7 +122,7 @@ describe 'API V2 Storefront Products Spec', type: :request do
           it_behaves_like 'returns 200 HTTP status'
 
           it 'returns products sorted by updated_at' do
-            expect(json_response['data'].count).to      eq Spree::Product.count
+            expect(json_response['data'].count).to eq Spree::Product.count
             expect(json_response['data'].pluck(:id)).to eq Spree::Product.order(:updated_at).pluck(:id).map(&:to_s)
           end
         end
@@ -134,7 +133,7 @@ describe 'API V2 Storefront Products Spec', type: :request do
           it_behaves_like 'returns 200 HTTP status'
 
           it 'returns products sorted by updated_at with descending order' do
-            expect(json_response['data'].count).to      eq Spree::Product.count
+            expect(json_response['data'].count).to eq Spree::Product.count
             expect(json_response['data'].pluck(:id)).to eq Spree::Product.order(updated_at: :desc).pluck(:id).map(&:to_s)
           end
         end
@@ -152,7 +151,7 @@ describe 'API V2 Storefront Products Spec', type: :request do
         end
 
         it 'returns proper meta data' do
-          expect(json_response['meta']['count']).to       eq 2
+          expect(json_response['meta']['count']).to eq 2
           expect(json_response['meta']['total_count']).to eq Spree::Product.count
         end
 
@@ -173,7 +172,7 @@ describe 'API V2 Storefront Products Spec', type: :request do
         end
 
         it 'returns proper meta data' do
-          expect(json_response['meta']['count']).to       eq json_response['data'].count
+          expect(json_response['meta']['count']).to eq json_response['data'].count
           expect(json_response['meta']['total_count']).to eq Spree::Product.count
         end
 

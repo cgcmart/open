@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'shared_examples/api_v2/base'
 
 describe 'Storefront API v2 Countries spec', type: :request do
   let!(:country) { create(:country) }
@@ -123,8 +122,8 @@ describe 'Storefront API v2 Countries spec', type: :request do
 
       it 'returns country with included states' do
         expect(json_response['data']).to have_iso(country.iso.to_s)
-        expect(json_response['included']).to   include(have_type('state').and(have_attribute(:abbr).with_value(states.first.abbr)))
-        expect(json_response['included']).to   include(have_type('state').and(have_attribute(:name).with_value(states.first.name)))
+        expect(json_response['included']).to include(have_type('state').and(have_attribute(:abbr).with_value(states.first.abbr)))
+        expect(json_response['included']).to include(have_type('state').and(have_attribute(:name).with_value(states.first.name)))
       end
     end
   end
