@@ -6,12 +6,12 @@ require 'spree/testing_support/factories/product_factory'
 
 FactoryBot.define do
   factory :stock_location, class: 'Spree::StockLocation' do
-    name                  { FFaker::Name.unique.name }
-    address1              { '1600 Pennsylvania Ave NW' }
-    city                  { 'Washington' }
-    zipcode               { '20500' }
-    phone                 { '(202) 456-1111' }
-    active                { true }
+    name { FFaker::Name.unique.name }
+    address1 { '1600 Pennsylvania Ave NW' }
+    city { 'Washington' }
+    zipcode { '20500' }
+    phone { '(202) 456-1111' }
+    active { true }
     backorderable_default { true }
 
     country  { |stock_location| Spree::Country.first || stock_location.association(:country) }
@@ -23,7 +23,7 @@ FactoryBot.define do
     end
 
     factory :stock_location_without_variant_propagation do
-      propagate_all_variants false
+      propagate_all_variants { false }
     end
 
     factory :stock_location_with_items do

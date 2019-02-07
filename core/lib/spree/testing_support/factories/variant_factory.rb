@@ -9,13 +9,13 @@ FactoryBot.define do
   sequence(:random_float) { BigDecimal("#{rand(200)}.#{rand(99)}") }
 
   factory :base_variant, class: Spree::Variant do
-    price           { 19.99 }
-    cost_price      { 17.00 }
-    sku             { generate(:sku) }
-    is_master       { 0 }
+    price { 19.99 }
+    cost_price { 17.00 }
+    sku { generate(:sku) }
+    is_master { 0 }
     track_inventory { true }
 
-    product       { |p| p.association(:base_product) }
+    product { |p| p.association(:base_product) }
 
     # ensure stock item will be created for this variant
     before(:create) { create(:stock_location) unless Spree::StockLocation.count.any? }

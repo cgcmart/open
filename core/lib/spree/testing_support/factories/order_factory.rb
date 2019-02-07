@@ -12,7 +12,7 @@ FactoryBot.define do
     user
     bill_address
     ship_address
-    completed_at nil
+    completed_at { nil }
     email { user.email }
     store
     currency 'USD'
@@ -76,7 +76,7 @@ FactoryBot.define do
 
       factory :completed_order_with_promotion do
         transient do
-          promotion nil
+          promotion { nil }
         end
 
         after(:create) do |order, evaluator|

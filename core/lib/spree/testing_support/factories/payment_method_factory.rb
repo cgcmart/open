@@ -22,9 +22,9 @@ FactoryBot.define do
   end
 
   factory :store_credit_payment_method, class: 'Spree::PaymentMethod::StoreCredit' do
-    name          { 'Store Credit' }
-    description   { 'Store Credit' }
-    active        { true }
+    name { 'Store Credit' }
+    description { 'Store Credit' }
+    active { true }
     available_to_admin { false }
     available_to_users { false }
     auto_capture { true }

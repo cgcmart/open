@@ -8,8 +8,8 @@ FactoryBot.define do
     skip_create
 
     transient do
-      stock_location    { build(:stock_location) }
-      contents          { [] }
+      stock_location { build(:stock_location) }
+      contents { [] }
       variants_contents { {} }
     end
 

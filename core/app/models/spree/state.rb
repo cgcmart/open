@@ -37,5 +37,9 @@ module Spree
     def to_s
       name
     end
+
+    def state_with_country
+      "#{name} (#{country})"
+    end
   end
 end

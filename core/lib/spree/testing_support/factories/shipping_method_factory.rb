@@ -16,8 +16,8 @@ FactoryBot.define do
       [Spree::Zone.find_by(name: 'GlobalZone') || FactoryBot.create(:global_zone)]
     end
 
-    name       { 'UPS Ground' }
-    code       { 'UPS_GROUND' }
+    name { 'UPS Ground' }
+    code { 'UPS_GROUND' }
     carrier { 'UPS' }
     service_level { '1DAYGROUND' }
 
