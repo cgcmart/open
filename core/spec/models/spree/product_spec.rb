@@ -591,7 +591,6 @@ RSpec.describe Spree::Product, type: :model do
         Spree::Image.create(params.merge(alt: 'position 1', position: 1)),
         Spree::Image.create(params.merge(viewable_type: 'ThirdParty::Extension', alt: 'position 1', position: 2))
       ]
-      # fix for ActiveStorage
       images.each_with_index do |image, index|
         image.attachment.attach(io: file, filename: "thinking-cat-#{index + 1}.jpg", content_type: 'image/jpeg')
         image.save!

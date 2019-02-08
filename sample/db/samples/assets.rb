@@ -187,13 +187,8 @@ unless ENV['SKIP_SAMPLE_IMAGES']
   images.each do |variant, attachments|
     puts "Loading images for #{variant.product.name}"
     attachments.each do |attrs|
-      if Rails.application.config.use_paperclip
-        file_name = attrs.delete(:name)
-        variant.images.create!(attrs) if variant.images.where(attachment_file_name: file_name).none?
-      else
-        name, type = attrs.delete(:name).split('.')
-        attach_active_storage_image(variant, name, type)
-      end
+      name, type = attrs.delete(:name).split('.')
+      attach_active_storage_image(variant, name, type)
     end
   end
 end

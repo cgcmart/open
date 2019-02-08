@@ -11,6 +11,7 @@ describe 'Visiting Products', type: :feature, inaccessible: true do
 
   before do
     visit spree.root_path
+    allow(ENV).to receive(:[]).and_call_original
   end
 
   it 'is able to show the shopping cart after adding a product to it', js: true do

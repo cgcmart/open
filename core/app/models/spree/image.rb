@@ -2,6 +2,7 @@
 
 module Spree
   class Image < Asset
+    include Configuration::ActiveStorage
     include Rails.application.routes.url_helpers
 
     def styles
@@ -9,8 +10,8 @@ module Spree
         width, height = size[/(\d+)x(\d+)/].split('x')
 
         {
-          url:    polymorphic_path(attachment.variant(resize: size), only_path: true),
-          width:  width,
+          url: polymorphic_path(attachment.variant(resize: size), only_path: true),
+          width: width,
           height: height
         }
       end

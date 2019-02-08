@@ -17,8 +17,6 @@ describe 'Product Images', type: :feature, js: true do
 
   context 'uploading, editing, and deleting an image' do
     it 'allows an admin to upload and edit an image for a product' do
-      Spree::Image.attachment_definitions[:attachment].delete :storage
-
       create(:product)
 
       visit spree.admin_products_path

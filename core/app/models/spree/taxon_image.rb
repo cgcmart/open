@@ -2,7 +2,7 @@
 
 module Spree
   class TaxonImage < Asset
-    include configuration/active_storage
+    include configuration::active_storage
     include Rails.application.routes.url_helpers
 
     def styles
