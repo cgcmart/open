@@ -54,7 +54,7 @@ module Spree
       end
 
       @@product_attributes = [
-        :id, :name, :description, :price, :display_price, :available_on,
+        :id, :name, :description, :available_on,
         :slug, :meta_description, :meta_keywords, :shipping_category_id,
         :taxon_ids, :total_on_hand, :meta_title
       ]
@@ -64,7 +64,7 @@ module Spree
       ]
 
       @@variant_attributes = [
-        :id, :name, :sku, :price, :weight, :height, :width, :depth, :is_master,
+        :id, :name, :sku, :weight, :height, :width, :depth, :is_master,
         :slug, :description, :track_inventory
       ]
 
