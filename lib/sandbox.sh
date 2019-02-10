@@ -50,6 +50,7 @@ group :test, :development do
 end
 RUBY
 
+sed -i -e "s/gem 'sqlite3'/gem 'sqlite3', '~> 1.3.6'/g" Gemfile
 bundle install --gemfile Gemfile
 bundle exec rails db:drop || true
 bundle exec rails db:create
