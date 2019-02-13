@@ -64,7 +64,7 @@ module Spree
           end
 
           def shipping_rates
-            result = dependencies[:shipping_rates_getter].call(order: spree_current_order)
+            result = shipping_rates_service.call(order: spree_current_order)
 
             render_serialized_payload { serialize_shipping_rates(result.value) }
           end

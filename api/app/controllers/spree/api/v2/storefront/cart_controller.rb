@@ -42,7 +42,7 @@ module Spree
           def remove_line_item
             spree_authorize! :update, spree_current_order, order_token
 
-            remove_item_service.call(
+            remove_line_item_service.call(
               order:     spree_current_order,
               line_item: line_item
             )
