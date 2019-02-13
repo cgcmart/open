@@ -7,7 +7,7 @@
     <div data-hook="empty_cart">
       <div class="alert alert-info"><%= t('spree.your_cart_is_empty') %></div>
       <p>
-        <%= link_to t('spree.continue_shopping'), products_path, class: 'button continue' %>
+        <%= link_to t('spree.continue_shopping'), products_path, class: 'btn btn-outline-secondary' %>
       </p>
     </div>
   <% else %>
@@ -16,13 +16,27 @@
         <div data-hook="inside_cart_form">
 
           <div data-hook="cart_items" class="table-responsive">
-            <%= render 'spree/orders/form', locals: { order_form: order_form } %>
+            <%= render partial: 'form', locals: { order_form: order_form } %>
           </div>
 
           <div class="row">
+            <% if Spree::Frontend::Config[:coupon_codes_enabled] %>
+              <div class='col-md-6 form-inline' data-hook='coupon_code'>
+                <%= order_form.label :coupon_code, class: 'mr-2' %>
+                <div class="input-group">
+                  <%= order_form.text_field :coupon_code, size: '30', class: 'form-control' %>
+                  <div class="input-group-append">
+                    <%= button_tag t('spree.coupon_code_apply'), class: 'btn btn-outline-secondary' %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
             <div class="links col-md-6 d-flex justify-content-end" data-hook="cart_buttons">
               <div class="form-group">
-                <%= button_tag t("spree.update'), class: 'btn btn-primary', id: 'update-button' %>
+                <%= button_tag class: 'btn btn-primary', id: 'update-button' do %>
+                  <%= t('spree.update') %>
+                <% end %>
                 <%= button_tag class: 'btn btn-lg btn-success', id: 'checkout-link', name: 'checkout' do %>
                   <%= t('spree.checkout') %>
                 <% end %>
@@ -41,10 +55,7 @@
           <%= link_to t('spree.continue_shopping'), products_path, class: 'continue' %>
         </p>
       <% end %>
-
-      <%= render template: 'spree/coupon_codes/new' %>
     </div>
-
   <% end %>
 </div>
 

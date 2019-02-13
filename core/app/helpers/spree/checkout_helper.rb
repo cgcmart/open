@@ -11,13 +11,13 @@ module Spree
       items = states.map do |state|
         text = I18n.t("spree.order_state.#{state}").titleize
 
-        css_classes = [nav-item]
+        css_classes = ['nav-item']
         current_index = states.index(@order.state)
         state_index = states.index(state)
 
         if state_index < current_index
           css_classes << 'completed'
-          text = link_to text, checkout_state_path(state)
+          text = link_to text, checkout_state_path(state), class: 'nav-link'
         end
 
         css_classes << 'next' if state_index == current_index + 1
@@ -27,7 +27,7 @@ module Spree
         # It'd be nice to have separate classes but combining them with a dash helps out for IE6 which only sees the last class
         content_tag('li', content_tag('a', text, class: "nav-link #{'active' if state == @order.state}"), class: css_classes.join('-'))
       end
-      content_tag('ol', raw(items.join("\n")), class: 'progress-steps', id: "checkout-step-#{@order.state}")
+      content_tag('ol', raw(items.join("\n")), class: 'progress-steps nav nav-pills nav-justified flex-column flex-md-row', id: "checkout-step-#{@order.state}")
     end
   end
 end

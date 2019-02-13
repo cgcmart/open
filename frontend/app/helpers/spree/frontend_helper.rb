@@ -44,11 +44,12 @@ module Spree
         text = "<span class='glyphicon glyphicon-shopping-cart'></span> #{text}: (#{I18n.t('spree.empty')})"
         css_class = 'empty'
       else
-        text = "<span class='glyphicon glyphicon-shopping-cart'></span> #{text}: (#{simple_current_order.item_count})  <span class='amount'>#{simple_current_order.display_total.to_html}</span>"
+        text = "<span class='glyphicon glyphicon-shopping-cart'></span> #{text}: (#{simple_current_order.item_count})
+                <span class='amount'>#{simple_current_order.display_total.to_html}</span>"
         css_class = 'full'
       end
 
-      link_to text.html_safe, spree.cart_path, class: "cart-info #{css_class}"
+      link_to text.html_safe, spree.cart_path, class: "cart-info nav-link #{css_class}"
     end
 
     def taxons_tree(root_taxon, current_taxon, max_level = 1)

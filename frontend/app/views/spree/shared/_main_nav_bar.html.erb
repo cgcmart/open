@@ -1,16 +1,16 @@
-<nav class="col-md-12">
-  <div id="main-nav-bar" class="navbar">
-    <ul class="nav" data-hook>
-      <li id="home-link" data-hook><%= link_to t('spree.home'), spree.root_path %></li>
-    </ul>
-    <ul class="nav" data-hook>
-      <li id="link-to-cart" class="nav-item" data-hook>
-        <noscript>
-          <%= link_to t('spree.cart'), spree.cart_path %>
-        </noscript>
-        &nbsp;
-      </li>
-    </ul>
-    <script>Spree.fetch_cart('<%= j spree.cart_link_path %>')</script>
-  </div>
+<nav id="main-nav-bar" class="navbar">
+  <ul class="nav" data-hook>
+    <li id="home-link" class="nav-item" data-hook>
+      <%= link_to t('spree.home'), spree.root_path, class: 'nav-link' %>
+    </li>
+  </ul>
+  <ul class="nav navbar-right" data-hook>
+    <li id="link-to-cart" class="nav-item" data-hook>
+      <noscript>
+        <%= link_to_cart %>
+      </noscript>
+      &nbsp;
+    </li>
+    <script>Spree.fetch_cart()</script>
+  </ul>
 </nav>

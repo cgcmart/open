@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.summary     = 'Cart and storeFront for the Open e-commerce project.'
   s.description = s.summary
 
-  s.required_ruby_version = '>= 2.3.0'
+  s.required_ruby_version = '>= 2.5.0'
 
   s.author       = 'Open Team'
   s.email        = 'open@china-guide.com'
