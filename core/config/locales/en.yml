@@ -442,7 +442,7 @@ en:
           attributes:
             price:
               not_a_number: is not valid
-v        spree/price:
+        spree/price:
           attributes:
             currency:
               invalid_code: is not a valid currency code
@@ -1045,6 +1045,7 @@ v        spree/price:
     back_to_refund_reason_list: Back To Refund Reason List
     back_to_reimbursement_type_list: Back To Reimbursement Type List
     back_to_reports_list: Back To Reports List
+    back_to_resource_list: 'Back To %{resource} List'
     back_to_return_authorizations_list: Back To RMA List
     back_to_rma_reason_list: Back To RMA Reason List
     back_to_shipping_categories: Back To Shipping Categories
