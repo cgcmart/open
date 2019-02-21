@@ -43,20 +43,20 @@ module Spree
     belongs_to :store, class_name: 'Spree::Store'
 
     # Items
-    has_many :line_items, -> { order(:created_at, :id) }, dependent: :destroy, inverse_of: :order
+    has_many :line_items, -> { order(:created_at, :id) }, dependent: :destroy, inverse_of: :order, class_name: 'Spree::LineItem'
     has_many :variants, through: :line_items
     has_many :products, through: :variants
 
     # Shipping
-    has_many :shipments, dependent: :destroy, inverse_of: :order do
+    has_many :shipments, class_name: 'Spree::Shipment', dependent: :destroy, inverse_of: :order do
       def states
         pluck(:state).uniq
       end
     end
-    has_many :inventory_units, through: :shipments
+    has_many :inventory_units, through: :shipments, class_name: 'Spree::InventoryUnit'
 
     # Adjustments and promotions
-    has_many :adjustments, -> { order(:created_at) }, as: :adjustable, inverse_of: :adjustable, dependent: :destroy
+    has_many :adjustments, -> { order(:created_at) }, as: :adjustable, inverse_of: :adjustable, dependent: :destroy, class_name: 'Spree::Adjustment'
     has_many :line_item_adjustments, through: :line_items, source: :adjustments
     has_many :shipment_adjustments, through: :shipments, source: :adjustments
     has_many :all_adjustments,
@@ -68,15 +68,15 @@ module Spree
     has_many :promotions, through: :order_promotions
 
     # Payments
-    has_many :payments, dependent: :destroy, inverse_of: :order
+    has_many :payments, dependent: :destroy, inverse_of: :order, class_name: 'Spree::Payment'
 
     # Returns
-    has_many :return_authorizations, dependent: :destroy, inverse_of: :order
-    has_many :reimbursements, inverse_of: :order
+    has_many :return_authorizations, dependent: :destroy, inverse_of: :order, class_name: 'Spree::ReturnAuthorization'
+    has_many :reimbursements, inverse_of: :order, class_name: 'Spree::Reimbursement'
     has_many :refunds, through: :payments
 
     # Logging
-    has_many :state_changes, as: :stateful
+    has_many :state_changes, as: :stateful, class_name: 'Spree::StateChange'
     belongs_to :created_by, class_name: Spree::UserClassHandle.new
     belongs_to :approver, class_name: Spree::UserClassHandle.new
     belongs_to :canceler, class_name: Spree::UserClassHandle.new

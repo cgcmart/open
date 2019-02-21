@@ -12,8 +12,9 @@ module Spree
           Array.new(line_item.quantity) do
             Spree::InventoryUnit.new(
               pending: true,
-              variant: line_item.variant,
-              line_item: line_item
+              line_item_id: line_item.id,
+              variant_id: line_item.variant_id,
+              quantity: line_item.quantity
             )
           end
         end
