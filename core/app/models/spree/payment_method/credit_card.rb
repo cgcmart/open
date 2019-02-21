@@ -8,7 +8,7 @@ module Spree
   # See https://github.com/solidusio/solidus_gateway/ for
   # officially supported payment method implementations.
   #
-  class PaymentMethod::CreditCard < PaymentMethod
+  class PaymentMethod::CreditCard < ::Spree::PaymentMethod
     def payment_source_class
       Spree::CreditCard
     end

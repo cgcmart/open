@@ -1237,6 +1237,7 @@ en:
     editing_refund_reason: Editing Refund Reason
     editing_reimbursement: Editing Reimbursement
     editing_reimbursement_type: Editing Reimbursement Type
+    editing_resource: 'Editing %{resource}'
     editing_rma_reason: Editing RMA Reason
     editing_shipping_category: Editing Shipping Category
     editing_shipping_method: Editing Shipping Method
