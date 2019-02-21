@@ -21,9 +21,17 @@ RSpec.describe Spree::Taxon, type: :model do
   context 'set_permalink' do
     let(:taxon) { FactoryBot.build(:taxon, name: 'Ruby on Rails') }
 
-    it 'should set permalink correctly when no parent present' do
+    it 'sets permalink correctly when no parent present' do
       taxon.set_permalink
       expect(taxon.permalink).to eql 'ruby-on-rails'
+    end
+
+    context "updating a taxon permalink" do
+      it 'parameterizes permalink correctly' do
+        taxon.save!
+        taxon.update_attributes(permalink: 'spécial&charactèrs')
+        expect(taxon.permalink).to eql "special-characters"
+      end
     end
 
     it 'supports Chinese characters' do
@@ -37,15 +45,21 @@ RSpec.describe Spree::Taxon, type: :model do
 
       before       { allow(taxon).to receive_messages parent: parent }
 
-      it 'should set permalink correctly when taxon has parent' do
+      it 'sets permalink correctly when taxon has parent' do
         taxon.set_permalink
         expect(taxon.permalink).to eql 'brands/ruby-on-rails'
       end
 
-      it 'should set permalink correctly with existing permalink present' do
+      it 'sets permalink correctly with existing permalink present' do
         taxon.permalink = 'b/rubyonrails'
         taxon.set_permalink
         expect(taxon.permalink).to eql 'brands/rubyonrails'
+      end
+
+      it 'parameterizes permalink correctly' do
+        taxon.save!
+        taxon.update_attributes(permalink_part: 'spécial&charactèrs')
+        expect(taxon.reload.permalink).to eql "brands/special-characters"
       end
 
       it 'supports Chinese characters' do
@@ -133,6 +147,20 @@ RSpec.describe Spree::Taxon, type: :model do
 
       it "changes child's permalink" do
         is_expected.to change{ taxon2_child.reload.permalink }.from('t/t2/t2_child').to('t/t1/foo/t2_child')
+      end
+    end
+
+    context 'changing parent permalink with special characters ' do
+      subject do
+        -> { taxon2.update!(permalink: 'spécial&charactèrs') }
+      end
+
+      it 'changes own permalink with parameterized characters' do
+        is_expected.to change{ taxon2.reload.permalink }.from('t/t2').to('t/special-characters')
+      end
+
+      it 'changes child permalink with parameterized characters' do
+        is_expected.to change{ taxon2_child.reload.permalink }.from('t/t2/t2_child').to('t/special-characters/t2_child')
       end
     end
   end
