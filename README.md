@@ -107,6 +107,12 @@ Open Extensions provide additional features not present in the Core system.
 | [open_gateway](https://github.com/99cm/open_gateway) | Open Store payment system builds with Open supported payment method gateways.
 | [open_auth_devise](https://github.com/99cm/open_auth_devise) | Provides authentication services for Open, using the Devise gem.
 | [open_active_shipping](https://github.com/99cm/open_active_shipping) | Provides active shipping to get shipping rates and tracking from various carriers.
+| [open_globalize](https://github.com/99cm/open_globalize) | This is an integration of the Globalize with Open to localize model data.
+| [open_i18n](https://github.com/99cm/open_i18n) | Provides translation files supporting Open that users can select and switch languages. 
+| [open_editor](https://github.com/99cm/open_editor) | Supports to setup popular WYSIWYG text editor on Open project.
+| [open_essential_content](https://github.com/99cm/open_essential_content) | Provides static pages, content snippets, blogs, and an asset-upload interface on Open.
+| [open_print_invoice](https://github.com/99cm/open_print_invoice) | Provides a model of bookkeeping document, which generates viewable and printable PDF.
+| [open_reviews](https://github.com/99cm/open_reviews) | Provides basic review/rating functionality.
 
 ### Sandbox
 
