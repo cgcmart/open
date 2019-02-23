@@ -30,7 +30,7 @@ module Spree
               @order.associate_user!(requested_user, @order.email.blank?)
             end
 
-            unless @order.completed?
+            if @order.address?
               @order.next
               @order.refresh_shipment_rates
             end
