@@ -113,6 +113,7 @@ Open Extensions provide additional features not present in the Core system.
 | [open_essential_content](https://github.com/99cm/open_essential_content) | Provides static pages, content snippets, blogs, and an asset-upload interface on Open.
 | [open_print_invoice](https://github.com/99cm/open_print_invoice) | Provides a model of bookkeeping document, which generates viewable and printable PDF.
 | [open_reviews](https://github.com/99cm/open_reviews) | Provides basic review/rating functionality.
+| [open_reviews](https://github.com/99cm/open_comments) | Add comment and message funtionality to Open.
 
 ### Sandbox
 
