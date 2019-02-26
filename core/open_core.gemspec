@@ -39,7 +39,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'mini_magick', '~> 4.8.0'
   s.add_dependency 'money', '~> 6.13'
   s.add_dependency 'monetize', '~> 1.9.0'
-  s.add_dependency 'paranoia', '~> 2.4'
+  s.add_dependency 'paranoia', '~> 2.4.1'
+  s.add_dependency 'premailer-rails'
   s.add_dependency 'ransack', '~> 2.1.1'
   s.add_dependency 'state_machines-activerecord', '~> 0.5'
 end
