@@ -873,6 +873,7 @@ class OpenOneEight < ActiveRecord::Migration[5.2]
       t.datetime "deleted_at"
       t.string "originator_type"
       t.integer "originator_id"
+      t.integer :store_credit_reason_id
       t.datetime "created_at", precision: 6
       t.datetime "updated_at", precision: 6
       t.index ["deleted_at"], name: "index_spree_store_credit_events_on_deleted_at"
